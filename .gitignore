@@ -23,6 +23,7 @@ client_secret*.json
 *.sqlite3-journal
 *.db
 backend/media/
+backend/private-media/
 backend/.test-media/
 
 # ------------------------------------------------------------ Python

@@ -161,6 +161,9 @@ REST_FRAMEWORK = {
         "support_write": env.str("THROTTLE_SUPPORT_WRITE", default="60/hour"),
         "partner_apply": env.str("THROTTLE_PARTNER_APPLY", default="5/hour"),
         "partner_challenge": env.str("THROTTLE_PARTNER_CHALLENGE", default="60/hour"),
+        "ai_tryon_session": env.str("THROTTLE_AI_TRYON_SESSION", default="20/hour"),
+        "ai_tryon_token": env.str("THROTTLE_AI_TRYON_TOKEN", default="60/hour"),
+        "tryon_look": env.str("THROTTLE_TRYON_LOOK", default="60/hour"),
     },
     "NUM_PROXIES": NUM_PROXIES or None,
     "EXCEPTION_HANDLER": "apps.core.exceptions.api_exception_handler",
@@ -372,6 +375,33 @@ MEDIA_UPLOAD = {
         "MEDIA_UPLOAD_BROWSER_ORIGINS", default=["http://localhost:3001", "http://127.0.0.1:3001"]
     ),
 }
+
+# -------------------------------------------------------- AI virtual try-on (Decart)
+# Live try-on with Decart's realtime model (WebRTC, browser ↔ Decart). The permanent API key stays on
+# the server: browsers only receive short-lived client tokens minted by POST /v1/client/tokens.
+# Docs: https://docs.platform.decart.ai/models/realtime/virtual-try-on — empty key = feature off.
+AI_TRYON = {
+    "API_KEY": env.str("DECART_API_KEY", default=""),
+    "API_BASE": env.str("DECART_API_BASE", default="https://api.decart.ai").rstrip("/"),
+    "MODEL": env.str("DECART_TRYON_MODEL", default="lucy-vton-latest"),
+    #: Lifetime of a browser client token (Decart: 1-3600 s). Only needed to *start* a connection.
+    "TOKEN_TTL_SECONDS": env.int("DECART_TOKEN_TTL_SECONDS", default=60),
+    #: Web origins the token may be used from (Decart `allowedOrigins`); empty = not restricted.
+    "ALLOWED_ORIGINS": env.list("DECART_ALLOWED_ORIGINS", default=[]),
+    "REQUEST_TIMEOUT_SECONDS": env.int("DECART_REQUEST_TIMEOUT_SECONDS", default=10),
+    # Cost controls (Decart bills per second of active generation).
+    "MAX_SESSION_SECONDS": env.int("AI_TRYON_MAX_SESSION_SECONDS", default=180),
+    "DAILY_SECONDS_PER_USER": env.int("AI_TRYON_DAILY_SECONDS_PER_USER", default=900),
+    "DAILY_SESSIONS_PER_USER": env.int("AI_TRYON_DAILY_SESSIONS_PER_USER", default=10),
+    #: Platform-wide budget per day in seconds (0 = no global cap).
+    "GLOBAL_DAILY_SECONDS": env.int("AI_TRYON_GLOBAL_DAILY_SECONDS", default=0),
+    "MAX_TOKENS_PER_SESSION": env.int("AI_TRYON_MAX_TOKENS_PER_SESSION", default=20),
+    #: Only for the admin usage estimate (USD per second; Decart list price for lucy-vton at 720p).
+    "PRICE_PER_SECOND_USD": env.float("AI_TRYON_PRICE_PER_SECOND_USD", default=0.02),
+    "MAX_SAVED_LOOKS_PER_USER": env.int("AI_TRYON_MAX_SAVED_LOOKS", default=50),
+}
+#: Files only their owner may download (served by permission-checked views, never under /media/).
+PRIVATE_MEDIA_ROOT = Path(env.str("PRIVATE_MEDIA_ROOT", default=str(BASE_DIR / "private-media")))
 
 # ----------------------------------------------------------- Google Drive storage
 # OAuth "Web application" client. Read from the JSON downloaded from Google Cloud Console

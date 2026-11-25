@@ -12,6 +12,7 @@ os.environ.setdefault("DATABASE_URL", "sqlite://:memory:")
 os.environ.setdefault("GOOGLE_TOKEN_ENCRYPTION_KEY", "")
 os.environ.setdefault("GOOGLE_OAUTH_CLIENT_ID", "")
 os.environ.setdefault("GOOGLE_OAUTH_CLIENT_SECRET", "")
+os.environ.setdefault("DECART_API_KEY", "")
 
 from .settings import *  # noqa: E402,F403
 
@@ -32,8 +33,13 @@ REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"] = {  # noqa: F405
     "support_write": "10000/min",
     "partner_apply": "10000/min",
     "partner_challenge": "10000/min",
+    "ai_tryon_session": "10000/min",
+    "ai_tryon_token": "10000/min",
+    "tryon_look": "10000/min",
 }
 MEDIA_ROOT = BASE_DIR / ".test-media"  # noqa: F405
+PRIVATE_MEDIA_ROOT = BASE_DIR / ".test-media" / "private"  # noqa: F405
+AI_TRYON = {**AI_TRYON, "API_KEY": "", "ALLOWED_ORIGINS": []}  # noqa: F405 - tests enable it explicitly
 MONITORING = {**MONITORING, "ASYNC": False}  # noqa: F405 - deterministic, inline writes
 GOOGLE_TOKEN_ENCRYPTION_KEYS = ["dGVzdF9nb29nbGVfdG9rZW5fa2V5X29ubHlfMDEyMzQ="]  # base64 of 32 test bytes
 GOOGLE_OAUTH_CLIENT_FILE = BASE_DIR / ".test-missing-google-client.json"  # noqa: F405 - tests inject config
