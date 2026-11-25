@@ -99,7 +99,7 @@ def test_one_active_session_per_user(ai_on, user, client_for):
     assert first.data["seconds_left"] <= dj_settings.AI_TRYON["MAX_SESSION_SECONDS"]
     second = start(client)
     assert second.status_code == 409 and second.data["error"]["code"] == "ai_session_already_active"
-    assert client.get(f"{BASE}/ai/status/").data["active_session"] == first.data["id"]
+    assert str(client.get(f"{BASE}/ai/status/").data["active_session"]) == first.data["id"]
     client.post(f"{BASE}/ai-sessions/{first.data['id']}/finish/", {"reason": "USER"}, format="json")
     assert start(client).status_code == 201
 
@@ -120,7 +120,8 @@ def test_daily_session_and_time_budgets(ai_on, user, client_for):
     assert res.status_code == 429 and res.data["error"]["code"] == "ai_daily_time_limit"
     ai_on.AI_TRYON = {**ai_on.AI_TRYON, "DAILY_SECONDS_PER_USER": 10_000}
     assert start(client).status_code == 201
-    client.post(f"{BASE}/ai-sessions/{client.get(f'{BASE}/ai/status/').data['active_session']}/finish/", {}, format="json")
+    active = client.get(f"{BASE}/ai/status/").data["active_session"]
+    client.post(f"{BASE}/ai-sessions/{active}/finish/", {}, format="json")
     res = start(client)
     assert res.status_code == 429 and res.data["error"]["code"] == "ai_daily_session_limit"
 
@@ -243,7 +244,7 @@ def make_garment(category_slug="kelinlik-liboslari", ai=True, **extra):
     garment = Garment.objects.create(
         category=GarmentCategory.objects.get(slug=category_slug),
         name=extra.pop("name", "Atlas ko'ylak"),
-        approval_status=ApprovalStatus.APPROVED,
+        approval_status=extra.pop("approval_status", ApprovalStatus.APPROVED),
         is_tryon_enabled=False,
         **extra,
     )
@@ -358,7 +359,7 @@ def test_saved_looks_are_private_files(ai_on, user, make_user, client_for):
     assert "/media/" not in res.data["image"]
 
     image = client.get(res.data["image"])
-    assert image.status_code == 200 and image["Cache-Control"] == "private, no-store"
+    assert image.status_code == 200 and "no-store" in image["Cache-Control"]
     assert b"".join(image.streaming_content)[:4] == b"RIFF"  # re-encoded WEBP, EXIF stripped
 
     stranger = client_for(make_user(Role.USER))

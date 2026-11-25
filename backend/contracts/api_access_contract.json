@@ -85,6 +85,27 @@
       "operation_id": "admin_virtual_tryon_garments_destroy",
       "schema_fingerprint": "d9e54e66451e5551"
     },
+    "DELETE /api/v1/admin/virtual-tryon/garments/{id}/ai-reference/": {
+      "allowed_roles": [
+        "ADMIN",
+        "SUPER_ADMIN"
+      ],
+      "auth_type": "JWT",
+      "required_permissions": [
+        "tryon.update"
+      ],
+      "role_requirements": {
+        "ADMIN": [
+          "tryon.update"
+        ]
+      },
+      "ownership_scope": null,
+      "conditions": [],
+      "access_status": "DERIVED",
+      "deprecated": false,
+      "operation_id": "admin_virtual_tryon_garments_ai_reference_destroy",
+      "schema_fingerprint": "d9e54e66451e5551"
+    },
     "DELETE /api/v1/admin/virtual-tryon/garments/{id}/assets/{kind}/": {
       "allowed_roles": [
         "ADMIN",
@@ -104,7 +125,7 @@
       "access_status": "DERIVED",
       "deprecated": false,
       "operation_id": "admin_virtual_tryon_garments_assets_destroy",
-      "schema_fingerprint": "25fb0cb6e04e19dd"
+      "schema_fingerprint": "c62ee05393a6877e"
     },
     "DELETE /api/v1/admins/{id}/": {
       "allowed_roles": [
@@ -374,6 +395,20 @@
       "access_status": "DERIVED",
       "deprecated": false,
       "operation_id": "virtual_tryon_favorites_destroy",
+      "schema_fingerprint": "d9e54e66451e5551"
+    },
+    "DELETE /api/v1/virtual-tryon/looks/{id}/": {
+      "allowed_roles": [
+        "USER"
+      ],
+      "auth_type": "JWT",
+      "required_permissions": [],
+      "role_requirements": {},
+      "ownership_scope": "Faqat o'z obrazlari (boshqalarniki 404).",
+      "conditions": [],
+      "access_status": "DERIVED",
+      "deprecated": false,
+      "operation_id": "virtual_tryon_looks_destroy",
       "schema_fingerprint": "d9e54e66451e5551"
     },
     "GET /api/v1/admin/media-deletion-requests/": {
@@ -884,6 +919,27 @@
       "operation_id": "admin_venues_halls_sessions_list",
       "schema_fingerprint": "007bfbcfabd05c23"
     },
+    "GET /api/v1/admin/virtual-tryon/ai-usage/": {
+      "allowed_roles": [
+        "ADMIN",
+        "SUPER_ADMIN"
+      ],
+      "auth_type": "JWT",
+      "required_permissions": [
+        "tryon.view"
+      ],
+      "role_requirements": {
+        "ADMIN": [
+          "tryon.view"
+        ]
+      },
+      "ownership_scope": null,
+      "conditions": [],
+      "access_status": "DERIVED",
+      "deprecated": false,
+      "operation_id": "admin_virtual_tryon_ai_usage_retrieve",
+      "schema_fingerprint": "9b17c6705cd6c559"
+    },
     "GET /api/v1/admin/virtual-tryon/garments/": {
       "allowed_roles": [
         "ADMIN",
@@ -903,7 +959,7 @@
       "access_status": "DERIVED",
       "deprecated": false,
       "operation_id": "admin_virtual_tryon_garments_list",
-      "schema_fingerprint": "c4cc9f3125fea4ee"
+      "schema_fingerprint": "440b609b23930a56"
     },
     "GET /api/v1/admin/virtual-tryon/garments/{id}/": {
       "allowed_roles": [
@@ -924,7 +980,7 @@
       "access_status": "DERIVED",
       "deprecated": false,
       "operation_id": "admin_virtual_tryon_garments_retrieve",
-      "schema_fingerprint": "b3b8ce39fe7c0e2f"
+      "schema_fingerprint": "b70aefe01d0c03f0"
     },
     "GET /api/v1/admins/": {
       "allowed_roles": [
@@ -2220,6 +2276,34 @@
       "operation_id": "venues_reviews_retrieve",
       "schema_fingerprint": "5b436cd893f83719"
     },
+    "GET /api/v1/virtual-tryon/ai-sessions/{id}/": {
+      "allowed_roles": [
+        "USER"
+      ],
+      "auth_type": "JWT",
+      "required_permissions": [],
+      "role_requirements": {},
+      "ownership_scope": "Faqat o'z AI seanslari (boshqalarniki 404).",
+      "conditions": [],
+      "access_status": "DERIVED",
+      "deprecated": false,
+      "operation_id": "virtual_tryon_ai_sessions_retrieve",
+      "schema_fingerprint": "4e779740737e2954"
+    },
+    "GET /api/v1/virtual-tryon/ai/status/": {
+      "allowed_roles": [
+        "USER"
+      ],
+      "auth_type": "JWT",
+      "required_permissions": [],
+      "role_requirements": {},
+      "ownership_scope": "Faqat o'z limitlari.",
+      "conditions": [],
+      "access_status": "DERIVED",
+      "deprecated": false,
+      "operation_id": "virtual_tryon_ai_status_retrieve",
+      "schema_fingerprint": "30f698d93ba9ac76"
+    },
     "GET /api/v1/virtual-tryon/categories/": {
       "allowed_roles": [
         "USER"
@@ -2234,7 +2318,7 @@
       "access_status": "DERIVED",
       "deprecated": false,
       "operation_id": "virtual_tryon_categories_list",
-      "schema_fingerprint": "3308b20e6ca8ac13"
+      "schema_fingerprint": "98c216d6c33e7ad8"
     },
     "GET /api/v1/virtual-tryon/favorites/": {
       "allowed_roles": [
@@ -2248,7 +2332,7 @@
       "access_status": "DERIVED",
       "deprecated": false,
       "operation_id": "virtual_tryon_favorites_list",
-      "schema_fingerprint": "24ae6303c505a984"
+      "schema_fingerprint": "8f1d06fa334f4a54"
     },
     "GET /api/v1/virtual-tryon/garments/": {
       "allowed_roles": [
@@ -2264,7 +2348,7 @@
       "access_status": "DERIVED",
       "deprecated": false,
       "operation_id": "virtual_tryon_garments_list",
-      "schema_fingerprint": "d927b60160b190c2"
+      "schema_fingerprint": "6e8de46c6256477a"
     },
     "GET /api/v1/virtual-tryon/garments/{id}/": {
       "allowed_roles": [
@@ -2280,7 +2364,7 @@
       "access_status": "DERIVED",
       "deprecated": false,
       "operation_id": "virtual_tryon_garments_retrieve",
-      "schema_fingerprint": "7244c217e836f413"
+      "schema_fingerprint": "28bcbce633322715"
     },
     "GET /api/v1/virtual-tryon/garments/{id}/assets/": {
       "allowed_roles": [
@@ -2297,6 +2381,34 @@
       "deprecated": false,
       "operation_id": "virtual_tryon_garments_assets_retrieve",
       "schema_fingerprint": "1fe544701462a931"
+    },
+    "GET /api/v1/virtual-tryon/looks/": {
+      "allowed_roles": [
+        "USER"
+      ],
+      "auth_type": "JWT",
+      "required_permissions": [],
+      "role_requirements": {},
+      "ownership_scope": "Faqat o'z obrazlari (boshqalarniki 404).",
+      "conditions": [],
+      "access_status": "DERIVED",
+      "deprecated": false,
+      "operation_id": "virtual_tryon_looks_list",
+      "schema_fingerprint": "314d7907295ca481"
+    },
+    "GET /api/v1/virtual-tryon/looks/{id}/image/": {
+      "allowed_roles": [
+        "USER"
+      ],
+      "auth_type": "JWT",
+      "required_permissions": [],
+      "role_requirements": {},
+      "ownership_scope": "Faqat o'z obrazlari (boshqalarniki 404).",
+      "conditions": [],
+      "access_status": "DERIVED",
+      "deprecated": false,
+      "operation_id": "virtual_tryon_looks_image_retrieve",
+      "schema_fingerprint": "86793bf4d8cd3ea6"
     },
     "PATCH /api/v1/admin/platform-policy/": {
       "allowed_roles": [
@@ -2512,7 +2624,7 @@
       "access_status": "DERIVED",
       "deprecated": false,
       "operation_id": "admin_virtual_tryon_garments_partial_update",
-      "schema_fingerprint": "b14f910fcc0adb8e"
+      "schema_fingerprint": "b0a4226ba8e9e347"
     },
     "PATCH /api/v1/admins/{id}/": {
       "allowed_roles": [
@@ -3191,7 +3303,28 @@
       "access_status": "DERIVED",
       "deprecated": false,
       "operation_id": "admin_virtual_tryon_garments_create",
-      "schema_fingerprint": "c2f65d18110b7004"
+      "schema_fingerprint": "5c5a13038413b29c"
+    },
+    "POST /api/v1/admin/virtual-tryon/garments/{id}/ai-reference/": {
+      "allowed_roles": [
+        "ADMIN",
+        "SUPER_ADMIN"
+      ],
+      "auth_type": "JWT",
+      "required_permissions": [
+        "tryon.update"
+      ],
+      "role_requirements": {
+        "ADMIN": [
+          "tryon.update"
+        ]
+      },
+      "ownership_scope": null,
+      "conditions": [],
+      "access_status": "DERIVED",
+      "deprecated": false,
+      "operation_id": "admin_virtual_tryon_garments_ai_reference_create",
+      "schema_fingerprint": "3fefd84f65122dc4"
     },
     "POST /api/v1/admin/virtual-tryon/garments/{id}/approve/": {
       "allowed_roles": [
@@ -3212,7 +3345,7 @@
       "access_status": "DERIVED",
       "deprecated": false,
       "operation_id": "admin_virtual_tryon_garments_approve_create",
-      "schema_fingerprint": "a214dde52616f210"
+      "schema_fingerprint": "23e38fc84d087a2c"
     },
     "POST /api/v1/admin/virtual-tryon/garments/{id}/assets/": {
       "allowed_roles": [
@@ -3233,7 +3366,7 @@
       "access_status": "DERIVED",
       "deprecated": false,
       "operation_id": "admin_virtual_tryon_garments_assets_create",
-      "schema_fingerprint": "9c76254bbbebbd9b"
+      "schema_fingerprint": "21665a8ffca480fb"
     },
     "POST /api/v1/admin/virtual-tryon/garments/{id}/reject/": {
       "allowed_roles": [
@@ -3254,7 +3387,7 @@
       "access_status": "DERIVED",
       "deprecated": false,
       "operation_id": "admin_virtual_tryon_garments_reject_create",
-      "schema_fingerprint": "3417787b6b746de3"
+      "schema_fingerprint": "c0c8a342054530c4"
     },
     "POST /api/v1/admins/": {
       "allowed_roles": [
@@ -4144,6 +4277,53 @@
       "operation_id": "venues_like_create",
       "schema_fingerprint": "d2c6136e4a8071b4"
     },
+    "POST /api/v1/virtual-tryon/ai-sessions/": {
+      "allowed_roles": [
+        "USER"
+      ],
+      "auth_type": "JWT",
+      "required_permissions": [],
+      "role_requirements": {},
+      "ownership_scope": "Faqat o'z AI seanslari (boshqalarniki 404).",
+      "conditions": [
+        "Kamera va AI qayta ishlashga rozilik (consent=true) majburiy.",
+        "Bir vaqtda bitta faol seans (409); kunlik soni va soniyalari cheklangan (429)."
+      ],
+      "access_status": "DERIVED",
+      "deprecated": false,
+      "operation_id": "virtual_tryon_ai_sessions_create",
+      "schema_fingerprint": "285f03a2e2af87e6"
+    },
+    "POST /api/v1/virtual-tryon/ai-sessions/{id}/finish/": {
+      "allowed_roles": [
+        "USER"
+      ],
+      "auth_type": "JWT",
+      "required_permissions": [],
+      "role_requirements": {},
+      "ownership_scope": "Faqat o'z AI seanslari (boshqalarniki 404).",
+      "conditions": [],
+      "access_status": "DERIVED",
+      "deprecated": false,
+      "operation_id": "virtual_tryon_ai_sessions_finish_create",
+      "schema_fingerprint": "ab8b1247b485f1e3"
+    },
+    "POST /api/v1/virtual-tryon/ai-sessions/{id}/token/": {
+      "allowed_roles": [
+        "USER"
+      ],
+      "auth_type": "JWT",
+      "required_permissions": [],
+      "role_requirements": {},
+      "ownership_scope": "Faqat o'z faol seansi.",
+      "conditions": [
+        "Qisqa muddatli Decart client token; doimiy kalit hech qachon qaytarilmaydi."
+      ],
+      "access_status": "DERIVED",
+      "deprecated": false,
+      "operation_id": "virtual_tryon_ai_sessions_token_create",
+      "schema_fingerprint": "a8dd10410280df08"
+    },
     "POST /api/v1/virtual-tryon/favorites/": {
       "allowed_roles": [
         "USER"
@@ -4156,7 +4336,23 @@
       "access_status": "DERIVED",
       "deprecated": false,
       "operation_id": "virtual_tryon_favorites_create",
-      "schema_fingerprint": "0f41b7ffcdeb6e51"
+      "schema_fingerprint": "79a927fd449baf74"
+    },
+    "POST /api/v1/virtual-tryon/looks/": {
+      "allowed_roles": [
+        "USER"
+      ],
+      "auth_type": "JWT",
+      "required_permissions": [],
+      "role_requirements": {},
+      "ownership_scope": "Faqat o'z obrazlari (boshqalarniki 404).",
+      "conditions": [
+        "Faqat foydalanuvchi o'zi tanlagan kadr; soni cheklangan."
+      ],
+      "access_status": "DERIVED",
+      "deprecated": false,
+      "operation_id": "virtual_tryon_looks_create",
+      "schema_fingerprint": "b33ebcfc977f858f"
     },
     "POST /api/v1/virtual-tryon/sessions/": {
       "allowed_roles": [

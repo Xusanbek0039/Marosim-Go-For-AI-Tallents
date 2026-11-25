@@ -65,8 +65,9 @@ def _flatten(image: Image.Image) -> Image.Image:
 
 
 def _border_pixels(rgb: Image.Image) -> list[tuple[int, int, int]]:
-    small = rgb.copy()
-    small.thumbnail((256, 256))
+    # NEAREST keeps the background's texture: an averaging filter would make a busy room look plain.
+    scale = min(1.0, 256 / max(rgb.size))
+    small = rgb.resize((max(1, int(rgb.width * scale)), max(1, int(rgb.height * scale))), Image.NEAREST)
     w, h = small.size
     bx, by = max(1, int(w * BORDER)), max(1, int(h * BORDER))
     px = small.load()

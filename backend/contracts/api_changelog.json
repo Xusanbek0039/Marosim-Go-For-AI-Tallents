@@ -1374,6 +1374,83 @@
         "POST /api/v1/admin/virtual-tryon/garments/{id}/assets/",
         "POST /api/v1/admin/virtual-tryon/garments/{id}/reject/"
       ]
+    },
+    {
+      "revision": 28,
+      "date": "2026-11-25",
+      "note": "AI virtual try-on (Decart): ai status, ai-sessions (create/retrieve/token/finish), saved looks, admin ai-reference upload/delete and ai-usage",
+      "added": [
+        "DELETE /api/v1/admin/virtual-tryon/garments/{id}/ai-reference/",
+        "DELETE /api/v1/virtual-tryon/looks/{id}/",
+        "GET /api/v1/admin/virtual-tryon/ai-usage/",
+        "GET /api/v1/virtual-tryon/ai-sessions/{id}/",
+        "GET /api/v1/virtual-tryon/ai/status/",
+        "GET /api/v1/virtual-tryon/looks/",
+        "GET /api/v1/virtual-tryon/looks/{id}/image/",
+        "POST /api/v1/admin/virtual-tryon/garments/{id}/ai-reference/",
+        "POST /api/v1/virtual-tryon/ai-sessions/",
+        "POST /api/v1/virtual-tryon/ai-sessions/{id}/finish/",
+        "POST /api/v1/virtual-tryon/ai-sessions/{id}/token/",
+        "POST /api/v1/virtual-tryon/looks/"
+      ],
+      "removed": [],
+      "changed": {
+        "DELETE /api/v1/admin/virtual-tryon/garments/{id}/assets/{kind}/": [
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/admin/virtual-tryon/garments/": [
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/admin/virtual-tryon/garments/{id}/": [
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/virtual-tryon/categories/": [
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/virtual-tryon/favorites/": [
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/virtual-tryon/garments/": [
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/virtual-tryon/garments/{id}/": [
+          "schema_fingerprint"
+        ],
+        "PATCH /api/v1/admin/virtual-tryon/garments/{id}/": [
+          "schema_fingerprint"
+        ],
+        "POST /api/v1/admin/virtual-tryon/garments/": [
+          "schema_fingerprint"
+        ],
+        "POST /api/v1/admin/virtual-tryon/garments/{id}/approve/": [
+          "schema_fingerprint"
+        ],
+        "POST /api/v1/admin/virtual-tryon/garments/{id}/assets/": [
+          "schema_fingerprint"
+        ],
+        "POST /api/v1/admin/virtual-tryon/garments/{id}/reject/": [
+          "schema_fingerprint"
+        ],
+        "POST /api/v1/virtual-tryon/favorites/": [
+          "schema_fingerprint"
+        ]
+      },
+      "breaking": [],
+      "schema_changed": [
+        "DELETE /api/v1/admin/virtual-tryon/garments/{id}/assets/{kind}/",
+        "GET /api/v1/admin/virtual-tryon/garments/",
+        "GET /api/v1/admin/virtual-tryon/garments/{id}/",
+        "GET /api/v1/virtual-tryon/categories/",
+        "GET /api/v1/virtual-tryon/favorites/",
+        "GET /api/v1/virtual-tryon/garments/",
+        "GET /api/v1/virtual-tryon/garments/{id}/",
+        "PATCH /api/v1/admin/virtual-tryon/garments/{id}/",
+        "POST /api/v1/admin/virtual-tryon/garments/",
+        "POST /api/v1/admin/virtual-tryon/garments/{id}/approve/",
+        "POST /api/v1/admin/virtual-tryon/garments/{id}/assets/",
+        "POST /api/v1/admin/virtual-tryon/garments/{id}/reject/",
+        "POST /api/v1/virtual-tryon/favorites/"
+      ]
     }
   ]
 }

@@ -5622,6 +5622,87 @@ paths:
       x-documentation:
         status: DOCUMENTED
         missing: []
+  /api/v1/admin/virtual-tryon/ai-usage/:
+    get:
+      operationId: admin_virtual_tryon_ai_usage_retrieve
+      description: |-
+        Cost-control dashboard for AI try-on: sessions, seconds, estimated cost, measured quality.
+
+        **Ruxsat:** SUPER_ADMIN yoki `tryon.view` ruxsatli ADMIN
+      summary: AI kiyib ko'rish sarfi (seanslar, soniyalar, taxminiy narx, o'lchovlar)
+      parameters:
+      - in: query
+        name: days
+        schema:
+          type: integer
+        description: Oxirgi necha kun (1-90, standart 7)
+      tags:
+      - admin-virtual-tryon
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: {}
+          description: ''
+        '401':
+          description: not_authenticated / invalid_credentials / session_invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: permission_denied — rol yoki ruxsat yetarli emas (yoki CSRF)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: throttled / account_locked — `details.retry_after` soniyalarda
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      x-access:
+        auth_required: true
+        roles:
+        - ADMIN
+        - SUPER_ADMIN
+        permission: tryon.view
+        label: SUPER_ADMIN yoki `tryon.view` ruxsatli ADMIN
+      x-allowed-roles:
+      - ADMIN
+      - SUPER_ADMIN
+      x-auth-type: JWT
+      x-required-permissions:
+      - tryon.view
+      x-ownership-scope: null
+      x-access-conditions: []
+      x-access-status: DERIVED
+      x-access-policy:
+        allowed_roles:
+        - ADMIN
+        - SUPER_ADMIN
+        auth_type: JWT
+        required_permissions:
+        - tryon.view
+        role_requirements:
+          ADMIN:
+          - tryon.view
+        ownership_scope: null
+        conditions: []
+        permission_classes:
+        - HasAdminPermission
+        status: DERIVED
+        review_reasons: []
+        label: SUPER_ADMIN yoki `tryon.view` ruxsatli ADMIN
+      x-api-version: v1
+      x-documentation:
+        status: DOCUMENTED
+        missing: []
   /api/v1/admin/virtual-tryon/garments/:
     get:
       operationId: admin_virtual_tryon_garments_list
@@ -6092,6 +6173,185 @@ paths:
         label: SUPER_ADMIN yoki `tryon.delete` ruxsatli ADMIN
       x-api-version: v1
       description: '**Ruxsat:** SUPER_ADMIN yoki `tryon.delete` ruxsatli ADMIN'
+      x-documentation:
+        status: DOCUMENTED
+        missing: []
+  /api/v1/admin/virtual-tryon/garments/{id}/ai-reference/:
+    post:
+      operationId: admin_virtual_tryon_garments_ai_reference_create
+      description: |-
+        Format, o'lcham, nisbat va fon avtomatik tekshiriladi. Rasmda odam yo'qligini xodim tasdiqlashdan oldin o'zi tekshiradi. `prompt` — kiyim tavsifi (ixtiyoriy).
+
+        **Ruxsat:** SUPER_ADMIN yoki `tryon.update` ruxsatli ADMIN
+      summary: AI kiyib ko'rish rasmi (odamsiz, oddiy fonda, ≥512 px) — tekshiriladi
+        va almashtiriladi
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          pattern: ^[0-9a-fA-F-]{36}$
+        required: true
+      tags:
+      - admin-virtual-tryon
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AiReferenceUploadRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminGarment'
+          description: ''
+        '400':
+          description: validation_error — maydonlar bo'yicha xatolar `details` ichida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '401':
+          description: not_authenticated / invalid_credentials / session_invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: permission_denied — rol yoki ruxsat yetarli emas (yoki CSRF)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: not_found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: throttled / account_locked — `details.retry_after` soniyalarda
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      x-access:
+        auth_required: true
+        roles:
+        - ADMIN
+        - SUPER_ADMIN
+        permission: tryon.update
+        label: SUPER_ADMIN yoki `tryon.update` ruxsatli ADMIN
+      x-allowed-roles:
+      - ADMIN
+      - SUPER_ADMIN
+      x-auth-type: JWT
+      x-required-permissions:
+      - tryon.update
+      x-ownership-scope: null
+      x-access-conditions: []
+      x-access-status: DERIVED
+      x-access-policy:
+        allowed_roles:
+        - ADMIN
+        - SUPER_ADMIN
+        auth_type: JWT
+        required_permissions:
+        - tryon.update
+        role_requirements:
+          ADMIN:
+          - tryon.update
+        ownership_scope: null
+        conditions: []
+        permission_classes:
+        - HasAdminPermission
+        status: DERIVED
+        review_reasons: []
+        label: SUPER_ADMIN yoki `tryon.update` ruxsatli ADMIN
+      x-api-version: v1
+      x-documentation:
+        status: DOCUMENTED
+        missing: []
+    delete:
+      operationId: admin_virtual_tryon_garments_ai_reference_destroy
+      summary: AI kiyib ko'rish rasmini o'chirish
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          pattern: ^[0-9a-fA-F-]{36}$
+        required: true
+      tags:
+      - admin-virtual-tryon
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+        '401':
+          description: not_authenticated / invalid_credentials / session_invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: permission_denied — rol yoki ruxsat yetarli emas (yoki CSRF)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: not_found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: throttled / account_locked — `details.retry_after` soniyalarda
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      x-access:
+        auth_required: true
+        roles:
+        - ADMIN
+        - SUPER_ADMIN
+        permission: tryon.update
+        label: SUPER_ADMIN yoki `tryon.update` ruxsatli ADMIN
+      x-allowed-roles:
+      - ADMIN
+      - SUPER_ADMIN
+      x-auth-type: JWT
+      x-required-permissions:
+      - tryon.update
+      x-ownership-scope: null
+      x-access-conditions: []
+      x-access-status: DERIVED
+      x-access-policy:
+        allowed_roles:
+        - ADMIN
+        - SUPER_ADMIN
+        auth_type: JWT
+        required_permissions:
+        - tryon.update
+        role_requirements:
+          ADMIN:
+          - tryon.update
+        ownership_scope: null
+        conditions: []
+        permission_classes:
+        - HasAdminPermission
+        status: DERIVED
+        review_reasons: []
+        label: SUPER_ADMIN yoki `tryon.update` ruxsatli ADMIN
+      x-api-version: v1
+      description: '**Ruxsat:** SUPER_ADMIN yoki `tryon.update` ruxsatli ADMIN'
       x-documentation:
         status: DOCUMENTED
         missing: []
@@ -22205,6 +22465,436 @@ paths:
       x-documentation:
         status: DOCUMENTED
         missing: []
+  /api/v1/virtual-tryon/ai-sessions/:
+    post:
+      operationId: virtual_tryon_ai_sessions_create
+      summary: AI kiyib ko'rish seansini boshlash
+      tags:
+      - virtual-tryon
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AiSessionCreateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AiSessionCreateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AiSessionCreateRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AiSession'
+          description: ''
+        '400':
+          description: validation_error — maydonlar bo'yicha xatolar `details` ichida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '401':
+          description: not_authenticated / invalid_credentials / session_invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: permission_denied — rol yoki ruxsat yetarli emas (yoki CSRF)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: throttled / account_locked — `details.retry_after` soniyalarda
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      x-access:
+        auth_required: true
+        roles:
+        - USER
+        permission: null
+        label: USER
+      x-allowed-roles:
+      - USER
+      x-auth-type: JWT
+      x-required-permissions: []
+      x-ownership-scope: Faqat o'z AI seanslari (boshqalarniki 404).
+      x-access-conditions:
+      - Kamera va AI qayta ishlashga rozilik (consent=true) majburiy.
+      - Bir vaqtda bitta faol seans (409); kunlik soni va soniyalari cheklangan (429).
+      x-access-status: DERIVED
+      x-access-policy:
+        allowed_roles:
+        - USER
+        auth_type: JWT
+        required_permissions: []
+        role_requirements: {}
+        ownership_scope: Faqat o'z AI seanslari (boshqalarniki 404).
+        conditions:
+        - Kamera va AI qayta ishlashga rozilik (consent=true) majburiy.
+        - Bir vaqtda bitta faol seans (409); kunlik soni va soniyalari cheklangan
+          (429).
+        permission_classes:
+        - IsClientUser
+        status: DERIVED
+        review_reasons: []
+        label: USER
+      x-api-version: v1
+      description: |-
+        **Ruxsat:** USER
+
+        **Ma'lumot doirasi:** Faqat o'z AI seanslari (boshqalarniki 404).
+
+        **Shartlar:**
+        * Kamera va AI qayta ishlashga rozilik (consent=true) majburiy.
+        * Bir vaqtda bitta faol seans (409); kunlik soni va soniyalari cheklangan (429).
+      x-documentation:
+        status: DOCUMENTED
+        missing: []
+  /api/v1/virtual-tryon/ai-sessions/{id}/:
+    get:
+      operationId: virtual_tryon_ai_sessions_retrieve
+      summary: AI seansi
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          pattern: ^[0-9a-fA-F-]{36}$
+        required: true
+      tags:
+      - virtual-tryon
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AiSession'
+          description: ''
+        '401':
+          description: not_authenticated / invalid_credentials / session_invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: permission_denied — rol yoki ruxsat yetarli emas (yoki CSRF)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: not_found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: throttled / account_locked — `details.retry_after` soniyalarda
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      x-access:
+        auth_required: true
+        roles:
+        - USER
+        permission: null
+        label: USER
+      x-allowed-roles:
+      - USER
+      x-auth-type: JWT
+      x-required-permissions: []
+      x-ownership-scope: Faqat o'z AI seanslari (boshqalarniki 404).
+      x-access-conditions: []
+      x-access-status: DERIVED
+      x-access-policy:
+        allowed_roles:
+        - USER
+        auth_type: JWT
+        required_permissions: []
+        role_requirements: {}
+        ownership_scope: Faqat o'z AI seanslari (boshqalarniki 404).
+        conditions: []
+        permission_classes:
+        - IsClientUser
+        status: DERIVED
+        review_reasons: []
+        label: USER
+      x-api-version: v1
+      description: |-
+        **Ruxsat:** USER
+
+        **Ma'lumot doirasi:** Faqat o'z AI seanslari (boshqalarniki 404).
+      x-documentation:
+        status: DOCUMENTED
+        missing: []
+  /api/v1/virtual-tryon/ai-sessions/{id}/finish/:
+    post:
+      operationId: virtual_tryon_ai_sessions_finish_create
+      summary: AI seansini yakunlash (o'lchovlar bilan)
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          pattern: ^[0-9a-fA-F-]{36}$
+        required: true
+      tags:
+      - virtual-tryon
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AiFinishRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AiFinishRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AiFinishRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AiSession'
+          description: ''
+        '400':
+          description: validation_error — maydonlar bo'yicha xatolar `details` ichida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '401':
+          description: not_authenticated / invalid_credentials / session_invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: permission_denied — rol yoki ruxsat yetarli emas (yoki CSRF)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: not_found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: throttled / account_locked — `details.retry_after` soniyalarda
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      x-access:
+        auth_required: true
+        roles:
+        - USER
+        permission: null
+        label: USER
+      x-allowed-roles:
+      - USER
+      x-auth-type: JWT
+      x-required-permissions: []
+      x-ownership-scope: Faqat o'z AI seanslari (boshqalarniki 404).
+      x-access-conditions: []
+      x-access-status: DERIVED
+      x-access-policy:
+        allowed_roles:
+        - USER
+        auth_type: JWT
+        required_permissions: []
+        role_requirements: {}
+        ownership_scope: Faqat o'z AI seanslari (boshqalarniki 404).
+        conditions: []
+        permission_classes:
+        - IsClientUser
+        status: DERIVED
+        review_reasons: []
+        label: USER
+      x-api-version: v1
+      description: |-
+        **Ruxsat:** USER
+
+        **Ma'lumot doirasi:** Faqat o'z AI seanslari (boshqalarniki 404).
+      x-documentation:
+        status: DOCUMENTED
+        missing: []
+  /api/v1/virtual-tryon/ai-sessions/{id}/token/:
+    post:
+      operationId: virtual_tryon_ai_sessions_token_create
+      summary: Decart uchun qisqa muddatli client token (WebRTC ulanishini boshlash/qayta
+        ulash)
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          pattern: ^[0-9a-fA-F-]{36}$
+        required: true
+      tags:
+      - virtual-tryon
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AiToken'
+          description: ''
+        '400':
+          description: validation_error — maydonlar bo'yicha xatolar `details` ichida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '401':
+          description: not_authenticated / invalid_credentials / session_invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: permission_denied — rol yoki ruxsat yetarli emas (yoki CSRF)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: not_found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: throttled / account_locked — `details.retry_after` soniyalarda
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      x-access:
+        auth_required: true
+        roles:
+        - USER
+        permission: null
+        label: USER
+      x-allowed-roles:
+      - USER
+      x-auth-type: JWT
+      x-required-permissions: []
+      x-ownership-scope: Faqat o'z faol seansi.
+      x-access-conditions:
+      - Qisqa muddatli Decart client token; doimiy kalit hech qachon qaytarilmaydi.
+      x-access-status: DERIVED
+      x-access-policy:
+        allowed_roles:
+        - USER
+        auth_type: JWT
+        required_permissions: []
+        role_requirements: {}
+        ownership_scope: Faqat o'z faol seansi.
+        conditions:
+        - Qisqa muddatli Decart client token; doimiy kalit hech qachon qaytarilmaydi.
+        permission_classes:
+        - IsClientUser
+        status: DERIVED
+        review_reasons: []
+        label: USER
+      x-api-version: v1
+      description: |-
+        **Ruxsat:** USER
+
+        **Ma'lumot doirasi:** Faqat o'z faol seansi.
+
+        **Shartlar:**
+        * Qisqa muddatli Decart client token; doimiy kalit hech qachon qaytarilmaydi.
+      x-documentation:
+        status: DOCUMENTED
+        missing: []
+  /api/v1/virtual-tryon/ai/status/:
+    get:
+      operationId: virtual_tryon_ai_status_retrieve
+      summary: AI kiyib ko'rish holati va bugungi limit
+      tags:
+      - virtual-tryon
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AiStatus'
+          description: ''
+        '401':
+          description: not_authenticated / invalid_credentials / session_invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: permission_denied — rol yoki ruxsat yetarli emas (yoki CSRF)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: throttled / account_locked — `details.retry_after` soniyalarda
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      x-access:
+        auth_required: true
+        roles:
+        - USER
+        permission: null
+        label: USER
+      x-allowed-roles:
+      - USER
+      x-auth-type: JWT
+      x-required-permissions: []
+      x-ownership-scope: Faqat o'z limitlari.
+      x-access-conditions: []
+      x-access-status: DERIVED
+      x-access-policy:
+        allowed_roles:
+        - USER
+        auth_type: JWT
+        required_permissions: []
+        role_requirements: {}
+        ownership_scope: Faqat o'z limitlari.
+        conditions: []
+        permission_classes:
+        - IsClientUser
+        status: DERIVED
+        review_reasons: []
+        label: USER
+      x-api-version: v1
+      description: |-
+        **Ruxsat:** USER
+
+        **Ma'lumot doirasi:** Faqat o'z limitlari.
+      x-documentation:
+        status: DOCUMENTED
+        missing: []
   /api/v1/virtual-tryon/categories/:
     get:
       operationId: virtual_tryon_categories_list
@@ -22531,6 +23221,19 @@ paths:
       summary: Kiyimlar katalogi
       parameters:
       - in: query
+        name: ai
+        schema:
+          type: boolean
+        description: Faqat AI bilan kiyib ko'rsa bo'ladiganlari
+      - in: query
+        name: audience
+        schema:
+          type: string
+          enum:
+          - MEN
+          - UNISEX
+          - WOMEN
+      - in: query
         name: category
         schema:
           type: string
@@ -22786,6 +23489,326 @@ paths:
 
         **Shartlar:**
         * Faqat faol va tasdiqlangan (APPROVED) kiyimlar; boshqalari 404.
+      x-documentation:
+        status: DOCUMENTED
+        missing: []
+  /api/v1/virtual-tryon/looks/:
+    get:
+      operationId: virtual_tryon_looks_list
+      summary: Saqlangan AI obrazlarim
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      tags:
+      - virtual-tryon
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedSavedLookList'
+          description: ''
+        '401':
+          description: not_authenticated / invalid_credentials / session_invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: permission_denied — rol yoki ruxsat yetarli emas (yoki CSRF)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: throttled / account_locked — `details.retry_after` soniyalarda
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      x-access:
+        auth_required: true
+        roles:
+        - USER
+        permission: null
+        label: USER
+      x-allowed-roles:
+      - USER
+      x-auth-type: JWT
+      x-required-permissions: []
+      x-ownership-scope: Faqat o'z obrazlari (boshqalarniki 404).
+      x-access-conditions: []
+      x-access-status: DERIVED
+      x-access-policy:
+        allowed_roles:
+        - USER
+        auth_type: JWT
+        required_permissions: []
+        role_requirements: {}
+        ownership_scope: Faqat o'z obrazlari (boshqalarniki 404).
+        conditions: []
+        permission_classes:
+        - IsClientUser
+        status: DERIVED
+        review_reasons: []
+        label: USER
+      x-api-version: v1
+      description: |-
+        **Ruxsat:** USER
+
+        **Ma'lumot doirasi:** Faqat o'z obrazlari (boshqalarniki 404).
+      x-documentation:
+        status: DOCUMENTED
+        missing: []
+    post:
+      operationId: virtual_tryon_looks_create
+      summary: AI natijasidan kadrni saqlash
+      tags:
+      - virtual-tryon
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SavedLookCreateRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SavedLook'
+          description: ''
+        '400':
+          description: validation_error — maydonlar bo'yicha xatolar `details` ichida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '401':
+          description: not_authenticated / invalid_credentials / session_invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: permission_denied — rol yoki ruxsat yetarli emas (yoki CSRF)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: throttled / account_locked — `details.retry_after` soniyalarda
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      x-access:
+        auth_required: true
+        roles:
+        - USER
+        permission: null
+        label: USER
+      x-allowed-roles:
+      - USER
+      x-auth-type: JWT
+      x-required-permissions: []
+      x-ownership-scope: Faqat o'z obrazlari (boshqalarniki 404).
+      x-access-conditions:
+      - Faqat foydalanuvchi o'zi tanlagan kadr; soni cheklangan.
+      x-access-status: DERIVED
+      x-access-policy:
+        allowed_roles:
+        - USER
+        auth_type: JWT
+        required_permissions: []
+        role_requirements: {}
+        ownership_scope: Faqat o'z obrazlari (boshqalarniki 404).
+        conditions:
+        - Faqat foydalanuvchi o'zi tanlagan kadr; soni cheklangan.
+        permission_classes:
+        - IsClientUser
+        status: DERIVED
+        review_reasons: []
+        label: USER
+      x-api-version: v1
+      description: |-
+        **Ruxsat:** USER
+
+        **Ma'lumot doirasi:** Faqat o'z obrazlari (boshqalarniki 404).
+
+        **Shartlar:**
+        * Faqat foydalanuvchi o'zi tanlagan kadr; soni cheklangan.
+      x-documentation:
+        status: DOCUMENTED
+        missing: []
+  /api/v1/virtual-tryon/looks/{id}/:
+    delete:
+      operationId: virtual_tryon_looks_destroy
+      summary: Saqlangan obrazni o'chirish
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          pattern: ^[0-9a-fA-F-]{36}$
+        required: true
+      tags:
+      - virtual-tryon
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+        '401':
+          description: not_authenticated / invalid_credentials / session_invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: permission_denied — rol yoki ruxsat yetarli emas (yoki CSRF)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: not_found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: throttled / account_locked — `details.retry_after` soniyalarda
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      x-access:
+        auth_required: true
+        roles:
+        - USER
+        permission: null
+        label: USER
+      x-allowed-roles:
+      - USER
+      x-auth-type: JWT
+      x-required-permissions: []
+      x-ownership-scope: Faqat o'z obrazlari (boshqalarniki 404).
+      x-access-conditions: []
+      x-access-status: DERIVED
+      x-access-policy:
+        allowed_roles:
+        - USER
+        auth_type: JWT
+        required_permissions: []
+        role_requirements: {}
+        ownership_scope: Faqat o'z obrazlari (boshqalarniki 404).
+        conditions: []
+        permission_classes:
+        - IsClientUser
+        status: DERIVED
+        review_reasons: []
+        label: USER
+      x-api-version: v1
+      description: |-
+        **Ruxsat:** USER
+
+        **Ma'lumot doirasi:** Faqat o'z obrazlari (boshqalarniki 404).
+      x-documentation:
+        status: DOCUMENTED
+        missing: []
+  /api/v1/virtual-tryon/looks/{id}/image/:
+    get:
+      operationId: virtual_tryon_looks_image_retrieve
+      summary: Saqlangan obraz rasmi (faqat egasi)
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          pattern: ^[0-9a-fA-F-]{36}$
+        required: true
+      tags:
+      - virtual-tryon
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            image/webp:
+              schema:
+                type: string
+                format: binary
+          description: ''
+        '401':
+          description: not_authenticated / invalid_credentials / session_invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: permission_denied — rol yoki ruxsat yetarli emas (yoki CSRF)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: not_found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: throttled / account_locked — `details.retry_after` soniyalarda
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      x-access:
+        auth_required: true
+        roles:
+        - USER
+        permission: null
+        label: USER
+      x-allowed-roles:
+      - USER
+      x-auth-type: JWT
+      x-required-permissions: []
+      x-ownership-scope: Faqat o'z obrazlari (boshqalarniki 404).
+      x-access-conditions: []
+      x-access-status: DERIVED
+      x-access-policy:
+        allowed_roles:
+        - USER
+        auth_type: JWT
+        required_permissions: []
+        role_requirements: {}
+        ownership_scope: Faqat o'z obrazlari (boshqalarniki 404).
+        conditions: []
+        permission_classes:
+        - IsClientUser
+        status: DERIVED
+        review_reasons: []
+        label: USER
+      x-api-version: v1
+      description: |-
+        **Ruxsat:** USER
+
+        **Ma'lumot doirasi:** Faqat o'z obrazlari (boshqalarniki 404).
       x-documentation:
         status: DOCUMENTED
         missing: []
@@ -23281,6 +24304,16 @@ components:
           items:
             $ref: '#/components/schemas/GarmentAsset'
           readOnly: true
+        ai_prompt:
+          type: string
+          maxLength: 300
+        ai_reference_image_url:
+          type: string
+          nullable: true
+          readOnly: true
+        ai_ready:
+          type: boolean
+          readOnly: true
         created_at:
           type: string
           format: date-time
@@ -23290,6 +24323,8 @@ components:
           format: date-time
           readOnly: true
       required:
+      - ai_ready
+      - ai_reference_image_url
       - approval_status
       - assets
       - category
@@ -23347,6 +24382,9 @@ components:
           maximum: 9223372036854775807
           minimum: 0
           format: int64
+        ai_prompt:
+          type: string
+          maxLength: 300
       required:
       - category_id
       - name
@@ -23759,6 +24797,196 @@ components:
       - capacity_max
       - name
       - region
+    AiFinishRequest:
+      type: object
+      properties:
+        reason:
+          allOf:
+          - $ref: '#/components/schemas/AiTryOnEndReasonEnum'
+          default: USER
+        metrics:
+          $ref: '#/components/schemas/AiMetricsRequest'
+    AiMetricsRequest:
+      type: object
+      description: Measured in the browser; stored for the usage dashboard. No video
+        or images.
+      properties:
+        connect_ms:
+          type: integer
+          maximum: 600000
+          minimum: 0
+        first_frame_ms:
+          type: integer
+          maximum: 600000
+          minimum: 0
+        glass_to_glass_ms:
+          type: integer
+          maximum: 60000
+          minimum: 0
+        fps:
+          type: number
+          format: double
+          maximum: 240
+          minimum: 0
+        interruptions:
+          type: integer
+          maximum: 10000
+          minimum: 0
+        generation_seconds:
+          type: number
+          format: double
+          maximum: 86400
+          minimum: 0
+        garments_tried:
+          type: integer
+          maximum: 10000
+          minimum: 0
+    AiReferenceUploadRequest:
+      type: object
+      properties:
+        image:
+          type: string
+          format: binary
+          description: 'Kiyimning toza rasmi: odamsiz, oq yoki bir xil rangli fonda,
+            kamida 512×512, JPG/PNG/WEBP.'
+        prompt:
+          type: string
+          maxLength: 300
+      required:
+      - image
+    AiSession:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/AiTryOnSessionStatusEnum'
+          readOnly: true
+        provider_model:
+          type: string
+          readOnly: true
+        started_at:
+          type: string
+          format: date-time
+          readOnly: true
+        expires_at:
+          type: string
+          format: date-time
+          readOnly: true
+        seconds_left:
+          type: integer
+          readOnly: true
+        ended_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        end_reason:
+          allOf:
+          - $ref: '#/components/schemas/AiTryOnEndReasonEnum'
+          readOnly: true
+        token_count:
+          type: integer
+          readOnly: true
+      required:
+      - end_reason
+      - ended_at
+      - expires_at
+      - id
+      - provider_model
+      - seconds_left
+      - started_at
+      - status
+      - token_count
+    AiSessionCreateRequest:
+      type: object
+      properties:
+        consent:
+          type: boolean
+          description: Foydalanuvchi kamera tasviri AI xizmatiga (Decart) qayta ishlash
+            uchun yuborilishiga rozi.
+      required:
+      - consent
+    AiStatus:
+      type: object
+      properties:
+        enabled:
+          type: boolean
+          description: Server AI xizmati (Decart) kaliti bilan sozlangan.
+        model:
+          type: string
+        max_session_seconds:
+          type: integer
+        seconds_left_today:
+          type: integer
+        sessions_left_today:
+          type: integer
+        active_session:
+          type: string
+          format: uuid
+          nullable: true
+      required:
+      - active_session
+      - enabled
+      - max_session_seconds
+      - model
+      - seconds_left_today
+      - sessions_left_today
+    AiToken:
+      type: object
+      properties:
+        api_key:
+          type: string
+          description: Qisqa muddatli Decart client token (ek_...). Doimiy kalit emas.
+        expires_at:
+          type: string
+        model:
+          type: string
+        session_expires_at:
+          type: string
+          format: date-time
+      required:
+      - api_key
+      - expires_at
+      - model
+      - session_expires_at
+    AiTryOnEndReasonEnum:
+      enum:
+      - USER
+      - EXPIRED
+      - PAGE_HIDDEN
+      - CAMERA_ERROR
+      - NETWORK_ERROR
+      - PROVIDER_ERROR
+      - SESSION_LIMIT
+      - MODERATION
+      - INSUFFICIENT_CREDITS
+      - OTHER
+      type: string
+      description: |-
+        * `USER` - Foydalanuvchi yakunladi
+        * `EXPIRED` - Vaqt tugadi
+        * `PAGE_HIDDEN` - Sahifa yopildi / fonga o'tdi
+        * `CAMERA_ERROR` - Kamera xatosi
+        * `NETWORK_ERROR` - Tarmoq xatosi
+        * `PROVIDER_ERROR` - AI xizmati xatosi
+        * `SESSION_LIMIT` - AI xizmati limiti
+        * `MODERATION` - AI xizmati moderatsiyasi
+        * `INSUFFICIENT_CREDITS` - AI xizmatida kredit tugagan
+        * `OTHER` - Boshqa
+    AiTryOnSessionStatusEnum:
+      enum:
+      - ACTIVE
+      - FINISHED
+      - EXPIRED
+      type: string
+      description: |-
+        * `ACTIVE` - Faol
+        * `FINISHED` - Yakunlangan
+        * `EXPIRED` - Muddati tugagan
     Application:
       type: object
       properties:
@@ -23988,6 +25216,10 @@ components:
           type: string
           readOnly: true
           pattern: ^[-a-zA-Z0-9_]+$
+        audience:
+          allOf:
+          - $ref: '#/components/schemas/GarmentAudienceEnum'
+          readOnly: true
         sort_order:
           type: integer
           readOnly: true
@@ -23996,6 +25228,7 @@ components:
           readOnly: true
           default: 0
       required:
+      - audience
       - garment_count
       - id
       - name
@@ -24015,7 +25248,12 @@ components:
           type: string
           readOnly: true
           pattern: ^[-a-zA-Z0-9_]+$
+        audience:
+          allOf:
+          - $ref: '#/components/schemas/GarmentAudienceEnum'
+          readOnly: true
       required:
+      - audience
       - id
       - name
       - slug
@@ -24663,6 +25901,18 @@ components:
           readOnly: true
           description: 'Kamerada kiyib ko''rish mumkin: yoqilgan va asosiy (BODY_FRONT)
             qatlami bor.'
+        ai_ready:
+          type: boolean
+          readOnly: true
+          description: AI (Decart) bilan jonli kiyib ko'rish mumkin.
+        ai_reference_image:
+          type: string
+          nullable: true
+          readOnly: true
+          description: AI'ga yuboriladigan kiyim rasmi (fonsiz, odamsiz).
+        ai_prompt:
+          type: string
+          readOnly: true
         is_favorite:
           type: boolean
           readOnly: true
@@ -24675,6 +25925,9 @@ components:
           format: date-time
           readOnly: true
       required:
+      - ai_prompt
+      - ai_ready
+      - ai_reference_image
       - asset_type
       - category
       - colors
@@ -24767,6 +26020,16 @@ components:
       description: |-
         * `LAYERED_2D` - 2D qatlamlar
         * `MODEL_3D` - 3D model (tez orada)
+    GarmentAudienceEnum:
+      enum:
+      - MEN
+      - WOMEN
+      - UNISEX
+      type: string
+      description: |-
+        * `MEN` - Erkaklar
+        * `WOMEN` - Ayollar
+        * `UNISEX` - Hamma uchun
     GoogleDriveConnect:
       type: object
       properties:
@@ -27158,6 +28421,35 @@ components:
           type: integer
         total_pages:
           type: integer
+    PaginatedSavedLookList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/SavedLook'
+        page:
+          type: integer
+        page_size:
+          type: integer
+        total_pages:
+          type: integer
     PaginatedStudioList:
       type: object
       required:
@@ -27355,6 +28647,9 @@ components:
           maximum: 9223372036854775807
           minimum: 0
           format: int64
+        ai_prompt:
+          type: string
+          maxLength: 300
     PatchedAdminRequest:
       type: object
       description: |-
@@ -28608,6 +29903,56 @@ components:
         * `STUDIO` - Studiya
         * `VENUE_OWNER` - To'yxona
         * `USER` - Foydalanuvchi
+    SavedLook:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        garment:
+          type: object
+          additionalProperties: {}
+          nullable: true
+          readOnly: true
+        image:
+          type: string
+          readOnly: true
+          description: Faqat egasi yuklab oladigan himoyalangan manzil.
+        width:
+          type: integer
+          readOnly: true
+        height:
+          type: integer
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - garment
+      - height
+      - id
+      - image
+      - width
+    SavedLookCreateRequest:
+      type: object
+      properties:
+        image:
+          type: string
+          format: binary
+          description: AI natijasidan olingan kadr (JPG/PNG/WEBP, ≤5 MB).
+        garment:
+          type: string
+          format: uuid
+          nullable: true
+        session:
+          type: string
+          format: uuid
+          nullable: true
+      required:
+      - image
     Session:
       type: object
       properties:

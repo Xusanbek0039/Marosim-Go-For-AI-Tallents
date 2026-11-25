@@ -63,11 +63,14 @@
 | PATCH | `/api/v1/admin/venues/{id}/halls/{hall_id}/sessions/{session_id}/` | Smenani tahrirlash / o'chirish-yoqish (panel) | ADMIN, SUPER_ADMIN | `venues.schedule` | JWT | Barcha o'chirilmagan to'yxonalar (get_queryset); to'yxona hisoblari bu API'ga kira olmaydi. | OK |
 | POST | `/api/v1/admin/venues/{id}/images/` | Galereyaga rasm qo'shish (panel) | ADMIN, SUPER_ADMIN | `venues.update` | JWT | Barcha o'chirilmagan to'yxonalar (get_queryset); to'yxona hisoblari bu API'ga kira olmaydi. | OK |
 | DELETE | `/api/v1/admin/venues/{id}/images/{image_id}/` | Galereyadan rasmni o'chirish (panel) | ADMIN, SUPER_ADMIN | `venues.update` | JWT | Barcha o'chirilmagan to'yxonalar (get_queryset); to'yxona hisoblari bu API'ga kira olmaydi. | OK |
+| GET | `/api/v1/admin/virtual-tryon/ai-usage/` | AI kiyib ko'rish sarfi (seanslar, soniyalar, taxminiy narx, o'lchovlar) | ADMIN, SUPER_ADMIN | `tryon.view` | JWT | — | OK |
 | GET | `/api/v1/admin/virtual-tryon/garments/` | Kiyimlar (boshqaruv) | ADMIN, SUPER_ADMIN | `tryon.view` | JWT | — | OK |
 | POST | `/api/v1/admin/virtual-tryon/garments/` | Kiyim qo'shish (qoralama) | ADMIN, SUPER_ADMIN | `tryon.create` | JWT | — | OK |
 | GET | `/api/v1/admin/virtual-tryon/garments/{id}/` | Kiyim (qatlamlari bilan) | ADMIN, SUPER_ADMIN | `tryon.view` | JWT | — | OK |
 | PATCH | `/api/v1/admin/virtual-tryon/garments/{id}/` | Kiyimni tahrirlash | ADMIN, SUPER_ADMIN | `tryon.update` | JWT | — | OK |
 | DELETE | `/api/v1/admin/virtual-tryon/garments/{id}/` | Kiyimni o'chirish (soft) | ADMIN, SUPER_ADMIN | `tryon.delete` | JWT | — | OK |
+| POST | `/api/v1/admin/virtual-tryon/garments/{id}/ai-reference/` | AI kiyib ko'rish rasmi (odamsiz, oddiy fonda, ≥512 px) — tekshiriladi va almashtiriladi | ADMIN, SUPER_ADMIN | `tryon.update` | JWT | — | OK |
+| DELETE | `/api/v1/admin/virtual-tryon/garments/{id}/ai-reference/` | AI kiyib ko'rish rasmini o'chirish | ADMIN, SUPER_ADMIN | `tryon.update` | JWT | — | OK |
 | POST | `/api/v1/admin/virtual-tryon/garments/{id}/approve/` | Kiyimni tasdiqlash (foydalanuvchilarga ko'rinadi) | ADMIN, SUPER_ADMIN | `tryon.approve` | JWT | — | OK |
 | POST | `/api/v1/admin/virtual-tryon/garments/{id}/assets/` | AR qatlamini yuklash (shaffof PNG/WEBP yoki GLB) — shu turdagi eskisi almashtiriladi | ADMIN, SUPER_ADMIN | `tryon.update` | JWT | — | OK |
 | DELETE | `/api/v1/admin/virtual-tryon/garments/{id}/assets/{kind}/` | AR qatlamini o'chirish | ADMIN, SUPER_ADMIN | `tryon.update` | JWT | — | OK |
@@ -237,6 +240,11 @@
 | GET | `/api/v1/venues/{target_id}/reviews/` | Sharhlar, reyting va like soni | PUBLIC | — | NONE | — | OK |
 | PUT | `/api/v1/venues/{target_id}/reviews/mine/` | Baho va izoh qoldirish / yangilash | USER | — | JWT | Faqat so'rovchining o'z sharhi / like'i; boshqalarniki o'zgarmaydi. | OK |
 | DELETE | `/api/v1/venues/{target_id}/reviews/mine/` | O'z sharhimni o'chirish | USER | — | JWT | Faqat so'rovchining o'z sharhi / like'i; boshqalarniki o'zgarmaydi. | OK |
+| POST | `/api/v1/virtual-tryon/ai-sessions/` | AI kiyib ko'rish seansini boshlash | USER | — | JWT | Faqat o'z AI seanslari (boshqalarniki 404). | OK |
+| GET | `/api/v1/virtual-tryon/ai-sessions/{id}/` | AI seansi | USER | — | JWT | Faqat o'z AI seanslari (boshqalarniki 404). | OK |
+| POST | `/api/v1/virtual-tryon/ai-sessions/{id}/finish/` | AI seansini yakunlash (o'lchovlar bilan) | USER | — | JWT | Faqat o'z AI seanslari (boshqalarniki 404). | OK |
+| POST | `/api/v1/virtual-tryon/ai-sessions/{id}/token/` | Decart uchun qisqa muddatli client token (WebRTC ulanishini boshlash/qayta ulash) | USER | — | JWT | Faqat o'z faol seansi. | OK |
+| GET | `/api/v1/virtual-tryon/ai/status/` | AI kiyib ko'rish holati va bugungi limit | USER | — | JWT | Faqat o'z limitlari. | OK |
 | GET | `/api/v1/virtual-tryon/categories/` | Kiyim kategoriyalari | USER | — | JWT | — | OK |
 | GET | `/api/v1/virtual-tryon/favorites/` | Sevimli kiyimlarim | USER | — | JWT | Faqat o'z sevimlilari (boshqalarniki 404). | OK |
 | POST | `/api/v1/virtual-tryon/favorites/` | Sevimlilarga qo'shish | USER | — | JWT | Faqat o'z sevimlilari (boshqalarniki 404). | OK |
@@ -244,6 +252,10 @@
 | GET | `/api/v1/virtual-tryon/garments/` | Kiyimlar katalogi | USER | — | JWT | — | OK |
 | GET | `/api/v1/virtual-tryon/garments/{id}/` | Kiyim tafsilotlari | USER | — | JWT | — | OK |
 | GET | `/api/v1/virtual-tryon/garments/{id}/assets/` | Kiyimning AR qatlamlari (shaffof rasmlar + anchor nuqtalar) | USER | — | JWT | — | OK |
+| GET | `/api/v1/virtual-tryon/looks/` | Saqlangan AI obrazlarim | USER | — | JWT | Faqat o'z obrazlari (boshqalarniki 404). | OK |
+| POST | `/api/v1/virtual-tryon/looks/` | AI natijasidan kadrni saqlash | USER | — | JWT | Faqat o'z obrazlari (boshqalarniki 404). | OK |
+| DELETE | `/api/v1/virtual-tryon/looks/{id}/` | Saqlangan obrazni o'chirish | USER | — | JWT | Faqat o'z obrazlari (boshqalarniki 404). | OK |
+| GET | `/api/v1/virtual-tryon/looks/{id}/image/` | Saqlangan obraz rasmi (faqat egasi) | USER | — | JWT | Faqat o'z obrazlari (boshqalarniki 404). | OK |
 | POST | `/api/v1/virtual-tryon/sessions/` | Kiyib ko'rish seansini boshlash (statistika, kadrlar yuborilmaydi) | USER | — | JWT | — | OK |
 | POST | `/api/v1/virtual-tryon/sessions/{id}/finish/` | Kiyib ko'rish seansini yakunlash | USER | — | JWT | Faqat o'z seansini yakunlaydi (boshqalarniki 404). | OK |
 
@@ -274,7 +286,7 @@
 * `GET /api/v1/venues/{id}/availability/` — To'yxona bo'sh smenalari (kalendar)
 * `GET /api/v1/venues/{target_id}/reviews/` — Sharhlar, reyting va like soni
 
-### USER (62)
+### USER (71)
 
 * `GET /api/v1/auth/me/` — Mening profilim
 * `PATCH /api/v1/auth/me/` — Profilni tahrirlash
@@ -329,6 +341,11 @@
 * `DELETE /api/v1/venues/{target_id}/like/` — Like'ni olib tashlash
 * `PUT /api/v1/venues/{target_id}/reviews/mine/` — Baho va izoh qoldirish / yangilash
 * `DELETE /api/v1/venues/{target_id}/reviews/mine/` — O'z sharhimni o'chirish
+* `POST /api/v1/virtual-tryon/ai-sessions/` — AI kiyib ko'rish seansini boshlash
+* `GET /api/v1/virtual-tryon/ai-sessions/{id}/` — AI seansi
+* `POST /api/v1/virtual-tryon/ai-sessions/{id}/finish/` — AI seansini yakunlash (o'lchovlar bilan)
+* `POST /api/v1/virtual-tryon/ai-sessions/{id}/token/` — Decart uchun qisqa muddatli client token (WebRTC ulanishini boshlash/qayta ulash)
+* `GET /api/v1/virtual-tryon/ai/status/` — AI kiyib ko'rish holati va bugungi limit
 * `GET /api/v1/virtual-tryon/categories/` — Kiyim kategoriyalari
 * `GET /api/v1/virtual-tryon/favorites/` — Sevimli kiyimlarim
 * `POST /api/v1/virtual-tryon/favorites/` — Sevimlilarga qo'shish
@@ -336,6 +353,10 @@
 * `GET /api/v1/virtual-tryon/garments/` — Kiyimlar katalogi
 * `GET /api/v1/virtual-tryon/garments/{id}/` — Kiyim tafsilotlari
 * `GET /api/v1/virtual-tryon/garments/{id}/assets/` — Kiyimning AR qatlamlari (shaffof rasmlar + anchor nuqtalar)
+* `GET /api/v1/virtual-tryon/looks/` — Saqlangan AI obrazlarim
+* `POST /api/v1/virtual-tryon/looks/` — AI natijasidan kadrni saqlash
+* `DELETE /api/v1/virtual-tryon/looks/{id}/` — Saqlangan obrazni o'chirish
+* `GET /api/v1/virtual-tryon/looks/{id}/image/` — Saqlangan obraz rasmi (faqat egasi)
 * `POST /api/v1/virtual-tryon/sessions/` — Kiyib ko'rish seansini boshlash (statistika, kadrlar yuborilmaydi)
 * `POST /api/v1/virtual-tryon/sessions/{id}/finish/` — Kiyib ko'rish seansini yakunlash
 
@@ -427,7 +448,7 @@
 * `POST /api/v1/venue-owner/venues/{id}/members/` — A'zo qo'shish (telefon raqam bo'yicha)
 * `PATCH /api/v1/venue-owner/venues/{id}/members/{membership_id}/` — A'zoning rolini / faolligini o'zgartirish
 
-### ADMIN (88)
+### ADMIN (91)
 
 * `GET /api/v1/admin/media-deletion-requests/` — Media o'chirish so'rovlari
 * `GET /api/v1/admin/media-deletion-requests/summary/` — Kutilayotgan so'rovlar soni (menyu belgisi uchun)
@@ -480,11 +501,14 @@
 * `PATCH /api/v1/admin/venues/{id}/halls/{hall_id}/sessions/{session_id}/` — Smenani tahrirlash / o'chirish-yoqish (panel)
 * `POST /api/v1/admin/venues/{id}/images/` — Galereyaga rasm qo'shish (panel)
 * `DELETE /api/v1/admin/venues/{id}/images/{image_id}/` — Galereyadan rasmni o'chirish (panel)
+* `GET /api/v1/admin/virtual-tryon/ai-usage/` — AI kiyib ko'rish sarfi (seanslar, soniyalar, taxminiy narx, o'lchovlar)
 * `GET /api/v1/admin/virtual-tryon/garments/` — Kiyimlar (boshqaruv)
 * `POST /api/v1/admin/virtual-tryon/garments/` — Kiyim qo'shish (qoralama)
 * `GET /api/v1/admin/virtual-tryon/garments/{id}/` — Kiyim (qatlamlari bilan)
 * `PATCH /api/v1/admin/virtual-tryon/garments/{id}/` — Kiyimni tahrirlash
 * `DELETE /api/v1/admin/virtual-tryon/garments/{id}/` — Kiyimni o'chirish (soft)
+* `POST /api/v1/admin/virtual-tryon/garments/{id}/ai-reference/` — AI kiyib ko'rish rasmi (odamsiz, oddiy fonda, ≥512 px) — tekshiriladi va almashtiriladi
+* `DELETE /api/v1/admin/virtual-tryon/garments/{id}/ai-reference/` — AI kiyib ko'rish rasmini o'chirish
 * `POST /api/v1/admin/virtual-tryon/garments/{id}/approve/` — Kiyimni tasdiqlash (foydalanuvchilarga ko'rinadi)
 * `POST /api/v1/admin/virtual-tryon/garments/{id}/assets/` — AR qatlamini yuklash (shaffof PNG/WEBP yoki GLB) — shu turdagi eskisi almashtiriladi
 * `DELETE /api/v1/admin/virtual-tryon/garments/{id}/assets/{kind}/` — AR qatlamini o'chirish
@@ -518,7 +542,7 @@
 * `GET /api/v1/users/{id}/pinfl/` — To'liq JSHSHIR (audit qilinadi)
 * `POST /api/v1/users/{id}/verify-phone/` — Telefon raqamini qo'lda tasdiqlash
 
-### SUPER_ADMIN (118)
+### SUPER_ADMIN (121)
 
 * `GET /api/v1/admin/media-deletion-requests/` — Media o'chirish so'rovlari
 * `GET /api/v1/admin/media-deletion-requests/summary/` — Kutilayotgan so'rovlar soni (menyu belgisi uchun)
@@ -575,11 +599,14 @@
 * `PATCH /api/v1/admin/venues/{id}/halls/{hall_id}/sessions/{session_id}/` — Smenani tahrirlash / o'chirish-yoqish (panel)
 * `POST /api/v1/admin/venues/{id}/images/` — Galereyaga rasm qo'shish (panel)
 * `DELETE /api/v1/admin/venues/{id}/images/{image_id}/` — Galereyadan rasmni o'chirish (panel)
+* `GET /api/v1/admin/virtual-tryon/ai-usage/` — AI kiyib ko'rish sarfi (seanslar, soniyalar, taxminiy narx, o'lchovlar)
 * `GET /api/v1/admin/virtual-tryon/garments/` — Kiyimlar (boshqaruv)
 * `POST /api/v1/admin/virtual-tryon/garments/` — Kiyim qo'shish (qoralama)
 * `GET /api/v1/admin/virtual-tryon/garments/{id}/` — Kiyim (qatlamlari bilan)
 * `PATCH /api/v1/admin/virtual-tryon/garments/{id}/` — Kiyimni tahrirlash
 * `DELETE /api/v1/admin/virtual-tryon/garments/{id}/` — Kiyimni o'chirish (soft)
+* `POST /api/v1/admin/virtual-tryon/garments/{id}/ai-reference/` — AI kiyib ko'rish rasmi (odamsiz, oddiy fonda, ≥512 px) — tekshiriladi va almashtiriladi
+* `DELETE /api/v1/admin/virtual-tryon/garments/{id}/ai-reference/` — AI kiyib ko'rish rasmini o'chirish
 * `POST /api/v1/admin/virtual-tryon/garments/{id}/approve/` — Kiyimni tasdiqlash (foydalanuvchilarga ko'rinadi)
 * `POST /api/v1/admin/virtual-tryon/garments/{id}/assets/` — AR qatlamini yuklash (shaffof PNG/WEBP yoki GLB) — shu turdagi eskisi almashtiriladi
 * `DELETE /api/v1/admin/virtual-tryon/garments/{id}/assets/{kind}/` — AR qatlamini o'chirish
@@ -922,6 +949,11 @@
   * Faqat ommaga ochiq (faol, tasdiqlangan) to'yxona / faol studiya; boshqasi 404.
 * `DELETE /api/v1/venues/{target_id}/reviews/mine/`
   * Faqat ommaga ochiq (faol, tasdiqlangan) to'yxona / faol studiya; boshqasi 404.
+* `POST /api/v1/virtual-tryon/ai-sessions/`
+  * Kamera va AI qayta ishlashga rozilik (consent=true) majburiy.
+  * Bir vaqtda bitta faol seans (409); kunlik soni va soniyalari cheklangan (429).
+* `POST /api/v1/virtual-tryon/ai-sessions/{id}/token/`
+  * Qisqa muddatli Decart client token; doimiy kalit hech qachon qaytarilmaydi.
 * `GET /api/v1/virtual-tryon/categories/`
   * Faqat faol kategoriyalar; soni — ko'rinadigan kiyimlar.
 * `GET /api/v1/virtual-tryon/garments/`
@@ -930,6 +962,8 @@
   * Faqat faol va tasdiqlangan (APPROVED) kiyimlar; boshqalari 404.
 * `GET /api/v1/virtual-tryon/garments/{id}/assets/`
   * Faqat faol va tasdiqlangan (APPROVED) kiyimlar; boshqalari 404.
+* `POST /api/v1/virtual-tryon/looks/`
+  * Faqat foydalanuvchi o'zi tanlagan kadr; soni cheklangan.
 * `POST /api/v1/virtual-tryon/sessions/`
   * Faqat kamerada kiyib ko'rish mumkin bo'lgan kiyim uchun.
 
