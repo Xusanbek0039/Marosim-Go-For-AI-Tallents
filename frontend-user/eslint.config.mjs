@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Vendor MediaPipe runtime copied from node_modules by scripts/prepare-mediapipe.mjs
+    // (predev/prebuild). Generated and git-ignored — not our code to lint.
+    "public/mediapipe/wasm/**",
   ]),
 ]);
 
