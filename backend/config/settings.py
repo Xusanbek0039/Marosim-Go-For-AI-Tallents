@@ -216,21 +216,6 @@ PINFL_ENCRYPTION_KEYS = env.list("PINFL_ENCRYPTION_KEYS")
 # Separate secret for the deterministic HMAC used for uniqueness / exact search.
 PINFL_HASH_KEY = env("PINFL_HASH_KEY")
 
-# Never boot production with empty or publicly known secrets (values copied from .env.example).
-_secret_problems = secret_guard.problems(
-    secret_key=SECRET_KEY,
-    jwt_signing_key=SIMPLE_JWT["SIGNING_KEY"],
-    pinfl_hash_key=PINFL_HASH_KEY,
-    pinfl_encryption_keys=PINFL_ENCRYPTION_KEYS,
-)
-if _secret_problems:
-    if not DEBUG:
-        raise ImproperlyConfigured("Insecure secret configuration: " + " ".join(_secret_problems))
-    warnings.warn(
-        "Insecure secret configuration (allowed only because DEBUG=true): " + " ".join(_secret_problems),
-        stacklevel=1,
-    )
-
 # ------------------------------------------------------------------- CORS & CSRF
 CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS", default=["http://localhost:3000"])
 CORS_ALLOW_CREDENTIALS = True
@@ -411,6 +396,26 @@ GOOGLE_OAUTH_STATE_TTL_SECONDS = env.int("GOOGLE_OAUTH_STATE_TTL_SECONDS", defau
 GOOGLE_TOKEN_ENCRYPTION_KEYS = env.list("GOOGLE_TOKEN_ENCRYPTION_KEY", default=[])
 # Optional default root folder (Phase B lets the Super Admin pick one instead).
 GOOGLE_DRIVE_ROOT_FOLDER_ID = env.str("GOOGLE_DRIVE_ROOT_FOLDER_ID", default="")
+
+# Never boot production with empty, weak, publicly known or compromised secrets
+# (config/secret_guard.py). Runs here, after every secret above has been read.
+_secret_report = secret_guard.check(
+    secret_key=SECRET_KEY,
+    jwt_signing_key=SIMPLE_JWT["SIGNING_KEY"],
+    pinfl_hash_key=PINFL_HASH_KEY,
+    pinfl_encryption_keys=PINFL_ENCRYPTION_KEYS,
+    google_token_keys=GOOGLE_TOKEN_ENCRYPTION_KEYS,
+    google_client_secret=GOOGLE_OAUTH_CLIENT_SECRET,
+)
+for _message in _secret_report.warnings:
+    warnings.warn(_message, stacklevel=1)
+if _secret_report.errors:
+    if not DEBUG:
+        raise ImproperlyConfigured("Insecure secret configuration: " + " ".join(_secret_report.errors))
+    warnings.warn(
+        "Insecure secret configuration (allowed only because DEBUG=true): " + " ".join(_secret_report.errors),
+        stacklevel=1,
+    )
 # Where the OAuth callback sends the browser back to (the Super Admin panel).
 # Production: PANEL_URL=https://superadmin.marosimgo.uz (served by this same Django app)
 PANEL_URL = env.str("PANEL_URL", default="http://localhost:3000").rstrip("/")

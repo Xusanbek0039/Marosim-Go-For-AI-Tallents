@@ -14,6 +14,8 @@ from pathlib import Path
 
 from django.conf import settings
 
+from config import secret_guard
+
 AUTH_URI = "https://accounts.google.com/o/oauth2/auth"
 TOKEN_URI = "https://oauth2.googleapis.com/token"  # noqa: S105 - endpoint URL, not a secret
 
@@ -86,9 +88,18 @@ def _from_file(path: Path) -> dict:
     return data["web"]
 
 
+def _reject_compromised(client_secret: str) -> None:
+    if secret_guard.is_compromised(client_secret):
+        raise ClientConfigError(
+            "client_secret_compromised",
+            "OAuth client secret ilgari oshkor bo'lgan. Google Cloud'da Reset qiling va yangisini joylang.",
+        )
+
+
 def load() -> OAuthClientConfig:
     redirect_uri = settings.GOOGLE_OAUTH_REDIRECT_URI
     if settings.GOOGLE_OAUTH_CLIENT_ID and settings.GOOGLE_OAUTH_CLIENT_SECRET:
+        _reject_compromised(settings.GOOGLE_OAUTH_CLIENT_SECRET)
         return OAuthClientConfig(
             client_id=settings.GOOGLE_OAUTH_CLIENT_ID,
             client_secret=settings.GOOGLE_OAUTH_CLIENT_SECRET,
@@ -101,6 +112,7 @@ def load() -> OAuthClientConfig:
     missing = [name for name in ("client_id", "client_secret") if not web.get(name)]
     if missing:
         raise ClientConfigError("client_fields_missing", f"OAuth client JSON'da maydon yo'q: {', '.join(missing)}.")
+    _reject_compromised(web["client_secret"])
     registered = tuple(web.get("redirect_uris") or ())
     if redirect_uri not in registered:
         raise ClientConfigError(

@@ -5,7 +5,7 @@ import os
 os.environ.setdefault("DJANGO_SECRET_KEY", "test-secret-key-not-for-production-0123456789")
 os.environ.setdefault("JWT_SIGNING_KEY", "test-jwt-signing-key-not-for-production-0123456789")
 os.environ.setdefault("PINFL_ENCRYPTION_KEYS", "bW9ja19rZXlfZm9yX3Rlc3RzX29ubHlfMDEyMzQ1Njc=")
-os.environ.setdefault("PINFL_HASH_KEY", "test-pinfl-hash-key")
+os.environ.setdefault("PINFL_HASH_KEY", "test-pinfl-hash-key-not-for-production-0123456789")
 os.environ.setdefault("DATABASE_URL", "sqlite://:memory:")
 
 from .settings import *  # noqa: E402,F403

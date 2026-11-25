@@ -87,6 +87,7 @@ def error_response(exc: services.StorageError, http_status=status.HTTP_409_CONFL
         "encryption_key_missing": "Serverda GOOGLE_TOKEN_ENCRYPTION_KEY sozlanmagan.",
         "client_file_missing": "OAuth client JSON fayli serverda topilmadi.",
         "redirect_uri_mismatch": "Redirect URI Google Cloud sozlamasiga mos emas.",
+        "client_secret_compromised": "OAuth client secret ilgari oshkor bo'lgan: Google Cloud'da yangilang.",
     }
     return Response(
         {
