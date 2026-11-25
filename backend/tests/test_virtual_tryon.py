@@ -80,7 +80,7 @@ ORIGINAL_SECTIONS = [
 
 
 @pytest.mark.django_db
-ef test_categories_are_seeded_in_order(user_client):
+def test_categories_are_seeded_in_order(user_client):
     make_garment()
     make_garment("Qoralama", status=ApprovalStatus.DRAFT)
     res = user_client.get(f"{API}/categories/")
