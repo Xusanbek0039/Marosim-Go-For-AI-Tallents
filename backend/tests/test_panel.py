@@ -160,3 +160,15 @@ def test_user_and_venue_cabinets_have_their_own_subdomains(settings, host, site,
     settings.ALLOWED_HOSTS = [host]
     assert site_for(RequestFactory(HTTP_HOST=host).get("/")) == site
     assert conf.PANEL_SITES[site].name == folder
+
+
+def test_only_the_user_panel_may_connect_to_decart():
+    """AI Fashion Studio (frontend-user) needs WebRTC signalling to Decart; no other panel does."""
+    from config.panel import csp
+
+    user = csp("user")
+    connect = next(d for d in user.split("; ") if d.startswith("connect-src"))
+    assert "wss://api.decart.ai" in connect and "https://*.decart.ai" in connect
+    assert "'wasm-unsafe-eval'" in user  # the AR mode's body tracker still works
+    for site in ("superadmin", "admin", "studio", "toyxona", "landing"):
+        assert "decart" not in csp(site)
