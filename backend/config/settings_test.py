@@ -7,6 +7,11 @@ os.environ.setdefault("JWT_SIGNING_KEY", "test-jwt-signing-key-not-for-productio
 os.environ.setdefault("PINFL_ENCRYPTION_KEYS", "bW9ja19rZXlfZm9yX3Rlc3RzX29ubHlfMDEyMzQ1Njc=")
 os.environ.setdefault("PINFL_HASH_KEY", "test-pinfl-hash-key-not-for-production-0123456789")
 os.environ.setdefault("DATABASE_URL", "sqlite://:memory:")
+# Tests never use a developer's real Google credentials from backend/.env (and the secret guard
+# would rightly refuse compromised ones); the throwaway test values are set again below.
+os.environ.setdefault("GOOGLE_TOKEN_ENCRYPTION_KEY", "")
+os.environ.setdefault("GOOGLE_OAUTH_CLIENT_ID", "")
+os.environ.setdefault("GOOGLE_OAUTH_CLIENT_SECRET", "")
 
 from .settings import *  # noqa: E402,F403
 
