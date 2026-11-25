@@ -96,7 +96,9 @@ urlpatterns = [
         studio_views.StudioMeCommentView.as_view(),
         name="studio-me-image-comment",
     ),
-    path("studios/me/<uuid:studio_id>/schedule/", studio_views.StudioMeScheduleView.as_view(), name="studio-me-schedule"),
+    path(
+        "studios/me/<uuid:studio_id>/schedule/", studio_views.StudioMeScheduleView.as_view(), name="studio-me-schedule"
+    ),
     path(
         "studios/me/<uuid:studio_id>/schedule/days/<str:day>/",
         studio_views.StudioMeScheduleDayView.as_view(),

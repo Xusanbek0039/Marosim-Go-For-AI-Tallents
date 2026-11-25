@@ -7,10 +7,9 @@ from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 
 from apps.audit.services import AuditAction, diff, record, snapshot
-from apps.core.exceptions import Conflict
-
 from apps.ceremonies.invitations import settle_user_ownerships
 from apps.ceremonies.serializers import AccountFolderSerializer, FolderRenameSerializer, FolderResultSerializer
+from apps.core.exceptions import Conflict
 
 from . import features
 from . import permissions_catalog as catalog
@@ -202,7 +201,12 @@ class UserViewSet(ManagedUserViewSetBase):
         user.disabled_features = sorted(set(body.validated_data["disabled_features"]))
         user.save(update_fields=["disabled_features", "updated_at"])
         if before != user.disabled_features:
-            record(request, AuditAction.UPDATE, user, changes={"disabled_features": {"from": before, "to": user.disabled_features}})
+            record(
+                request,
+                AuditAction.UPDATE,
+                user,
+                changes={"disabled_features": {"from": before, "to": user.disabled_features}},
+            )
         return Response(AccountFeatureSerializer(features.account_catalog(user), many=True).data)
 
     # ------------------------------------------------- ceremony folders
@@ -226,7 +230,9 @@ class UserViewSet(ManagedUserViewSetBase):
         from apps.ceremonies import ownership
 
         user = self.get_object()
-        ceremony = ownership.accessible_ceremonies(user).filter(pk=ceremony_id).first() if user.role == Role.USER else None
+        ceremony = (
+            ownership.accessible_ceremonies(user).filter(pk=ceremony_id).first() if user.role == Role.USER else None
+        )
         if ceremony is None:
             raise NotFound()
         body = FolderRenameSerializer(data=request.data)

@@ -37,10 +37,10 @@ from .models import (
 )
 from .permissions import IsCeremonyMember, IsCeremonyOwner, IsClientUser, IsStudioMember, IsStudioMemberOrSuperAdmin
 from .serializers import (
-    FolderRenameSerializer,
-    FolderResultSerializer,
     AcceptResultSerializer,
     CeremonySerializer,
+    FolderRenameSerializer,
+    FolderResultSerializer,
     InvitationSerializer,
     MembersSerializer,
     MyCeremonySerializer,

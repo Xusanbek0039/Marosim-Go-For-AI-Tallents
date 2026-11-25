@@ -380,9 +380,7 @@ OWNERSHIP_TESTS = {
         "ownership_studio_portfolio_is_own",
     ),
     # reels, reactions, comments, chat, studio calendar — tests/test_studio_portfolio_engagement.py
-    **dict.fromkeys(
-        ["studios_me_reels_create", "studios_me_images_partial_update"], "ownership_studio_reels_are_own"
-    ),
+    **dict.fromkeys(["studios_me_reels_create", "studios_me_images_partial_update"], "ownership_studio_reels_are_own"),
     **dict.fromkeys(
         [
             "public_studios_portfolio_reaction_update",

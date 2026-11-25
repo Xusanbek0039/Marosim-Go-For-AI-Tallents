@@ -158,7 +158,9 @@ class PortfolioCommentsView(APIView):
     def get_permissions(self):
         return [IsClientUser()] if self.request.method == "POST" else [AllowAny()]
 
-    @extend_schema(summary="Portfolio ishining izohlari", tags=["studios-public"], responses=CommentSerializer(many=True))
+    @extend_schema(
+        summary="Portfolio ishining izohlari", tags=["studios-public"], responses=CommentSerializer(many=True)
+    )
     def get(self, request, studio_id, item_id):
         item = _public_item(studio_id, item_id)
         comments = services.visible_comments(item)[:200]
@@ -198,7 +200,9 @@ class MyStudioChatsView(APIView):
     permission_classes = [IsClientUser]
     access_notes = {"*": AccessNote(ownership=CUSTOMER_CHATS)}
 
-    @extend_schema(summary="Studiyalar bilan suhbatlarim", tags=["studio-chat"], responses=UserConversationSerializer(many=True))
+    @extend_schema(
+        summary="Studiyalar bilan suhbatlarim", tags=["studio-chat"], responses=UserConversationSerializer(many=True)
+    )
     def get(self, request):
         conversations = list(chat.user_conversations(request.user)[:100])
         context = {"last_messages": chat.last_messages(conversations)}
@@ -256,7 +260,9 @@ class StudioMePortfolioView(APIView):
     parser_classes = [MultiPartParser, FormParser, JSONParser]
     access_notes = {
         "*": AccessNote(ownership=OWN_STUDIO),
-        "post": AccessNote(ownership=OWN_STUDIO, conditions=(f"Ko'pi bilan {MAX_PORTFOLIO_IMAGES} ta rasm, har biri 5 MB gacha",)),
+        "post": AccessNote(
+            ownership=OWN_STUDIO, conditions=(f"Ko'pi bilan {MAX_PORTFOLIO_IMAGES} ta rasm, har biri 5 MB gacha",)
+        ),
     }
 
     @extend_schema(
@@ -421,7 +427,9 @@ class StudioMeChatsView(APIView):
     permission_classes = [IsStudioMember]
     access_notes = {"*": AccessNote(ownership=OWN_STUDIO)}
 
-    @extend_schema(summary="Mijozlar bilan suhbatlar", tags=["studio-chat"], responses=StudioConversationSerializer(many=True))
+    @extend_schema(
+        summary="Mijozlar bilan suhbatlar", tags=["studio-chat"], responses=StudioConversationSerializer(many=True)
+    )
     def get(self, request, studio_id):
         membership = _membership(request, studio_id)
         conversations = list(chat.studio_conversations(membership.studio)[:200])
@@ -464,8 +472,6 @@ class StudioMeChatView(APIView):
         body.is_valid(raise_exception=True)
         message = chat.send_from_studio(request.user, conversation, body.validated_data["body"])
         return Response(ChatMessageSerializer(message).data, status=status.HTTP_201_CREATED)
-
-
 
 
 # ------------------------------------------------------------ portfolio files
@@ -534,7 +540,9 @@ class PortfolioFileView(APIView):
                 finally:
                     stream.close()
 
-            response = StreamingHttpResponse(body(), status=stream.status, content_type=mime or "application/octet-stream")
+            response = StreamingHttpResponse(
+                body(), status=stream.status, content_type=mime or "application/octet-stream"
+            )
             for key, value in stream.headers.items():
                 response[key] = value
             response["Accept-Ranges"] = "bytes"
@@ -548,7 +556,9 @@ class StudioMeStorageView(APIView):
     permission_classes = [IsStudioMember]
     access_notes = {"*": AccessNote(ownership=OWN_STUDIO)}
 
-    @extend_schema(summary="Portfolio joyi (ishlatilgan / ajratilgan)", tags=["studio"], responses=PortfolioUsageSerializer)
+    @extend_schema(
+        summary="Portfolio joyi (ishlatilgan / ajratilgan)", tags=["studio"], responses=PortfolioUsageSerializer
+    )
     def get(self, request, studio_id):
         from . import portfolio_storage
 

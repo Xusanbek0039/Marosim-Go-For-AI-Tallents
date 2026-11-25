@@ -5,10 +5,10 @@ import pytest
 
 from apps.accounts.models import Role
 from apps.ceremonies.models import CeremonyFolder
+from apps.storage.google import MediaStream
 from apps.studios import portfolio_storage
 from apps.studios.models import PortfolioStorage, StudioImage
 from apps.studios.services import sync_owner_membership
-from apps.storage.google import MediaStream
 
 from .conftest import image_file
 from .test_ceremony_invitations import INV, MY, answer, owner_invite, wedding, world  # noqa: F401

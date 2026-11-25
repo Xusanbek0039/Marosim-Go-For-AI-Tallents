@@ -108,8 +108,13 @@ def test_uploader_cannot_add_reels_or_edit_captions(make_user, make_studio, clie
     uploader = make_user(Role.STUDIO)
     StudioMembership.objects.create(studio=studio, user=uploader, role=StudioMembership.Role.UPLOADER)
     assert client_for(uploader).post(f"{me(studio)}reels/", {}, format="multipart").status_code == 403
-    assert client_for(uploader).patch(f"{me(studio)}images/{photo.pk}/", {"caption": "x"}, format="json").status_code == 403
-    res = client_for(studio.responsible_user).patch(f"{me(studio)}images/{photo.pk}/", {"caption": "Nikoh"}, format="json")
+    assert (
+        client_for(uploader).patch(f"{me(studio)}images/{photo.pk}/", {"caption": "x"}, format="json").status_code
+        == 403
+    )
+    res = client_for(studio.responsible_user).patch(
+        f"{me(studio)}images/{photo.pk}/", {"caption": "Nikoh"}, format="json"
+    )
     assert res.status_code == 200 and res.data["caption"] == "Nikoh"
 
 
@@ -125,7 +130,9 @@ def test_reactions_and_comments(make_user, client_for, anon, studio, photo):
     give_badge(studio)
 
     assert anon.put(f"{item}reaction/", {"value": "like"}, format="json").status_code == 401
-    assert client_for(studio.responsible_user).put(f"{item}reaction/", {"value": "like"}, format="json").status_code == 403
+    assert (
+        client_for(studio.responsible_user).put(f"{item}reaction/", {"value": "like"}, format="json").status_code == 403
+    )
     assert a.put(f"{item}reaction/", {"value": "like"}, format="json").data["like_count"] == 1
     res = b.put(f"{item}reaction/", {"value": "dislike"}, format="json")
     assert (res.data["like_count"], res.data["dislike_count"], res.data["my_reaction"]) == (1, 1, "dislike")
@@ -155,9 +162,11 @@ def test_other_studio_cannot_moderate(make_user, make_studio, client_for, studio
     give_badge(studio)
     other = make_studio(make_user(Role.STUDIO), name="Boshqa")
     sync_owner_membership(other)
-    comment = client_for(make_user(Role.USER)).post(
-        f"{PUBLIC}{studio.pk}/portfolio/{photo.pk}/comments/", {"text": "Salom"}, format="json"
-    ).data
+    comment = (
+        client_for(make_user(Role.USER))
+        .post(f"{PUBLIC}{studio.pk}/portfolio/{photo.pk}/comments/", {"text": "Salom"}, format="json")
+        .data
+    )
     rogue = client_for(other.responsible_user)
     assert rogue.get(f"{me(studio)}images/{photo.pk}/comments/").status_code == 404
     assert rogue.delete(f"{me(other)}images/{photo.pk}/comments/{comment['id']}/").status_code == 404

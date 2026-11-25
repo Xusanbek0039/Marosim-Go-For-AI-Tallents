@@ -214,9 +214,7 @@ def engagement_map(item_ids, user=None) -> dict:
         StudioImage.objects.filter(pk__in=item_ids)
         .annotate(
             like_count=Count("reactions", filter=Q(reactions__value=StudioPortfolioReaction.LIKE), distinct=True),
-            dislike_count=Count(
-                "reactions", filter=Q(reactions__value=StudioPortfolioReaction.DISLIKE), distinct=True
-            ),
+            dislike_count=Count("reactions", filter=Q(reactions__value=StudioPortfolioReaction.DISLIKE), distinct=True),
             comment_count=Count("comments", filter=Q(comments__is_hidden=False), distinct=True),
         )
         .values("pk", "like_count", "dislike_count", "comment_count")
