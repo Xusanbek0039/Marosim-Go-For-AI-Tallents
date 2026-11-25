@@ -109,10 +109,8 @@ def test_daily_session_and_time_budgets(ai_on, user, client_for):
     client = client_for(user)
     s1 = start(client).data
     assert (
-        (timezone.datetime.fromisoformat(s1["expires_at"]) - timezone.datetime.fromisoformat(s1["started_at"]))
-        .total_seconds()
-        <= 100
-    )  # cut to the daily budget
+        timezone.datetime.fromisoformat(s1["expires_at"]) - timezone.datetime.fromisoformat(s1["started_at"])
+    ).total_seconds() <= 100  # cut to the daily budget
     AiTryOnSession.objects.filter(pk=s1["id"]).update(
         started_at=timezone.now() - timedelta(seconds=95), expires_at=timezone.now() - timedelta(seconds=1)
     )
@@ -285,9 +283,16 @@ def upload_ref(client, garment, content, name="ref.png", prompt=None):
 
 def test_admin_uploads_valid_reference_and_prompt(super_admin, client_for):
     garment = make_garment(ai=False)
-    res = upload_ref(client_for(super_admin), garment, reference_png(), prompt="  Substitute the current outfit  with a red atlas dress ")
+    res = upload_ref(
+        client_for(super_admin),
+        garment,
+        reference_png(),
+        prompt="  Substitute the current outfit  with a red atlas dress ",
+    )
     assert res.status_code == 200, res.data
-    assert res.data["ai_ready"] is True and res.data["ai_prompt"] == "Substitute the current outfit with a red atlas dress"
+    assert (
+        res.data["ai_ready"] is True and res.data["ai_prompt"] == "Substitute the current outfit with a red atlas dress"
+    )
     garment.refresh_from_db()
     assert garment.approval_status == ApprovalStatus.PENDING  # an approved garment goes back to review
     with Image.open(garment.ai_reference_image) as stored:
@@ -353,9 +358,9 @@ def test_saved_looks_are_private_files(ai_on, user, make_user, client_for):
     look = SavedLook.objects.get(pk=res.data["id"])
     stored = Path(look.image.path)
     assert stored.is_relative_to(Path(dj_settings.PRIVATE_MEDIA_ROOT))
-    assert not stored.is_relative_to(Path(dj_settings.MEDIA_ROOT)) or Path(dj_settings.PRIVATE_MEDIA_ROOT).is_relative_to(
-        Path(dj_settings.MEDIA_ROOT)
-    )
+    assert not stored.is_relative_to(Path(dj_settings.MEDIA_ROOT)) or Path(
+        dj_settings.PRIVATE_MEDIA_ROOT
+    ).is_relative_to(Path(dj_settings.MEDIA_ROOT))
     assert "/media/" not in res.data["image"]
 
     image = client.get(res.data["image"])
@@ -377,7 +382,9 @@ def test_saved_look_limit_and_validation(ai_on, user, client_for):
     client = client_for(user)
     assert look_upload(client).status_code == 201
     assert look_upload(client).status_code == 400
-    bad = client.post(f"{BASE}/looks/", {"image": SimpleUploadedFile("x.png", b"nope", "image/png")}, format="multipart")
+    bad = client.post(
+        f"{BASE}/looks/", {"image": SimpleUploadedFile("x.png", b"nope", "image/png")}, format="multipart"
+    )
     assert bad.status_code == 400
 
 
@@ -391,4 +398,7 @@ def test_admin_usage_dashboard(ai_on, user, super_admin, make_user, client_for):
     assert res.data["sessions"] == 1 and res.data["users"] == 1 and res.data["end_reasons"] == {"USER": 1}
     assert res.data["measured"]["fps_avg"] == 20 and res.data["estimated_cost_usd"] >= 0
     assert client_for(make_user(Role.USER)).get("/api/v1/admin/virtual-tryon/ai-usage/").status_code == 403
-    assert client_for(make_user(Role.ADMIN, admin_permissions=[])).get("/api/v1/admin/virtual-tryon/ai-usage/").status_code == 403
+    assert (
+        client_for(make_user(Role.ADMIN, admin_permissions=[])).get("/api/v1/admin/virtual-tryon/ai-usage/").status_code
+        == 403
+    )

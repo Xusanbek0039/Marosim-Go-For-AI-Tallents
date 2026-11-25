@@ -70,18 +70,33 @@ def user_client(plain_user):
 
 
 # ------------------------------------------------------------------ catalogue
+ORIGINAL_SECTIONS = [
+    "Kelinlik liboslari",
+    "Kuyovlik kostyumlari",
+    "Milliy to'y liboslari",
+    "Erkaklar kiyimlari",
+    "Ayollar kiyimlari",
+]
+
+
 @pytest.mark.django_db
-def test_five_categories_are_seeded_in_order(user_client):
+ef test_categories_are_seeded_in_order(user_client):
     make_garment()
     make_garment("Qoralama", status=ApprovalStatus.DRAFT)
     res = user_client.get(f"{API}/categories/")
     assert res.status_code == 200
+    # the five original sections first, then the AI Fashion Studio sections (migration 0005)
     assert [c["name"] for c in res.data] == [
-        "Kelinlik liboslari",
-        "Kuyovlik kostyumlari",
-        "Milliy to'y liboslari",
-        "Erkaklar kiyimlari",
-        "Ayollar kiyimlari",
+        *ORIGINAL_SECTIONS,
+        "Smokinglar",
+        "Erkaklar ko'ylaklari",
+        "Chopon",
+        "Erkaklar milliy liboslari",
+        "Kechki liboslar",
+        "Ayollar milliy liboslari",
+        "Atlas va adras liboslar",
+        "Hijob va aksessuarlar",
+        "Boshqa kiyimlar",
     ]
     assert res.data[0]["garment_count"] == 1  # the draft is not counted
 
@@ -343,7 +358,9 @@ def test_demo_seed_creates_wearable_garments_in_every_category(user_client):
     call_command("seed_tryon_demo", stdout=io.StringIO())  # idempotent
     demo = Garment.objects.filter(description__startswith="Namuna (demo).")
     assert demo.count() == 10
-    assert {g.category.slug for g in demo} == set(GarmentCategory.objects.values_list("slug", flat=True))
+    # the AR demo art exists for the five original sections (the AI sections need real garment photos)
+    original = GarmentCategory.objects.filter(name__in=ORIGINAL_SECTIONS).values_list("slug", flat=True)
+    assert {g.category.slug for g in demo} == set(original)
 
     listed = user_client.get(f"{API}/garments/", {"tryon": "true", "page_size": 100}).data["results"]
     assert len(listed) == 10 and all(g["tryon_ready"] and g["cover_image"] for g in listed)

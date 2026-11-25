@@ -451,6 +451,26 @@ OWNERSHIP_TESTS = {
         ["virtual_tryon_favorites_list", "virtual_tryon_favorites_create", "virtual_tryon_favorites_destroy"],
         "ownership_tryon_favorites_are_own",
     ),
+    # AI try-on (Decart) — tests live in tests/test_ai_tryon.py
+    "virtual_tryon_ai_status_retrieve": "ownership_ai_status_is_own_budget",
+    **dict.fromkeys(
+        [
+            "virtual_tryon_ai_sessions_create",
+            "virtual_tryon_ai_sessions_retrieve",
+            "virtual_tryon_ai_sessions_finish_create",
+        ],
+        "ownership_ai_sessions_are_own",
+    ),
+    "virtual_tryon_ai_sessions_token_create": "ownership_ai_tokens_only_for_own_active_session",
+    **dict.fromkeys(
+        [
+            "virtual_tryon_looks_list",
+            "virtual_tryon_looks_create",
+            "virtual_tryon_looks_destroy",
+            "virtual_tryon_looks_image_retrieve",
+        ],
+        "ownership_saved_looks_are_private",
+    ),
 }
 
 from . import test_ceremonies as _ceremony_tests  # noqa: E402
@@ -539,6 +559,13 @@ from . import test_virtual_tryon as _tryon_tests  # noqa: E402
 
 ownership_tryon_sessions_are_own = _tryon_tests.test_sessions_are_own_and_only_for_wearable_garments
 ownership_tryon_favorites_are_own = _tryon_tests.test_favorites_are_personal
+
+from . import test_ai_tryon as _ai_tryon_tests  # noqa: E402
+
+ownership_ai_status_is_own_budget = _ai_tryon_tests.test_one_active_session_per_user
+ownership_ai_sessions_are_own = _ai_tryon_tests.test_one_active_session_per_user
+ownership_ai_tokens_only_for_own_active_session = _ai_tryon_tests.test_token_only_for_own_active_unexpired_session
+ownership_saved_looks_are_private = _ai_tryon_tests.test_saved_looks_are_private_files
 
 
 @pytest.mark.parametrize(
