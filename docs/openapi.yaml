@@ -5622,6 +5622,866 @@ paths:
       x-documentation:
         status: DOCUMENTED
         missing: []
+  /api/v1/admin/virtual-tryon/garments/:
+    get:
+      operationId: admin_virtual_tryon_garments_list
+      summary: Kiyimlar (boshqaruv)
+      parameters:
+      - in: query
+        name: approval_status
+        schema:
+          type: string
+          enum:
+          - APPROVED
+          - DRAFT
+          - PENDING
+          - REJECTED
+        description: |-
+          * `DRAFT` - Qoralama
+          * `PENDING` - Tasdiqlash kutilmoqda
+          * `APPROVED` - Tasdiqlangan
+          * `REJECTED` - Rad etilgan
+      - in: query
+        name: category
+        schema:
+          type: string
+      - in: query
+        name: is_active
+        schema:
+          type: boolean
+      - name: ordering
+        required: false
+        in: query
+        description: Which field to use when ordering the results.
+        schema:
+          type: string
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - in: query
+        name: q
+        schema:
+          type: string
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - admin-virtual-tryon
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedAdminGarmentList'
+          description: ''
+        '401':
+          description: not_authenticated / invalid_credentials / session_invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: permission_denied — rol yoki ruxsat yetarli emas (yoki CSRF)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: throttled / account_locked — `details.retry_after` soniyalarda
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      x-access:
+        auth_required: true
+        roles:
+        - ADMIN
+        - SUPER_ADMIN
+        permission: tryon.view
+        label: SUPER_ADMIN yoki `tryon.view` ruxsatli ADMIN
+      x-allowed-roles:
+      - ADMIN
+      - SUPER_ADMIN
+      x-auth-type: JWT
+      x-required-permissions:
+      - tryon.view
+      x-ownership-scope: null
+      x-access-conditions: []
+      x-access-status: DERIVED
+      x-access-policy:
+        allowed_roles:
+        - ADMIN
+        - SUPER_ADMIN
+        auth_type: JWT
+        required_permissions:
+        - tryon.view
+        role_requirements:
+          ADMIN:
+          - tryon.view
+        ownership_scope: null
+        conditions: []
+        permission_classes:
+        - HasAdminPermission
+        status: DERIVED
+        review_reasons: []
+        label: SUPER_ADMIN yoki `tryon.view` ruxsatli ADMIN
+      x-api-version: v1
+      description: '**Ruxsat:** SUPER_ADMIN yoki `tryon.view` ruxsatli ADMIN'
+      x-documentation:
+        status: DOCUMENTED
+        missing: []
+    post:
+      operationId: admin_virtual_tryon_garments_create
+      summary: Kiyim qo'shish (qoralama)
+      tags:
+      - admin-virtual-tryon
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminGarmentRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AdminGarmentRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/AdminGarmentRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminGarment'
+          description: ''
+        '400':
+          description: validation_error — maydonlar bo'yicha xatolar `details` ichida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '401':
+          description: not_authenticated / invalid_credentials / session_invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: permission_denied — rol yoki ruxsat yetarli emas (yoki CSRF)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: throttled / account_locked — `details.retry_after` soniyalarda
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      x-access:
+        auth_required: true
+        roles:
+        - ADMIN
+        - SUPER_ADMIN
+        permission: tryon.create
+        label: SUPER_ADMIN yoki `tryon.create` ruxsatli ADMIN
+      x-allowed-roles:
+      - ADMIN
+      - SUPER_ADMIN
+      x-auth-type: JWT
+      x-required-permissions:
+      - tryon.create
+      x-ownership-scope: null
+      x-access-conditions: []
+      x-access-status: DERIVED
+      x-access-policy:
+        allowed_roles:
+        - ADMIN
+        - SUPER_ADMIN
+        auth_type: JWT
+        required_permissions:
+        - tryon.create
+        role_requirements:
+          ADMIN:
+          - tryon.create
+        ownership_scope: null
+        conditions: []
+        permission_classes:
+        - HasAdminPermission
+        status: DERIVED
+        review_reasons: []
+        label: SUPER_ADMIN yoki `tryon.create` ruxsatli ADMIN
+      x-api-version: v1
+      description: '**Ruxsat:** SUPER_ADMIN yoki `tryon.create` ruxsatli ADMIN'
+      x-documentation:
+        status: DOCUMENTED
+        missing: []
+  /api/v1/admin/virtual-tryon/garments/{id}/:
+    get:
+      operationId: admin_virtual_tryon_garments_retrieve
+      summary: Kiyim (qatlamlari bilan)
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          pattern: ^[0-9a-fA-F-]{36}$
+        required: true
+      tags:
+      - admin-virtual-tryon
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminGarment'
+          description: ''
+        '401':
+          description: not_authenticated / invalid_credentials / session_invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: permission_denied — rol yoki ruxsat yetarli emas (yoki CSRF)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: not_found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: throttled / account_locked — `details.retry_after` soniyalarda
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      x-access:
+        auth_required: true
+        roles:
+        - ADMIN
+        - SUPER_ADMIN
+        permission: tryon.view
+        label: SUPER_ADMIN yoki `tryon.view` ruxsatli ADMIN
+      x-allowed-roles:
+      - ADMIN
+      - SUPER_ADMIN
+      x-auth-type: JWT
+      x-required-permissions:
+      - tryon.view
+      x-ownership-scope: null
+      x-access-conditions: []
+      x-access-status: DERIVED
+      x-access-policy:
+        allowed_roles:
+        - ADMIN
+        - SUPER_ADMIN
+        auth_type: JWT
+        required_permissions:
+        - tryon.view
+        role_requirements:
+          ADMIN:
+          - tryon.view
+        ownership_scope: null
+        conditions: []
+        permission_classes:
+        - HasAdminPermission
+        status: DERIVED
+        review_reasons: []
+        label: SUPER_ADMIN yoki `tryon.view` ruxsatli ADMIN
+      x-api-version: v1
+      description: '**Ruxsat:** SUPER_ADMIN yoki `tryon.view` ruxsatli ADMIN'
+      x-documentation:
+        status: DOCUMENTED
+        missing: []
+    patch:
+      operationId: admin_virtual_tryon_garments_partial_update
+      summary: Kiyimni tahrirlash
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          pattern: ^[0-9a-fA-F-]{36}$
+        required: true
+      tags:
+      - admin-virtual-tryon
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedAdminGarmentRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedAdminGarmentRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedAdminGarmentRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminGarment'
+          description: ''
+        '400':
+          description: validation_error — maydonlar bo'yicha xatolar `details` ichida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '401':
+          description: not_authenticated / invalid_credentials / session_invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: permission_denied — rol yoki ruxsat yetarli emas (yoki CSRF)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: not_found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: throttled / account_locked — `details.retry_after` soniyalarda
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      x-access:
+        auth_required: true
+        roles:
+        - ADMIN
+        - SUPER_ADMIN
+        permission: tryon.update
+        label: SUPER_ADMIN yoki `tryon.update` ruxsatli ADMIN
+      x-allowed-roles:
+      - ADMIN
+      - SUPER_ADMIN
+      x-auth-type: JWT
+      x-required-permissions:
+      - tryon.update
+      x-ownership-scope: null
+      x-access-conditions: []
+      x-access-status: DERIVED
+      x-access-policy:
+        allowed_roles:
+        - ADMIN
+        - SUPER_ADMIN
+        auth_type: JWT
+        required_permissions:
+        - tryon.update
+        role_requirements:
+          ADMIN:
+          - tryon.update
+        ownership_scope: null
+        conditions: []
+        permission_classes:
+        - HasAdminPermission
+        status: DERIVED
+        review_reasons: []
+        label: SUPER_ADMIN yoki `tryon.update` ruxsatli ADMIN
+      x-api-version: v1
+      description: '**Ruxsat:** SUPER_ADMIN yoki `tryon.update` ruxsatli ADMIN'
+      x-documentation:
+        status: DOCUMENTED
+        missing: []
+    delete:
+      operationId: admin_virtual_tryon_garments_destroy
+      summary: Kiyimni o'chirish (soft)
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          pattern: ^[0-9a-fA-F-]{36}$
+        required: true
+      tags:
+      - admin-virtual-tryon
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+        '401':
+          description: not_authenticated / invalid_credentials / session_invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: permission_denied — rol yoki ruxsat yetarli emas (yoki CSRF)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: not_found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: throttled / account_locked — `details.retry_after` soniyalarda
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      x-access:
+        auth_required: true
+        roles:
+        - ADMIN
+        - SUPER_ADMIN
+        permission: tryon.delete
+        label: SUPER_ADMIN yoki `tryon.delete` ruxsatli ADMIN
+      x-allowed-roles:
+      - ADMIN
+      - SUPER_ADMIN
+      x-auth-type: JWT
+      x-required-permissions:
+      - tryon.delete
+      x-ownership-scope: null
+      x-access-conditions: []
+      x-access-status: DERIVED
+      x-access-policy:
+        allowed_roles:
+        - ADMIN
+        - SUPER_ADMIN
+        auth_type: JWT
+        required_permissions:
+        - tryon.delete
+        role_requirements:
+          ADMIN:
+          - tryon.delete
+        ownership_scope: null
+        conditions: []
+        permission_classes:
+        - HasAdminPermission
+        status: DERIVED
+        review_reasons: []
+        label: SUPER_ADMIN yoki `tryon.delete` ruxsatli ADMIN
+      x-api-version: v1
+      description: '**Ruxsat:** SUPER_ADMIN yoki `tryon.delete` ruxsatli ADMIN'
+      x-documentation:
+        status: DOCUMENTED
+        missing: []
+  /api/v1/admin/virtual-tryon/garments/{id}/approve/:
+    post:
+      operationId: admin_virtual_tryon_garments_approve_create
+      summary: Kiyimni tasdiqlash (foydalanuvchilarga ko'rinadi)
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          pattern: ^[0-9a-fA-F-]{36}$
+        required: true
+      tags:
+      - admin-virtual-tryon
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminGarment'
+          description: ''
+        '400':
+          description: validation_error — maydonlar bo'yicha xatolar `details` ichida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '401':
+          description: not_authenticated / invalid_credentials / session_invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: permission_denied — rol yoki ruxsat yetarli emas (yoki CSRF)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: not_found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: throttled / account_locked — `details.retry_after` soniyalarda
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      x-access:
+        auth_required: true
+        roles:
+        - ADMIN
+        - SUPER_ADMIN
+        permission: tryon.approve
+        label: SUPER_ADMIN yoki `tryon.approve` ruxsatli ADMIN
+      x-allowed-roles:
+      - ADMIN
+      - SUPER_ADMIN
+      x-auth-type: JWT
+      x-required-permissions:
+      - tryon.approve
+      x-ownership-scope: null
+      x-access-conditions: []
+      x-access-status: DERIVED
+      x-access-policy:
+        allowed_roles:
+        - ADMIN
+        - SUPER_ADMIN
+        auth_type: JWT
+        required_permissions:
+        - tryon.approve
+        role_requirements:
+          ADMIN:
+          - tryon.approve
+        ownership_scope: null
+        conditions: []
+        permission_classes:
+        - HasAdminPermission
+        status: DERIVED
+        review_reasons: []
+        label: SUPER_ADMIN yoki `tryon.approve` ruxsatli ADMIN
+      x-api-version: v1
+      description: '**Ruxsat:** SUPER_ADMIN yoki `tryon.approve` ruxsatli ADMIN'
+      x-documentation:
+        status: DOCUMENTED
+        missing: []
+  /api/v1/admin/virtual-tryon/garments/{id}/assets/:
+    post:
+      operationId: admin_virtual_tryon_garments_assets_create
+      summary: AR qatlamini yuklash (shaffof PNG/WEBP yoki GLB) — shu turdagi eskisi
+        almashtiriladi
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          pattern: ^[0-9a-fA-F-]{36}$
+        required: true
+      tags:
+      - admin-virtual-tryon
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/AssetUploadRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminGarment'
+          description: ''
+        '400':
+          description: validation_error — maydonlar bo'yicha xatolar `details` ichida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '401':
+          description: not_authenticated / invalid_credentials / session_invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: permission_denied — rol yoki ruxsat yetarli emas (yoki CSRF)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: not_found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: throttled / account_locked — `details.retry_after` soniyalarda
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      x-access:
+        auth_required: true
+        roles:
+        - ADMIN
+        - SUPER_ADMIN
+        permission: tryon.update
+        label: SUPER_ADMIN yoki `tryon.update` ruxsatli ADMIN
+      x-allowed-roles:
+      - ADMIN
+      - SUPER_ADMIN
+      x-auth-type: JWT
+      x-required-permissions:
+      - tryon.update
+      x-ownership-scope: null
+      x-access-conditions: []
+      x-access-status: DERIVED
+      x-access-policy:
+        allowed_roles:
+        - ADMIN
+        - SUPER_ADMIN
+        auth_type: JWT
+        required_permissions:
+        - tryon.update
+        role_requirements:
+          ADMIN:
+          - tryon.update
+        ownership_scope: null
+        conditions: []
+        permission_classes:
+        - HasAdminPermission
+        status: DERIVED
+        review_reasons: []
+        label: SUPER_ADMIN yoki `tryon.update` ruxsatli ADMIN
+      x-api-version: v1
+      description: '**Ruxsat:** SUPER_ADMIN yoki `tryon.update` ruxsatli ADMIN'
+      x-documentation:
+        status: DOCUMENTED
+        missing: []
+  /api/v1/admin/virtual-tryon/garments/{id}/assets/{kind}/:
+    delete:
+      operationId: admin_virtual_tryon_garments_assets_destroy
+      summary: AR qatlamini o'chirish
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          pattern: ^[0-9a-fA-F-]{36}$
+        required: true
+      - in: path
+        name: kind
+        schema:
+          type: string
+          enum:
+          - BODY_BACK
+          - BODY_FRONT
+          - LEFT_FOREARM
+          - LEFT_UPPER_ARM
+          - LOWER_BODY
+          - MODEL_GLB
+          - RIGHT_FOREARM
+          - RIGHT_UPPER_ARM
+        required: true
+      tags:
+      - admin-virtual-tryon
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminGarment'
+          description: ''
+        '401':
+          description: not_authenticated / invalid_credentials / session_invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: permission_denied — rol yoki ruxsat yetarli emas (yoki CSRF)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: not_found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: throttled / account_locked — `details.retry_after` soniyalarda
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      x-access:
+        auth_required: true
+        roles:
+        - ADMIN
+        - SUPER_ADMIN
+        permission: tryon.update
+        label: SUPER_ADMIN yoki `tryon.update` ruxsatli ADMIN
+      x-allowed-roles:
+      - ADMIN
+      - SUPER_ADMIN
+      x-auth-type: JWT
+      x-required-permissions:
+      - tryon.update
+      x-ownership-scope: null
+      x-access-conditions: []
+      x-access-status: DERIVED
+      x-access-policy:
+        allowed_roles:
+        - ADMIN
+        - SUPER_ADMIN
+        auth_type: JWT
+        required_permissions:
+        - tryon.update
+        role_requirements:
+          ADMIN:
+          - tryon.update
+        ownership_scope: null
+        conditions: []
+        permission_classes:
+        - HasAdminPermission
+        status: DERIVED
+        review_reasons: []
+        label: SUPER_ADMIN yoki `tryon.update` ruxsatli ADMIN
+      x-api-version: v1
+      description: '**Ruxsat:** SUPER_ADMIN yoki `tryon.update` ruxsatli ADMIN'
+      x-documentation:
+        status: DOCUMENTED
+        missing: []
+  /api/v1/admin/virtual-tryon/garments/{id}/reject/:
+    post:
+      operationId: admin_virtual_tryon_garments_reject_create
+      summary: Kiyimni rad etish
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          pattern: ^[0-9a-fA-F-]{36}$
+        required: true
+      tags:
+      - admin-virtual-tryon
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RejectRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RejectRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/RejectRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminGarment'
+          description: ''
+        '400':
+          description: validation_error — maydonlar bo'yicha xatolar `details` ichida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '401':
+          description: not_authenticated / invalid_credentials / session_invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: permission_denied — rol yoki ruxsat yetarli emas (yoki CSRF)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: not_found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: throttled / account_locked — `details.retry_after` soniyalarda
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      x-access:
+        auth_required: true
+        roles:
+        - ADMIN
+        - SUPER_ADMIN
+        permission: tryon.approve
+        label: SUPER_ADMIN yoki `tryon.approve` ruxsatli ADMIN
+      x-allowed-roles:
+      - ADMIN
+      - SUPER_ADMIN
+      x-auth-type: JWT
+      x-required-permissions:
+      - tryon.approve
+      x-ownership-scope: null
+      x-access-conditions: []
+      x-access-status: DERIVED
+      x-access-policy:
+        allowed_roles:
+        - ADMIN
+        - SUPER_ADMIN
+        auth_type: JWT
+        required_permissions:
+        - tryon.approve
+        role_requirements:
+          ADMIN:
+          - tryon.approve
+        ownership_scope: null
+        conditions: []
+        permission_classes:
+        - HasAdminPermission
+        status: DERIVED
+        review_reasons: []
+        label: SUPER_ADMIN yoki `tryon.approve` ruxsatli ADMIN
+      x-api-version: v1
+      description: '**Ruxsat:** SUPER_ADMIN yoki `tryon.approve` ruxsatli ADMIN'
+      x-documentation:
+        status: DOCUMENTED
+        missing: []
   /api/v1/admins/:
     get:
       operationId: admins_list
@@ -9790,6 +10650,107 @@ paths:
       x-documentation:
         status: DOCUMENTED
         missing: []
+  /api/v1/me/ceremonies/{id}/folder/:
+    patch:
+      operationId: me_ceremonies_folder_partial_update
+      summary: Papka nomini o'zgartirish (faqat o'zim uchun)
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          pattern: ^[0-9a-fA-F-]{36}$
+        required: true
+      tags:
+      - me
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedFolderRenameRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedFolderRenameRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedFolderRenameRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FolderResult'
+          description: ''
+        '400':
+          description: validation_error — maydonlar bo'yicha xatolar `details` ichida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '401':
+          description: not_authenticated / invalid_credentials / session_invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: permission_denied — rol yoki ruxsat yetarli emas (yoki CSRF)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: not_found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: throttled / account_locked — `details.retry_after` soniyalarda
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      x-access:
+        auth_required: true
+        roles:
+        - USER
+        permission: null
+        label: USER
+      x-allowed-roles:
+      - USER
+      x-auth-type: JWT
+      x-required-permissions: []
+      x-ownership-scope: Faqat so'rovchi ACCEPTED ega (CEREMONY_OWNER) yoki ACCEPTED
+        ko'ruvchi (CEREMONY_VIEWER) bo'lgan, DRAFT bo'lmagan marosimlar; boshqasi
+        404. Huquq har so'rovda DB'dan qayta tekshiriladi.
+      x-access-conditions: []
+      x-access-status: DERIVED
+      x-access-policy:
+        allowed_roles:
+        - USER
+        auth_type: JWT
+        required_permissions: []
+        role_requirements: {}
+        ownership_scope: Faqat so'rovchi ACCEPTED ega (CEREMONY_OWNER) yoki ACCEPTED
+          ko'ruvchi (CEREMONY_VIEWER) bo'lgan, DRAFT bo'lmagan marosimlar; boshqasi
+          404. Huquq har so'rovda DB'dan qayta tekshiriladi.
+        conditions: []
+        permission_classes:
+        - IsClientUser
+        status: DERIVED
+        review_reasons: []
+        label: USER
+      x-api-version: v1
+      description: |-
+        **Ruxsat:** USER
+
+        **Ma'lumot doirasi:** Faqat so'rovchi ACCEPTED ega (CEREMONY_OWNER) yoki ACCEPTED ko'ruvchi (CEREMONY_VIEWER) bo'lgan, DRAFT bo'lmagan marosimlar; boshqasi 404. Huquq har so'rovda DB'dan qayta tekshiriladi.
+      x-documentation:
+        status: DOCUMENTED
+        missing: []
   /api/v1/me/ceremonies/{id}/invitations/:
     get:
       operationId: me_ceremonies_invitations_list
@@ -11166,6 +12127,265 @@ paths:
       x-documentation:
         status: DOCUMENTED
         missing: []
+  /api/v1/me/studio-chats/:
+    get:
+      operationId: me_studio_chats_list
+      summary: Studiyalar bilan suhbatlarim
+      tags:
+      - studio-chat
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserConversation'
+          description: ''
+        '401':
+          description: not_authenticated / invalid_credentials / session_invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: permission_denied — rol yoki ruxsat yetarli emas (yoki CSRF)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: throttled / account_locked — `details.retry_after` soniyalarda
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      x-access:
+        auth_required: true
+        roles:
+        - USER
+        permission: null
+        label: USER
+      x-allowed-roles:
+      - USER
+      x-auth-type: JWT
+      x-required-permissions: []
+      x-ownership-scope: Faqat so'rovchining o'z suhbatlari.
+      x-access-conditions: []
+      x-access-status: DERIVED
+      x-access-policy:
+        allowed_roles:
+        - USER
+        auth_type: JWT
+        required_permissions: []
+        role_requirements: {}
+        ownership_scope: Faqat so'rovchining o'z suhbatlari.
+        conditions: []
+        permission_classes:
+        - IsClientUser
+        status: DERIVED
+        review_reasons: []
+        label: USER
+      x-api-version: v1
+      description: |-
+        **Ruxsat:** USER
+
+        **Ma'lumot doirasi:** Faqat so'rovchining o'z suhbatlari.
+      x-documentation:
+        status: DOCUMENTED
+        missing: []
+  /api/v1/me/studio-chats/{studio_id}/:
+    get:
+      operationId: me_studio_chats_retrieve
+      summary: Studiya bilan suhbat (xabarlar)
+      parameters:
+      - in: path
+        name: studio_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - studio-chat
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserThread'
+          description: ''
+        '401':
+          description: not_authenticated / invalid_credentials / session_invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: permission_denied — rol yoki ruxsat yetarli emas (yoki CSRF)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: not_found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: throttled / account_locked — `details.retry_after` soniyalarda
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      x-access:
+        auth_required: true
+        roles:
+        - USER
+        permission: null
+        label: USER
+      x-allowed-roles:
+      - USER
+      x-auth-type: JWT
+      x-required-permissions: []
+      x-ownership-scope: Faqat so'rovchining o'z suhbatlari.
+      x-access-conditions:
+      - Faqat faol studiyalar; xodimlar, mijozlar va marosim nomlari qaytmaydi.
+      x-access-status: DERIVED
+      x-access-policy:
+        allowed_roles:
+        - USER
+        auth_type: JWT
+        required_permissions: []
+        role_requirements: {}
+        ownership_scope: Faqat so'rovchining o'z suhbatlari.
+        conditions:
+        - Faqat faol studiyalar; xodimlar, mijozlar va marosim nomlari qaytmaydi.
+        permission_classes:
+        - IsClientUser
+        status: DERIVED
+        review_reasons: []
+        label: USER
+      x-api-version: v1
+      description: |-
+        **Ruxsat:** USER
+
+        **Ma'lumot doirasi:** Faqat so'rovchining o'z suhbatlari.
+
+        **Shartlar:**
+        * Faqat faol studiyalar; xodimlar, mijozlar va marosim nomlari qaytmaydi.
+      x-documentation:
+        status: DOCUMENTED
+        missing: []
+    post:
+      operationId: me_studio_chats_create
+      summary: Studiyaga xabar yozish
+      parameters:
+      - in: path
+        name: studio_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - studio-chat
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatMessageWriteRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ChatMessageWriteRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ChatMessageWriteRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatMessage'
+          description: ''
+        '400':
+          description: validation_error — maydonlar bo'yicha xatolar `details` ichida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '401':
+          description: not_authenticated / invalid_credentials / session_invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: permission_denied — rol yoki ruxsat yetarli emas (yoki CSRF)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: not_found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: throttled / account_locked — `details.retry_after` soniyalarda
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      x-access:
+        auth_required: true
+        roles:
+        - USER
+        permission: null
+        label: USER
+      x-allowed-roles:
+      - USER
+      x-auth-type: JWT
+      x-required-permissions: []
+      x-ownership-scope: Faqat so'rovchining o'z suhbatlari.
+      x-access-conditions:
+      - Faqat faol studiyalar; xodimlar, mijozlar va marosim nomlari qaytmaydi.
+      - Faqat galichkasi faol studiya (aks holda 403 badge_required).
+      x-access-status: DERIVED
+      x-access-policy:
+        allowed_roles:
+        - USER
+        auth_type: JWT
+        required_permissions: []
+        role_requirements: {}
+        ownership_scope: Faqat so'rovchining o'z suhbatlari.
+        conditions:
+        - Faqat faol studiyalar; xodimlar, mijozlar va marosim nomlari qaytmaydi.
+        - Faqat galichkasi faol studiya (aks holda 403 badge_required).
+        permission_classes:
+        - IsClientUser
+        status: DERIVED
+        review_reasons: []
+        label: USER
+      x-api-version: v1
+      description: |-
+        **Ruxsat:** USER
+
+        **Ma'lumot doirasi:** Faqat so'rovchining o'z suhbatlari.
+
+        **Shartlar:**
+        * Faqat faol studiyalar; xodimlar, mijozlar va marosim nomlari qaytmaydi.
+        * Faqat galichkasi faol studiya (aks holda 403 badge_required).
+      x-documentation:
+        status: DOCUMENTED
+        missing: []
   /api/v1/me/subscriptions/:
     get:
       operationId: me_subscriptions_list
@@ -12437,7 +13657,7 @@ paths:
   /api/v1/public/studios/{id}/:
     get:
       operationId: public_studios_retrieve
-      summary: Studiya (ommaviy profil va portfolio)
+      summary: Studiya (ommaviy profil, portfolio va reels)
       parameters:
       - in: path
         name: id
@@ -12509,7 +13729,7 @@ paths:
   /api/v1/public/studios/{id}/schedule/:
     get:
       operationId: public_studios_schedule_retrieve
-      summary: Studiya band kunlari (kalendar)
+      summary: 'Studiya grafigi: band, dam olish va bo''sh kunlar'
       parameters:
       - in: query
         name: from
@@ -12588,6 +13808,585 @@ paths:
 
         **Shartlar:**
         * Faqat faol studiyalar; xodimlar, mijozlar va marosim nomlari qaytmaydi.
+      x-documentation:
+        status: DOCUMENTED
+        missing: []
+  /api/v1/public/studios/{studio_id}/portfolio/{item_id}/comments/:
+    get:
+      operationId: public_studios_portfolio_comments_list
+      summary: Portfolio ishining izohlari
+      parameters:
+      - in: path
+        name: item_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: studio_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - studios-public
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Comment'
+          description: ''
+        '404':
+          description: not_found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: throttled / account_locked — `details.retry_after` soniyalarda
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      x-access:
+        auth_required: false
+        roles:
+        - PUBLIC
+        permission: null
+        label: Ochiq (public)
+      x-allowed-roles:
+      - PUBLIC
+      x-auth-type: NONE
+      x-required-permissions: []
+      x-ownership-scope: null
+      x-access-conditions:
+      - Faqat faol studiyalar; xodimlar, mijozlar va marosim nomlari qaytmaydi.
+      - Yashirilgan izohlar ko'rinmaydi.
+      x-access-status: DERIVED
+      x-access-policy:
+        allowed_roles:
+        - PUBLIC
+        auth_type: NONE
+        required_permissions: []
+        role_requirements: {}
+        ownership_scope: null
+        conditions:
+        - Faqat faol studiyalar; xodimlar, mijozlar va marosim nomlari qaytmaydi.
+        - Yashirilgan izohlar ko'rinmaydi.
+        permission_classes:
+        - AllowAny
+        status: DERIVED
+        review_reasons: []
+        label: Ochiq (public)
+      x-api-version: v1
+      description: |-
+        **Ruxsat:** Ochiq (public)
+
+        **Shartlar:**
+        * Faqat faol studiyalar; xodimlar, mijozlar va marosim nomlari qaytmaydi.
+        * Yashirilgan izohlar ko'rinmaydi.
+      x-documentation:
+        status: DOCUMENTED
+        missing: []
+    post:
+      operationId: public_studios_portfolio_comments_create
+      summary: Izoh yozish
+      parameters:
+      - in: path
+        name: item_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: studio_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - studios-public
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CommentWriteRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CommentWriteRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CommentWriteRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Comment'
+          description: ''
+        '400':
+          description: validation_error — maydonlar bo'yicha xatolar `details` ichida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '401':
+          description: not_authenticated / invalid_credentials / session_invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: permission_denied — rol yoki ruxsat yetarli emas (yoki CSRF)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: not_found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: throttled / account_locked — `details.retry_after` soniyalarda
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      x-access:
+        auth_required: true
+        roles:
+        - USER
+        permission: null
+        label: USER
+      x-allowed-roles:
+      - USER
+      x-auth-type: JWT
+      x-required-permissions: []
+      x-ownership-scope: null
+      x-access-conditions:
+      - Faqat faol studiyalar; xodimlar, mijozlar va marosim nomlari qaytmaydi.
+      - Faqat galichkasi faol studiya (aks holda 403 badge_required).
+      x-access-status: DERIVED
+      x-access-policy:
+        allowed_roles:
+        - USER
+        auth_type: JWT
+        required_permissions: []
+        role_requirements: {}
+        ownership_scope: null
+        conditions:
+        - Faqat faol studiyalar; xodimlar, mijozlar va marosim nomlari qaytmaydi.
+        - Faqat galichkasi faol studiya (aks holda 403 badge_required).
+        permission_classes:
+        - IsClientUser
+        status: DERIVED
+        review_reasons: []
+        label: USER
+      x-api-version: v1
+      description: |-
+        **Ruxsat:** USER
+
+        **Shartlar:**
+        * Faqat faol studiyalar; xodimlar, mijozlar va marosim nomlari qaytmaydi.
+        * Faqat galichkasi faol studiya (aks holda 403 badge_required).
+      x-documentation:
+        status: DOCUMENTED
+        missing: []
+  /api/v1/public/studios/{studio_id}/portfolio/{item_id}/comments/{comment_id}/:
+    delete:
+      operationId: public_studios_portfolio_comments_destroy
+      summary: O'z izohimni o'chirish
+      parameters:
+      - in: path
+        name: comment_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: item_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: studio_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - studios-public
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+        '401':
+          description: not_authenticated / invalid_credentials / session_invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: permission_denied — rol yoki ruxsat yetarli emas (yoki CSRF)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: not_found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: throttled / account_locked — `details.retry_after` soniyalarda
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      x-access:
+        auth_required: true
+        roles:
+        - USER
+        permission: null
+        label: USER
+      x-allowed-roles:
+      - USER
+      x-auth-type: JWT
+      x-required-permissions: []
+      x-ownership-scope: Faqat so'rovchining o'z izohi; boshqasi 404.
+      x-access-conditions: []
+      x-access-status: DERIVED
+      x-access-policy:
+        allowed_roles:
+        - USER
+        auth_type: JWT
+        required_permissions: []
+        role_requirements: {}
+        ownership_scope: Faqat so'rovchining o'z izohi; boshqasi 404.
+        conditions: []
+        permission_classes:
+        - IsClientUser
+        status: DERIVED
+        review_reasons: []
+        label: USER
+      x-api-version: v1
+      description: |-
+        **Ruxsat:** USER
+
+        **Ma'lumot doirasi:** Faqat so'rovchining o'z izohi; boshqasi 404.
+      x-documentation:
+        status: DOCUMENTED
+        missing: []
+  /api/v1/public/studios/{studio_id}/portfolio/{item_id}/file/{part}/:
+    get:
+      operationId: public_studios_portfolio_file_retrieve
+      description: |-
+        Bytes of one portfolio file (Drive stream with HTTP Range, or the local file).
+
+        **Ruxsat:** Ochiq (public)
+
+        **Shartlar:**
+        * Ommaga: faqat ko'rinadigan ishlar (reels — galichka faol bo'lsa); studiya a'zolari va studios.view ruxsatli xodimlar — barchasi
+        * HTTP Range qo'llab-quvvatlanadi (video uchun)
+      summary: Portfolio fayli (rasm, reels videosi yoki muqovasi)
+      parameters:
+      - in: path
+        name: item_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: part
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: studio_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - studios-public
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/octet-stream:
+              schema:
+                type: string
+                format: binary
+          description: ''
+        '206':
+          content:
+            application/json:
+              schema:
+                type: string
+                format: binary
+          description: ''
+        '404':
+          description: not_found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: throttled / account_locked — `details.retry_after` soniyalarda
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      x-access:
+        auth_required: false
+        roles:
+        - PUBLIC
+        permission: null
+        label: Ochiq (public)
+      x-allowed-roles:
+      - PUBLIC
+      x-auth-type: NONE
+      x-required-permissions: []
+      x-ownership-scope: null
+      x-access-conditions:
+      - 'Ommaga: faqat ko''rinadigan ishlar (reels — galichka faol bo''lsa); studiya
+        a''zolari va studios.view ruxsatli xodimlar — barchasi'
+      - HTTP Range qo'llab-quvvatlanadi (video uchun)
+      x-access-status: DERIVED
+      x-access-policy:
+        allowed_roles:
+        - PUBLIC
+        auth_type: NONE
+        required_permissions: []
+        role_requirements: {}
+        ownership_scope: null
+        conditions:
+        - 'Ommaga: faqat ko''rinadigan ishlar (reels — galichka faol bo''lsa); studiya
+          a''zolari va studios.view ruxsatli xodimlar — barchasi'
+        - HTTP Range qo'llab-quvvatlanadi (video uchun)
+        permission_classes:
+        - AllowAny
+        status: DERIVED
+        review_reasons: []
+        label: Ochiq (public)
+      x-api-version: v1
+      x-documentation:
+        status: DOCUMENTED
+        missing: []
+  /api/v1/public/studios/{studio_id}/portfolio/{item_id}/reaction/:
+    put:
+      operationId: public_studios_portfolio_reaction_update
+      summary: Portfolio ishiga like / dislike
+      parameters:
+      - in: path
+        name: item_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: studio_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - studios-public
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ReactionWriteRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ReactionWriteRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ReactionWriteRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Engagement'
+          description: ''
+        '400':
+          description: validation_error — maydonlar bo'yicha xatolar `details` ichida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '401':
+          description: not_authenticated / invalid_credentials / session_invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: permission_denied — rol yoki ruxsat yetarli emas (yoki CSRF)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: not_found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: throttled / account_locked — `details.retry_after` soniyalarda
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      x-access:
+        auth_required: true
+        roles:
+        - USER
+        permission: null
+        label: USER
+      x-allowed-roles:
+      - USER
+      x-auth-type: JWT
+      x-required-permissions: []
+      x-ownership-scope: Faqat so'rovchining o'z bahosi.
+      x-access-conditions:
+      - Faqat faol studiyalar; xodimlar, mijozlar va marosim nomlari qaytmaydi.
+      - Faqat galichkasi faol studiya (aks holda 403 badge_required).
+      x-access-status: DERIVED
+      x-access-policy:
+        allowed_roles:
+        - USER
+        auth_type: JWT
+        required_permissions: []
+        role_requirements: {}
+        ownership_scope: Faqat so'rovchining o'z bahosi.
+        conditions:
+        - Faqat faol studiyalar; xodimlar, mijozlar va marosim nomlari qaytmaydi.
+        - Faqat galichkasi faol studiya (aks holda 403 badge_required).
+        permission_classes:
+        - IsClientUser
+        status: DERIVED
+        review_reasons: []
+        label: USER
+      x-api-version: v1
+      description: |-
+        **Ruxsat:** USER
+
+        **Ma'lumot doirasi:** Faqat so'rovchining o'z bahosi.
+
+        **Shartlar:**
+        * Faqat faol studiyalar; xodimlar, mijozlar va marosim nomlari qaytmaydi.
+        * Faqat galichkasi faol studiya (aks holda 403 badge_required).
+      x-documentation:
+        status: DOCUMENTED
+        missing: []
+    delete:
+      operationId: public_studios_portfolio_reaction_destroy
+      summary: Like / dislike'ni olib tashlash
+      parameters:
+      - in: path
+        name: item_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: studio_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - studios-public
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+        '401':
+          description: not_authenticated / invalid_credentials / session_invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: permission_denied — rol yoki ruxsat yetarli emas (yoki CSRF)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: not_found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: throttled / account_locked — `details.retry_after` soniyalarda
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      x-access:
+        auth_required: true
+        roles:
+        - USER
+        permission: null
+        label: USER
+      x-allowed-roles:
+      - USER
+      x-auth-type: JWT
+      x-required-permissions: []
+      x-ownership-scope: Faqat so'rovchining o'z bahosi.
+      x-access-conditions:
+      - Faqat faol studiyalar; xodimlar, mijozlar va marosim nomlari qaytmaydi.
+      - Faqat galichkasi faol studiya (aks holda 403 badge_required).
+      x-access-status: DERIVED
+      x-access-policy:
+        allowed_roles:
+        - USER
+        auth_type: JWT
+        required_permissions: []
+        role_requirements: {}
+        ownership_scope: Faqat so'rovchining o'z bahosi.
+        conditions:
+        - Faqat faol studiyalar; xodimlar, mijozlar va marosim nomlari qaytmaydi.
+        - Faqat galichkasi faol studiya (aks holda 403 badge_required).
+        permission_classes:
+        - IsClientUser
+        status: DERIVED
+        review_reasons: []
+        label: USER
+      x-api-version: v1
+      description: |-
+        **Ruxsat:** USER
+
+        **Ma'lumot doirasi:** Faqat so'rovchining o'z bahosi.
+
+        **Shartlar:**
+        * Faqat faol studiyalar; xodimlar, mijozlar va marosim nomlari qaytmaydi.
+        * Faqat galichkasi faol studiya (aks holda 403 badge_required).
       x-documentation:
         status: DOCUMENTED
         missing: []
@@ -13913,10 +15712,10 @@ paths:
       x-documentation:
         status: DOCUMENTED
         missing: []
-  /api/v1/studios/me/{studio_id}/images/:
+  /api/v1/studios/me/{studio_id}/chats/:
     get:
-      operationId: studios_me_images_list
-      summary: Studiya portfoliosi
+      operationId: studios_me_chats_list
+      summary: Mijozlar bilan suhbatlar
       parameters:
       - in: path
         name: studio_id
@@ -13925,7 +15724,7 @@ paths:
           format: uuid
         required: true
       tags:
-      - studio
+      - studio-chat
       security:
       - jwtAuth: []
       responses:
@@ -13935,7 +15734,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/StudioImage'
+                  $ref: '#/components/schemas/StudioConversation'
           description: ''
         '401':
           description: not_authenticated / invalid_credentials / session_invalid
@@ -13971,8 +15770,8 @@ paths:
       - STUDIO
       x-auth-type: JWT
       x-required-permissions: []
-      x-ownership-scope: Faqat so'rovchi faol a'zo bo'lgan studiya; yuklash/o'chirish
-        — OWNER yoki MANAGER. Boshqasi 404.
+      x-ownership-scope: Faqat so'rovchi faol a'zo bo'lgan studiya; o'zgartirish —
+        OWNER yoki MANAGER. Boshqasi 404.
       x-access-conditions: []
       x-access-status: DERIVED
       x-access-policy:
@@ -13981,8 +15780,8 @@ paths:
         auth_type: JWT
         required_permissions: []
         role_requirements: {}
-        ownership_scope: Faqat so'rovchi faol a'zo bo'lgan studiya; yuklash/o'chirish
-          — OWNER yoki MANAGER. Boshqasi 404.
+        ownership_scope: Faqat so'rovchi faol a'zo bo'lgan studiya; o'zgartirish —
+          OWNER yoki MANAGER. Boshqasi 404.
         conditions: []
         permission_classes:
         - IsStudioMember
@@ -13993,7 +15792,289 @@ paths:
       description: |-
         **Ruxsat:** STUDIO
 
-        **Ma'lumot doirasi:** Faqat so'rovchi faol a'zo bo'lgan studiya; yuklash/o'chirish — OWNER yoki MANAGER. Boshqasi 404.
+        **Ma'lumot doirasi:** Faqat so'rovchi faol a'zo bo'lgan studiya; o'zgartirish — OWNER yoki MANAGER. Boshqasi 404.
+      x-documentation:
+        status: DOCUMENTED
+        missing: []
+  /api/v1/studios/me/{studio_id}/chats/{conversation_id}/:
+    get:
+      operationId: studios_me_chats_retrieve
+      summary: Mijoz bilan suhbat (xabarlar)
+      parameters:
+      - in: path
+        name: conversation_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: studio_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - studio-chat
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudioThread'
+          description: ''
+        '401':
+          description: not_authenticated / invalid_credentials / session_invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: permission_denied — rol yoki ruxsat yetarli emas (yoki CSRF)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: not_found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: throttled / account_locked — `details.retry_after` soniyalarda
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      x-access:
+        auth_required: true
+        roles:
+        - STUDIO
+        permission: null
+        label: STUDIO
+      x-allowed-roles:
+      - STUDIO
+      x-auth-type: JWT
+      x-required-permissions: []
+      x-ownership-scope: Faqat so'rovchi faol a'zo bo'lgan studiya; o'zgartirish —
+        OWNER yoki MANAGER. Boshqasi 404.
+      x-access-conditions: []
+      x-access-status: DERIVED
+      x-access-policy:
+        allowed_roles:
+        - STUDIO
+        auth_type: JWT
+        required_permissions: []
+        role_requirements: {}
+        ownership_scope: Faqat so'rovchi faol a'zo bo'lgan studiya; o'zgartirish —
+          OWNER yoki MANAGER. Boshqasi 404.
+        conditions: []
+        permission_classes:
+        - IsStudioMember
+        status: DERIVED
+        review_reasons: []
+        label: STUDIO
+      x-api-version: v1
+      description: |-
+        **Ruxsat:** STUDIO
+
+        **Ma'lumot doirasi:** Faqat so'rovchi faol a'zo bo'lgan studiya; o'zgartirish — OWNER yoki MANAGER. Boshqasi 404.
+      x-documentation:
+        status: DOCUMENTED
+        missing: []
+    post:
+      operationId: studios_me_chats_create
+      summary: Mijozga javob yozish
+      parameters:
+      - in: path
+        name: conversation_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: studio_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - studio-chat
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatMessageWriteRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ChatMessageWriteRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ChatMessageWriteRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatMessage'
+          description: ''
+        '400':
+          description: validation_error — maydonlar bo'yicha xatolar `details` ichida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '401':
+          description: not_authenticated / invalid_credentials / session_invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: permission_denied — rol yoki ruxsat yetarli emas (yoki CSRF)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: not_found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: throttled / account_locked — `details.retry_after` soniyalarda
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      x-access:
+        auth_required: true
+        roles:
+        - STUDIO
+        permission: null
+        label: STUDIO
+      x-allowed-roles:
+      - STUDIO
+      x-auth-type: JWT
+      x-required-permissions: []
+      x-ownership-scope: Faqat so'rovchi faol a'zo bo'lgan studiya; o'zgartirish —
+        OWNER yoki MANAGER. Boshqasi 404.
+      x-access-conditions:
+      - Faqat galichkasi faol studiya (aks holda 403 badge_required).
+      x-access-status: DERIVED
+      x-access-policy:
+        allowed_roles:
+        - STUDIO
+        auth_type: JWT
+        required_permissions: []
+        role_requirements: {}
+        ownership_scope: Faqat so'rovchi faol a'zo bo'lgan studiya; o'zgartirish —
+          OWNER yoki MANAGER. Boshqasi 404.
+        conditions:
+        - Faqat galichkasi faol studiya (aks holda 403 badge_required).
+        permission_classes:
+        - IsStudioMember
+        status: DERIVED
+        review_reasons: []
+        label: STUDIO
+      x-api-version: v1
+      description: |-
+        **Ruxsat:** STUDIO
+
+        **Ma'lumot doirasi:** Faqat so'rovchi faol a'zo bo'lgan studiya; o'zgartirish — OWNER yoki MANAGER. Boshqasi 404.
+
+        **Shartlar:**
+        * Faqat galichkasi faol studiya (aks holda 403 badge_required).
+      x-documentation:
+        status: DOCUMENTED
+        missing: []
+  /api/v1/studios/me/{studio_id}/images/:
+    get:
+      operationId: studios_me_images_list
+      summary: Studiya portfoliosi (rasmlar va reels, like / izoh soni bilan)
+      parameters:
+      - in: path
+        name: studio_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - studio
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PortfolioItem'
+          description: ''
+        '401':
+          description: not_authenticated / invalid_credentials / session_invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: permission_denied — rol yoki ruxsat yetarli emas (yoki CSRF)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: not_found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: throttled / account_locked — `details.retry_after` soniyalarda
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      x-access:
+        auth_required: true
+        roles:
+        - STUDIO
+        permission: null
+        label: STUDIO
+      x-allowed-roles:
+      - STUDIO
+      x-auth-type: JWT
+      x-required-permissions: []
+      x-ownership-scope: Faqat so'rovchi faol a'zo bo'lgan studiya; o'zgartirish —
+        OWNER yoki MANAGER. Boshqasi 404.
+      x-access-conditions: []
+      x-access-status: DERIVED
+      x-access-policy:
+        allowed_roles:
+        - STUDIO
+        auth_type: JWT
+        required_permissions: []
+        role_requirements: {}
+        ownership_scope: Faqat so'rovchi faol a'zo bo'lgan studiya; o'zgartirish —
+          OWNER yoki MANAGER. Boshqasi 404.
+        conditions: []
+        permission_classes:
+        - IsStudioMember
+        status: DERIVED
+        review_reasons: []
+        label: STUDIO
+      x-api-version: v1
+      description: |-
+        **Ruxsat:** STUDIO
+
+        **Ma'lumot doirasi:** Faqat so'rovchi faol a'zo bo'lgan studiya; o'zgartirish — OWNER yoki MANAGER. Boshqasi 404.
       x-documentation:
         status: DOCUMENTED
         missing: []
@@ -14064,8 +16145,118 @@ paths:
       - STUDIO
       x-auth-type: JWT
       x-required-permissions: []
-      x-ownership-scope: Faqat so'rovchi faol a'zo bo'lgan studiya; yuklash/o'chirish
-        — OWNER yoki MANAGER. Boshqasi 404.
+      x-ownership-scope: Faqat so'rovchi faol a'zo bo'lgan studiya; o'zgartirish —
+        OWNER yoki MANAGER. Boshqasi 404.
+      x-access-conditions:
+      - Ko'pi bilan 20 ta rasm, har biri 5 MB gacha
+      x-access-status: DERIVED
+      x-access-policy:
+        allowed_roles:
+        - STUDIO
+        auth_type: JWT
+        required_permissions: []
+        role_requirements: {}
+        ownership_scope: Faqat so'rovchi faol a'zo bo'lgan studiya; o'zgartirish —
+          OWNER yoki MANAGER. Boshqasi 404.
+        conditions:
+        - Ko'pi bilan 20 ta rasm, har biri 5 MB gacha
+        permission_classes:
+        - IsStudioMember
+        status: DERIVED
+        review_reasons: []
+        label: STUDIO
+      x-api-version: v1
+      description: |-
+        **Ruxsat:** STUDIO
+
+        **Ma'lumot doirasi:** Faqat so'rovchi faol a'zo bo'lgan studiya; o'zgartirish — OWNER yoki MANAGER. Boshqasi 404.
+
+        **Shartlar:**
+        * Ko'pi bilan 20 ta rasm, har biri 5 MB gacha
+      x-documentation:
+        status: DOCUMENTED
+        missing: []
+  /api/v1/studios/me/{studio_id}/images/{image_id}/:
+    patch:
+      operationId: studios_me_images_partial_update
+      summary: Portfolio ishining izohini (caption) o'zgartirish
+      parameters:
+      - in: path
+        name: image_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: studio_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - studio
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedPortfolioItemUpdateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedPortfolioItemUpdateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedPortfolioItemUpdateRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudioImage'
+          description: ''
+        '400':
+          description: validation_error — maydonlar bo'yicha xatolar `details` ichida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '401':
+          description: not_authenticated / invalid_credentials / session_invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: permission_denied — rol yoki ruxsat yetarli emas (yoki CSRF)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: not_found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: throttled / account_locked — `details.retry_after` soniyalarda
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      x-access:
+        auth_required: true
+        roles:
+        - STUDIO
+        permission: null
+        label: STUDIO
+      x-allowed-roles:
+      - STUDIO
+      x-auth-type: JWT
+      x-required-permissions: []
+      x-ownership-scope: Faqat so'rovchi faol a'zo bo'lgan studiya; o'zgartirish —
+        OWNER yoki MANAGER. Boshqasi 404.
       x-access-conditions: []
       x-access-status: DERIVED
       x-access-policy:
@@ -14074,8 +16265,8 @@ paths:
         auth_type: JWT
         required_permissions: []
         role_requirements: {}
-        ownership_scope: Faqat so'rovchi faol a'zo bo'lgan studiya; yuklash/o'chirish
-          — OWNER yoki MANAGER. Boshqasi 404.
+        ownership_scope: Faqat so'rovchi faol a'zo bo'lgan studiya; o'zgartirish —
+          OWNER yoki MANAGER. Boshqasi 404.
         conditions: []
         permission_classes:
         - IsStudioMember
@@ -14086,14 +16277,13 @@ paths:
       description: |-
         **Ruxsat:** STUDIO
 
-        **Ma'lumot doirasi:** Faqat so'rovchi faol a'zo bo'lgan studiya; yuklash/o'chirish — OWNER yoki MANAGER. Boshqasi 404.
+        **Ma'lumot doirasi:** Faqat so'rovchi faol a'zo bo'lgan studiya; o'zgartirish — OWNER yoki MANAGER. Boshqasi 404.
       x-documentation:
         status: DOCUMENTED
         missing: []
-  /api/v1/studios/me/{studio_id}/images/{image_id}/:
     delete:
       operationId: studios_me_images_destroy
-      summary: Portfoliodan rasmni o'chirish
+      summary: Portfoliodan rasm / videoni o'chirish
       parameters:
       - in: path
         name: image_id
@@ -14148,8 +16338,8 @@ paths:
       - STUDIO
       x-auth-type: JWT
       x-required-permissions: []
-      x-ownership-scope: Faqat so'rovchi faol a'zo bo'lgan studiya; yuklash/o'chirish
-        — OWNER yoki MANAGER. Boshqasi 404.
+      x-ownership-scope: Faqat so'rovchi faol a'zo bo'lgan studiya; o'zgartirish —
+        OWNER yoki MANAGER. Boshqasi 404.
       x-access-conditions: []
       x-access-status: DERIVED
       x-access-policy:
@@ -14158,8 +16348,8 @@ paths:
         auth_type: JWT
         required_permissions: []
         role_requirements: {}
-        ownership_scope: Faqat so'rovchi faol a'zo bo'lgan studiya; yuklash/o'chirish
-          — OWNER yoki MANAGER. Boshqasi 404.
+        ownership_scope: Faqat so'rovchi faol a'zo bo'lgan studiya; o'zgartirish —
+          OWNER yoki MANAGER. Boshqasi 404.
         conditions: []
         permission_classes:
         - IsStudioMember
@@ -14170,7 +16360,665 @@ paths:
       description: |-
         **Ruxsat:** STUDIO
 
-        **Ma'lumot doirasi:** Faqat so'rovchi faol a'zo bo'lgan studiya; yuklash/o'chirish — OWNER yoki MANAGER. Boshqasi 404.
+        **Ma'lumot doirasi:** Faqat so'rovchi faol a'zo bo'lgan studiya; o'zgartirish — OWNER yoki MANAGER. Boshqasi 404.
+      x-documentation:
+        status: DOCUMENTED
+        missing: []
+  /api/v1/studios/me/{studio_id}/images/{image_id}/comments/:
+    get:
+      operationId: studios_me_images_comments_list
+      summary: Portfolio ishiga yozilgan izohlar
+      parameters:
+      - in: path
+        name: image_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: studio_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - studio
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Comment'
+          description: ''
+        '401':
+          description: not_authenticated / invalid_credentials / session_invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: permission_denied — rol yoki ruxsat yetarli emas (yoki CSRF)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: not_found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: throttled / account_locked — `details.retry_after` soniyalarda
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      x-access:
+        auth_required: true
+        roles:
+        - STUDIO
+        permission: null
+        label: STUDIO
+      x-allowed-roles:
+      - STUDIO
+      x-auth-type: JWT
+      x-required-permissions: []
+      x-ownership-scope: Faqat so'rovchi faol a'zo bo'lgan studiya; o'zgartirish —
+        OWNER yoki MANAGER. Boshqasi 404.
+      x-access-conditions: []
+      x-access-status: DERIVED
+      x-access-policy:
+        allowed_roles:
+        - STUDIO
+        auth_type: JWT
+        required_permissions: []
+        role_requirements: {}
+        ownership_scope: Faqat so'rovchi faol a'zo bo'lgan studiya; o'zgartirish —
+          OWNER yoki MANAGER. Boshqasi 404.
+        conditions: []
+        permission_classes:
+        - IsStudioMember
+        status: DERIVED
+        review_reasons: []
+        label: STUDIO
+      x-api-version: v1
+      description: |-
+        **Ruxsat:** STUDIO
+
+        **Ma'lumot doirasi:** Faqat so'rovchi faol a'zo bo'lgan studiya; o'zgartirish — OWNER yoki MANAGER. Boshqasi 404.
+      x-documentation:
+        status: DOCUMENTED
+        missing: []
+  /api/v1/studios/me/{studio_id}/images/{image_id}/comments/{comment_id}/:
+    delete:
+      operationId: studios_me_images_comments_destroy
+      summary: Izohni o'chirish (studiya moderatsiyasi)
+      parameters:
+      - in: path
+        name: comment_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: image_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: studio_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - studio
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+        '401':
+          description: not_authenticated / invalid_credentials / session_invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: permission_denied — rol yoki ruxsat yetarli emas (yoki CSRF)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: not_found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: throttled / account_locked — `details.retry_after` soniyalarda
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      x-access:
+        auth_required: true
+        roles:
+        - STUDIO
+        permission: null
+        label: STUDIO
+      x-allowed-roles:
+      - STUDIO
+      x-auth-type: JWT
+      x-required-permissions: []
+      x-ownership-scope: Faqat so'rovchi faol a'zo bo'lgan studiya; o'zgartirish —
+        OWNER yoki MANAGER. Boshqasi 404.
+      x-access-conditions: []
+      x-access-status: DERIVED
+      x-access-policy:
+        allowed_roles:
+        - STUDIO
+        auth_type: JWT
+        required_permissions: []
+        role_requirements: {}
+        ownership_scope: Faqat so'rovchi faol a'zo bo'lgan studiya; o'zgartirish —
+          OWNER yoki MANAGER. Boshqasi 404.
+        conditions: []
+        permission_classes:
+        - IsStudioMember
+        status: DERIVED
+        review_reasons: []
+        label: STUDIO
+      x-api-version: v1
+      description: |-
+        **Ruxsat:** STUDIO
+
+        **Ma'lumot doirasi:** Faqat so'rovchi faol a'zo bo'lgan studiya; o'zgartirish — OWNER yoki MANAGER. Boshqasi 404.
+      x-documentation:
+        status: DOCUMENTED
+        missing: []
+  /api/v1/studios/me/{studio_id}/reels/:
+    post:
+      operationId: studios_me_reels_create
+      summary: Portfolioga reels (vertikal video) qo'shish
+      parameters:
+      - in: path
+        name: studio_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - studio
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ReelUploadRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudioImage'
+          description: ''
+        '400':
+          description: validation_error — maydonlar bo'yicha xatolar `details` ichida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '401':
+          description: not_authenticated / invalid_credentials / session_invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: permission_denied — rol yoki ruxsat yetarli emas (yoki CSRF)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: not_found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: throttled / account_locked — `details.retry_after` soniyalarda
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      x-access:
+        auth_required: true
+        roles:
+        - STUDIO
+        permission: null
+        label: STUDIO
+      x-allowed-roles:
+      - STUDIO
+      x-auth-type: JWT
+      x-required-permissions: []
+      x-ownership-scope: Faqat so'rovchi faol a'zo bo'lgan studiya; o'zgartirish —
+        OWNER yoki MANAGER. Boshqasi 404.
+      x-access-conditions:
+      - Faqat galichkasi faol studiya (aks holda 403 badge_required).
+      - Ko'pi bilan 15 ta vertikal video, 1–90 soniya
+      x-access-status: DERIVED
+      x-access-policy:
+        allowed_roles:
+        - STUDIO
+        auth_type: JWT
+        required_permissions: []
+        role_requirements: {}
+        ownership_scope: Faqat so'rovchi faol a'zo bo'lgan studiya; o'zgartirish —
+          OWNER yoki MANAGER. Boshqasi 404.
+        conditions:
+        - Faqat galichkasi faol studiya (aks holda 403 badge_required).
+        - Ko'pi bilan 15 ta vertikal video, 1–90 soniya
+        permission_classes:
+        - IsStudioMember
+        status: DERIVED
+        review_reasons: []
+        label: STUDIO
+      x-api-version: v1
+      description: |-
+        **Ruxsat:** STUDIO
+
+        **Ma'lumot doirasi:** Faqat so'rovchi faol a'zo bo'lgan studiya; o'zgartirish — OWNER yoki MANAGER. Boshqasi 404.
+
+        **Shartlar:**
+        * Faqat galichkasi faol studiya (aks holda 403 badge_required).
+        * Ko'pi bilan 15 ta vertikal video, 1–90 soniya
+      x-documentation:
+        status: DOCUMENTED
+        missing: []
+  /api/v1/studios/me/{studio_id}/schedule/:
+    get:
+      operationId: studios_me_schedule_retrieve
+      summary: Studiya grafigi (marosimlar, band va dam olish kunlari)
+      parameters:
+      - in: query
+        name: from
+        schema:
+          type: string
+          format: date
+        required: true
+      - in: path
+        name: studio_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: query
+        name: to
+        schema:
+          type: string
+          format: date
+        description: Ko'pi bilan 62 kun.
+        required: true
+      tags:
+      - studio
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StudioPanelSchedule'
+          description: ''
+        '401':
+          description: not_authenticated / invalid_credentials / session_invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: permission_denied — rol yoki ruxsat yetarli emas (yoki CSRF)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: not_found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: throttled / account_locked — `details.retry_after` soniyalarda
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      x-access:
+        auth_required: true
+        roles:
+        - STUDIO
+        permission: null
+        label: STUDIO
+      x-allowed-roles:
+      - STUDIO
+      x-auth-type: JWT
+      x-required-permissions: []
+      x-ownership-scope: Faqat so'rovchi faol a'zo bo'lgan studiya; o'zgartirish —
+        OWNER yoki MANAGER. Boshqasi 404.
+      x-access-conditions: []
+      x-access-status: DERIVED
+      x-access-policy:
+        allowed_roles:
+        - STUDIO
+        auth_type: JWT
+        required_permissions: []
+        role_requirements: {}
+        ownership_scope: Faqat so'rovchi faol a'zo bo'lgan studiya; o'zgartirish —
+          OWNER yoki MANAGER. Boshqasi 404.
+        conditions: []
+        permission_classes:
+        - IsStudioMember
+        status: DERIVED
+        review_reasons: []
+        label: STUDIO
+      x-api-version: v1
+      description: |-
+        **Ruxsat:** STUDIO
+
+        **Ma'lumot doirasi:** Faqat so'rovchi faol a'zo bo'lgan studiya; o'zgartirish — OWNER yoki MANAGER. Boshqasi 404.
+      x-documentation:
+        status: DOCUMENTED
+        missing: []
+    patch:
+      operationId: studios_me_schedule_partial_update
+      summary: Haftalik dam olish kunlari
+      parameters:
+      - in: path
+        name: studio_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - studio
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedOffWeekdaysRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedOffWeekdaysRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedOffWeekdaysRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OffWeekdays'
+          description: ''
+        '400':
+          description: validation_error — maydonlar bo'yicha xatolar `details` ichida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '401':
+          description: not_authenticated / invalid_credentials / session_invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: permission_denied — rol yoki ruxsat yetarli emas (yoki CSRF)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: not_found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: throttled / account_locked — `details.retry_after` soniyalarda
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      x-access:
+        auth_required: true
+        roles:
+        - STUDIO
+        permission: null
+        label: STUDIO
+      x-allowed-roles:
+      - STUDIO
+      x-auth-type: JWT
+      x-required-permissions: []
+      x-ownership-scope: Faqat so'rovchi faol a'zo bo'lgan studiya; o'zgartirish —
+        OWNER yoki MANAGER. Boshqasi 404.
+      x-access-conditions: []
+      x-access-status: DERIVED
+      x-access-policy:
+        allowed_roles:
+        - STUDIO
+        auth_type: JWT
+        required_permissions: []
+        role_requirements: {}
+        ownership_scope: Faqat so'rovchi faol a'zo bo'lgan studiya; o'zgartirish —
+          OWNER yoki MANAGER. Boshqasi 404.
+        conditions: []
+        permission_classes:
+        - IsStudioMember
+        status: DERIVED
+        review_reasons: []
+        label: STUDIO
+      x-api-version: v1
+      description: |-
+        **Ruxsat:** STUDIO
+
+        **Ma'lumot doirasi:** Faqat so'rovchi faol a'zo bo'lgan studiya; o'zgartirish — OWNER yoki MANAGER. Boshqasi 404.
+      x-documentation:
+        status: DOCUMENTED
+        missing: []
+  /api/v1/studios/me/{studio_id}/schedule/days/{day}/:
+    put:
+      operationId: studios_me_schedule_days_update
+      summary: Kunni band / dam olish deb belgilash (status=null — tozalash)
+      parameters:
+      - in: path
+        name: day
+        schema:
+          type: string
+        required: true
+      - in: path
+        name: studio_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - studio
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DayStatusWriteRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/DayStatusWriteRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/DayStatusWriteRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+        '400':
+          description: validation_error — maydonlar bo'yicha xatolar `details` ichida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '401':
+          description: not_authenticated / invalid_credentials / session_invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: permission_denied — rol yoki ruxsat yetarli emas (yoki CSRF)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: not_found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: throttled / account_locked — `details.retry_after` soniyalarda
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      x-access:
+        auth_required: true
+        roles:
+        - STUDIO
+        permission: null
+        label: STUDIO
+      x-allowed-roles:
+      - STUDIO
+      x-auth-type: JWT
+      x-required-permissions: []
+      x-ownership-scope: Faqat so'rovchi faol a'zo bo'lgan studiya; o'zgartirish —
+        OWNER yoki MANAGER. Boshqasi 404.
+      x-access-conditions: []
+      x-access-status: DERIVED
+      x-access-policy:
+        allowed_roles:
+        - STUDIO
+        auth_type: JWT
+        required_permissions: []
+        role_requirements: {}
+        ownership_scope: Faqat so'rovchi faol a'zo bo'lgan studiya; o'zgartirish —
+          OWNER yoki MANAGER. Boshqasi 404.
+        conditions: []
+        permission_classes:
+        - IsStudioMember
+        status: DERIVED
+        review_reasons: []
+        label: STUDIO
+      x-api-version: v1
+      description: |-
+        **Ruxsat:** STUDIO
+
+        **Ma'lumot doirasi:** Faqat so'rovchi faol a'zo bo'lgan studiya; o'zgartirish — OWNER yoki MANAGER. Boshqasi 404.
+      x-documentation:
+        status: DOCUMENTED
+        missing: []
+  /api/v1/studios/me/{studio_id}/storage/:
+    get:
+      operationId: studios_me_storage_retrieve
+      summary: Portfolio joyi (ishlatilgan / ajratilgan)
+      parameters:
+      - in: path
+        name: studio_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - studio
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PortfolioUsage'
+          description: ''
+        '401':
+          description: not_authenticated / invalid_credentials / session_invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: permission_denied — rol yoki ruxsat yetarli emas (yoki CSRF)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: not_found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: throttled / account_locked — `details.retry_after` soniyalarda
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      x-access:
+        auth_required: true
+        roles:
+        - STUDIO
+        permission: null
+        label: STUDIO
+      x-allowed-roles:
+      - STUDIO
+      x-auth-type: JWT
+      x-required-permissions: []
+      x-ownership-scope: Faqat so'rovchi faol a'zo bo'lgan studiya; o'zgartirish —
+        OWNER yoki MANAGER. Boshqasi 404.
+      x-access-conditions: []
+      x-access-status: DERIVED
+      x-access-policy:
+        allowed_roles:
+        - STUDIO
+        auth_type: JWT
+        required_permissions: []
+        role_requirements: {}
+        ownership_scope: Faqat so'rovchi faol a'zo bo'lgan studiya; o'zgartirish —
+          OWNER yoki MANAGER. Boshqasi 404.
+        conditions: []
+        permission_classes:
+        - IsStudioMember
+        status: DERIVED
+        review_reasons: []
+        label: STUDIO
+      x-api-version: v1
+      description: |-
+        **Ruxsat:** STUDIO
+
+        **Ma'lumot doirasi:** Faqat so'rovchi faol a'zo bo'lgan studiya; o'zgartirish — OWNER yoki MANAGER. Boshqasi 404.
       x-documentation:
         status: DOCUMENTED
         missing: []
@@ -15440,6 +18288,442 @@ paths:
         status: DERIVED
         review_reasons: []
         label: SUPER_ADMIN yoki `users.delete` ruxsatli ADMIN
+      x-api-version: v1
+      x-documentation:
+        status: DOCUMENTED
+        missing: []
+  /api/v1/users/{id}/features/:
+    get:
+      operationId: users_features_list
+      description: |-
+        Clients of the platform: USER, STUDIO and VENUE_OWNER accounts.
+
+        **Ruxsat:** SUPER_ADMIN yoki `platform.view` ruxsatli ADMIN
+
+        **Ma'lumot doirasi:** Faqat USER, STUDIO va VENUE_OWNER rolidagi, o'chirilmagan hisoblar (get_queryset). ADMIN / SUPER_ADMIN hisoblari bu yerda ko'rinmaydi (404).
+      summary: Hisob imkoniyatlari (shu profil uchun)
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this user.
+        required: true
+      tags:
+      - users
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AccountFeature'
+          description: ''
+        '401':
+          description: not_authenticated / invalid_credentials / session_invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: permission_denied — rol yoki ruxsat yetarli emas (yoki CSRF)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: not_found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: throttled / account_locked — `details.retry_after` soniyalarda
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      x-access:
+        auth_required: true
+        roles:
+        - ADMIN
+        - SUPER_ADMIN
+        permission: platform.view
+        label: SUPER_ADMIN yoki `platform.view` ruxsatli ADMIN
+      x-allowed-roles:
+      - ADMIN
+      - SUPER_ADMIN
+      x-auth-type: JWT
+      x-required-permissions:
+      - platform.view
+      x-ownership-scope: Faqat USER, STUDIO va VENUE_OWNER rolidagi, o'chirilmagan
+        hisoblar (get_queryset). ADMIN / SUPER_ADMIN hisoblari bu yerda ko'rinmaydi
+        (404).
+      x-access-conditions: []
+      x-access-status: DERIVED
+      x-access-policy:
+        allowed_roles:
+        - ADMIN
+        - SUPER_ADMIN
+        auth_type: JWT
+        required_permissions:
+        - platform.view
+        role_requirements:
+          ADMIN:
+          - platform.view
+        ownership_scope: Faqat USER, STUDIO va VENUE_OWNER rolidagi, o'chirilmagan
+          hisoblar (get_queryset). ADMIN / SUPER_ADMIN hisoblari bu yerda ko'rinmaydi
+          (404).
+        conditions: []
+        permission_classes:
+        - HasAdminPermission
+        status: DERIVED
+        review_reasons: []
+        label: SUPER_ADMIN yoki `platform.view` ruxsatli ADMIN
+      x-api-version: v1
+      x-documentation:
+        status: DOCUMENTED
+        missing: []
+    patch:
+      operationId: users_features_partial_update
+      description: |-
+        Clients of the platform: USER, STUDIO and VENUE_OWNER accounts.
+
+        **Ruxsat:** SUPER_ADMIN yoki `platform.manage` ruxsatli ADMIN
+
+        **Ma'lumot doirasi:** Faqat USER, STUDIO va VENUE_OWNER rolidagi, o'chirilmagan hisoblar (get_queryset). ADMIN / SUPER_ADMIN hisoblari bu yerda ko'rinmaydi (404).
+
+        **Shartlar:**
+        * Faqat shu hisob roliga tegishli imkoniyat kodlari
+      summary: Hisob imkoniyatlarini yoqish / o'chirish
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this user.
+        required: true
+      tags:
+      - users
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedAccountFeaturesWriteRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedAccountFeaturesWriteRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedAccountFeaturesWriteRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AccountFeature'
+          description: ''
+        '400':
+          description: validation_error — maydonlar bo'yicha xatolar `details` ichida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '401':
+          description: not_authenticated / invalid_credentials / session_invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: permission_denied — rol yoki ruxsat yetarli emas (yoki CSRF)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: not_found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: throttled / account_locked — `details.retry_after` soniyalarda
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      x-access:
+        auth_required: true
+        roles:
+        - ADMIN
+        - SUPER_ADMIN
+        permission: platform.manage
+        label: SUPER_ADMIN yoki `platform.manage` ruxsatli ADMIN
+      x-allowed-roles:
+      - ADMIN
+      - SUPER_ADMIN
+      x-auth-type: JWT
+      x-required-permissions:
+      - platform.manage
+      x-ownership-scope: Faqat USER, STUDIO va VENUE_OWNER rolidagi, o'chirilmagan
+        hisoblar (get_queryset). ADMIN / SUPER_ADMIN hisoblari bu yerda ko'rinmaydi
+        (404).
+      x-access-conditions:
+      - Faqat shu hisob roliga tegishli imkoniyat kodlari
+      x-access-status: DERIVED
+      x-access-policy:
+        allowed_roles:
+        - ADMIN
+        - SUPER_ADMIN
+        auth_type: JWT
+        required_permissions:
+        - platform.manage
+        role_requirements:
+          ADMIN:
+          - platform.manage
+        ownership_scope: Faqat USER, STUDIO va VENUE_OWNER rolidagi, o'chirilmagan
+          hisoblar (get_queryset). ADMIN / SUPER_ADMIN hisoblari bu yerda ko'rinmaydi
+          (404).
+        conditions:
+        - Faqat shu hisob roliga tegishli imkoniyat kodlari
+        permission_classes:
+        - HasAdminPermission
+        status: DERIVED
+        review_reasons: []
+        label: SUPER_ADMIN yoki `platform.manage` ruxsatli ADMIN
+      x-api-version: v1
+      x-documentation:
+        status: DOCUMENTED
+        missing: []
+  /api/v1/users/{id}/folders/:
+    get:
+      operationId: users_folders_list
+      description: |-
+        Clients of the platform: USER, STUDIO and VENUE_OWNER accounts.
+
+        **Ruxsat:** SUPER_ADMIN yoki `users.view` ruxsatli ADMIN
+
+        **Ma'lumot doirasi:** Faqat USER, STUDIO va VENUE_OWNER rolidagi, o'chirilmagan hisoblar (get_queryset). ADMIN / SUPER_ADMIN hisoblari bu yerda ko'rinmaydi (404).
+
+        **Shartlar:**
+        * Faqat USER: egasi yoki ko'ruvchisi bo'lgan marosimlar
+      summary: Foydalanuvchining marosim papkalari
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this user.
+        required: true
+      tags:
+      - users
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AccountFolder'
+          description: ''
+        '401':
+          description: not_authenticated / invalid_credentials / session_invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: permission_denied — rol yoki ruxsat yetarli emas (yoki CSRF)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: not_found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: throttled / account_locked — `details.retry_after` soniyalarda
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      x-access:
+        auth_required: true
+        roles:
+        - ADMIN
+        - SUPER_ADMIN
+        permission: users.view
+        label: SUPER_ADMIN yoki `users.view` ruxsatli ADMIN
+      x-allowed-roles:
+      - ADMIN
+      - SUPER_ADMIN
+      x-auth-type: JWT
+      x-required-permissions:
+      - users.view
+      x-ownership-scope: Faqat USER, STUDIO va VENUE_OWNER rolidagi, o'chirilmagan
+        hisoblar (get_queryset). ADMIN / SUPER_ADMIN hisoblari bu yerda ko'rinmaydi
+        (404).
+      x-access-conditions:
+      - 'Faqat USER: egasi yoki ko''ruvchisi bo''lgan marosimlar'
+      x-access-status: DERIVED
+      x-access-policy:
+        allowed_roles:
+        - ADMIN
+        - SUPER_ADMIN
+        auth_type: JWT
+        required_permissions:
+        - users.view
+        role_requirements:
+          ADMIN:
+          - users.view
+        ownership_scope: Faqat USER, STUDIO va VENUE_OWNER rolidagi, o'chirilmagan
+          hisoblar (get_queryset). ADMIN / SUPER_ADMIN hisoblari bu yerda ko'rinmaydi
+          (404).
+        conditions:
+        - 'Faqat USER: egasi yoki ko''ruvchisi bo''lgan marosimlar'
+        permission_classes:
+        - HasAdminPermission
+        status: DERIVED
+        review_reasons: []
+        label: SUPER_ADMIN yoki `users.view` ruxsatli ADMIN
+      x-api-version: v1
+      x-documentation:
+        status: DOCUMENTED
+        missing: []
+  /api/v1/users/{id}/folders/{ceremony_id}/:
+    patch:
+      operationId: users_folders_partial_update
+      description: |-
+        Clients of the platform: USER, STUDIO and VENUE_OWNER accounts.
+
+        **Ruxsat:** SUPER_ADMIN yoki `users.update` ruxsatli ADMIN
+
+        **Ma'lumot doirasi:** Faqat USER, STUDIO va VENUE_OWNER rolidagi, o'chirilmagan hisoblar (get_queryset). ADMIN / SUPER_ADMIN hisoblari bu yerda ko'rinmaydi (404).
+
+        **Shartlar:**
+        * Faqat shu hisob ochishi mumkin bo'lgan marosim; boshqasi 404
+      summary: Foydalanuvchi papkasi nomini o'zgartirish
+      parameters:
+      - in: path
+        name: ceremony_id
+        schema:
+          type: string
+          pattern: ^[0-9a-fA-F-]{36}$
+        required: true
+      - in: path
+        name: id
+        schema:
+          type: string
+          format: uuid
+        description: A UUID string identifying this user.
+        required: true
+      tags:
+      - users
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedFolderRenameRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedFolderRenameRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedFolderRenameRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FolderResult'
+          description: ''
+        '400':
+          description: validation_error — maydonlar bo'yicha xatolar `details` ichida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '401':
+          description: not_authenticated / invalid_credentials / session_invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: permission_denied — rol yoki ruxsat yetarli emas (yoki CSRF)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: not_found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: throttled / account_locked — `details.retry_after` soniyalarda
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      x-access:
+        auth_required: true
+        roles:
+        - ADMIN
+        - SUPER_ADMIN
+        permission: users.update
+        label: SUPER_ADMIN yoki `users.update` ruxsatli ADMIN
+      x-allowed-roles:
+      - ADMIN
+      - SUPER_ADMIN
+      x-auth-type: JWT
+      x-required-permissions:
+      - users.update
+      x-ownership-scope: Faqat USER, STUDIO va VENUE_OWNER rolidagi, o'chirilmagan
+        hisoblar (get_queryset). ADMIN / SUPER_ADMIN hisoblari bu yerda ko'rinmaydi
+        (404).
+      x-access-conditions:
+      - Faqat shu hisob ochishi mumkin bo'lgan marosim; boshqasi 404
+      x-access-status: DERIVED
+      x-access-policy:
+        allowed_roles:
+        - ADMIN
+        - SUPER_ADMIN
+        auth_type: JWT
+        required_permissions:
+        - users.update
+        role_requirements:
+          ADMIN:
+          - users.update
+        ownership_scope: Faqat USER, STUDIO va VENUE_OWNER rolidagi, o'chirilmagan
+          hisoblar (get_queryset). ADMIN / SUPER_ADMIN hisoblari bu yerda ko'rinmaydi
+          (404).
+        conditions:
+        - Faqat shu hisob ochishi mumkin bo'lgan marosim; boshqasi 404
+        permission_classes:
+        - HasAdminPermission
+        status: DERIVED
+        review_reasons: []
+        label: SUPER_ADMIN yoki `users.update` ruxsatli ADMIN
       x-api-version: v1
       x-documentation:
         status: DOCUMENTED
@@ -18921,6 +22205,764 @@ paths:
       x-documentation:
         status: DOCUMENTED
         missing: []
+  /api/v1/virtual-tryon/categories/:
+    get:
+      operationId: virtual_tryon_categories_list
+      summary: Kiyim kategoriyalari
+      tags:
+      - virtual-tryon
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Category'
+          description: ''
+        '401':
+          description: not_authenticated / invalid_credentials / session_invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: permission_denied — rol yoki ruxsat yetarli emas (yoki CSRF)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: throttled / account_locked — `details.retry_after` soniyalarda
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      x-access:
+        auth_required: true
+        roles:
+        - USER
+        permission: null
+        label: USER
+      x-allowed-roles:
+      - USER
+      x-auth-type: JWT
+      x-required-permissions: []
+      x-ownership-scope: null
+      x-access-conditions:
+      - Faqat faol kategoriyalar; soni — ko'rinadigan kiyimlar.
+      x-access-status: DERIVED
+      x-access-policy:
+        allowed_roles:
+        - USER
+        auth_type: JWT
+        required_permissions: []
+        role_requirements: {}
+        ownership_scope: null
+        conditions:
+        - Faqat faol kategoriyalar; soni — ko'rinadigan kiyimlar.
+        permission_classes:
+        - IsClientUser
+        status: DERIVED
+        review_reasons: []
+        label: USER
+      x-api-version: v1
+      description: |-
+        **Ruxsat:** USER
+
+        **Shartlar:**
+        * Faqat faol kategoriyalar; soni — ko'rinadigan kiyimlar.
+      x-documentation:
+        status: DOCUMENTED
+        missing: []
+  /api/v1/virtual-tryon/favorites/:
+    get:
+      operationId: virtual_tryon_favorites_list
+      summary: Sevimli kiyimlarim
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      tags:
+      - virtual-tryon
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedFavoriteList'
+          description: ''
+        '401':
+          description: not_authenticated / invalid_credentials / session_invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: permission_denied — rol yoki ruxsat yetarli emas (yoki CSRF)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: throttled / account_locked — `details.retry_after` soniyalarda
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      x-access:
+        auth_required: true
+        roles:
+        - USER
+        permission: null
+        label: USER
+      x-allowed-roles:
+      - USER
+      x-auth-type: JWT
+      x-required-permissions: []
+      x-ownership-scope: Faqat o'z sevimlilari (boshqalarniki 404).
+      x-access-conditions: []
+      x-access-status: DERIVED
+      x-access-policy:
+        allowed_roles:
+        - USER
+        auth_type: JWT
+        required_permissions: []
+        role_requirements: {}
+        ownership_scope: Faqat o'z sevimlilari (boshqalarniki 404).
+        conditions: []
+        permission_classes:
+        - IsClientUser
+        status: DERIVED
+        review_reasons: []
+        label: USER
+      x-api-version: v1
+      description: |-
+        **Ruxsat:** USER
+
+        **Ma'lumot doirasi:** Faqat o'z sevimlilari (boshqalarniki 404).
+      x-documentation:
+        status: DOCUMENTED
+        missing: []
+    post:
+      operationId: virtual_tryon_favorites_create
+      summary: Sevimlilarga qo'shish
+      tags:
+      - virtual-tryon
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FavoriteCreateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/FavoriteCreateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/FavoriteCreateRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Favorite'
+          description: ''
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Favorite'
+          description: ''
+        '400':
+          description: validation_error — maydonlar bo'yicha xatolar `details` ichida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '401':
+          description: not_authenticated / invalid_credentials / session_invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: permission_denied — rol yoki ruxsat yetarli emas (yoki CSRF)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: throttled / account_locked — `details.retry_after` soniyalarda
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      x-access:
+        auth_required: true
+        roles:
+        - USER
+        permission: null
+        label: USER
+      x-allowed-roles:
+      - USER
+      x-auth-type: JWT
+      x-required-permissions: []
+      x-ownership-scope: Faqat o'z sevimlilari (boshqalarniki 404).
+      x-access-conditions: []
+      x-access-status: DERIVED
+      x-access-policy:
+        allowed_roles:
+        - USER
+        auth_type: JWT
+        required_permissions: []
+        role_requirements: {}
+        ownership_scope: Faqat o'z sevimlilari (boshqalarniki 404).
+        conditions: []
+        permission_classes:
+        - IsClientUser
+        status: DERIVED
+        review_reasons: []
+        label: USER
+      x-api-version: v1
+      description: |-
+        **Ruxsat:** USER
+
+        **Ma'lumot doirasi:** Faqat o'z sevimlilari (boshqalarniki 404).
+      x-documentation:
+        status: DOCUMENTED
+        missing: []
+  /api/v1/virtual-tryon/favorites/{id}/:
+    delete:
+      operationId: virtual_tryon_favorites_destroy
+      description: |-
+        `id` — sevimli yozuvining yoki kiyimning o'zining id'si.
+
+        **Ruxsat:** USER
+
+        **Ma'lumot doirasi:** Faqat o'z sevimlilari (boshqalarniki 404).
+      summary: Sevimlilardan olib tashlash
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          pattern: ^[0-9a-fA-F-]{36}$
+        required: true
+      tags:
+      - virtual-tryon
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+        '401':
+          description: not_authenticated / invalid_credentials / session_invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: permission_denied — rol yoki ruxsat yetarli emas (yoki CSRF)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: not_found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: throttled / account_locked — `details.retry_after` soniyalarda
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      x-access:
+        auth_required: true
+        roles:
+        - USER
+        permission: null
+        label: USER
+      x-allowed-roles:
+      - USER
+      x-auth-type: JWT
+      x-required-permissions: []
+      x-ownership-scope: Faqat o'z sevimlilari (boshqalarniki 404).
+      x-access-conditions: []
+      x-access-status: DERIVED
+      x-access-policy:
+        allowed_roles:
+        - USER
+        auth_type: JWT
+        required_permissions: []
+        role_requirements: {}
+        ownership_scope: Faqat o'z sevimlilari (boshqalarniki 404).
+        conditions: []
+        permission_classes:
+        - IsClientUser
+        status: DERIVED
+        review_reasons: []
+        label: USER
+      x-api-version: v1
+      x-documentation:
+        status: DOCUMENTED
+        missing: []
+  /api/v1/virtual-tryon/garments/:
+    get:
+      operationId: virtual_tryon_garments_list
+      summary: Kiyimlar katalogi
+      parameters:
+      - in: query
+        name: category
+        schema:
+          type: string
+        description: Kategoriya slug'i
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: page_size
+        required: false
+        in: query
+        description: Number of results to return per page.
+        schema:
+          type: integer
+      - in: query
+        name: q
+        schema:
+          type: string
+        description: Nomi bo'yicha qidiruv
+      - in: query
+        name: tryon
+        schema:
+          type: boolean
+        description: Faqat kamerada kiyib ko'rsa bo'ladiganlari
+      tags:
+      - virtual-tryon
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedGarmentList'
+          description: ''
+        '401':
+          description: not_authenticated / invalid_credentials / session_invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: permission_denied — rol yoki ruxsat yetarli emas (yoki CSRF)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: throttled / account_locked — `details.retry_after` soniyalarda
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      x-access:
+        auth_required: true
+        roles:
+        - USER
+        permission: null
+        label: USER
+      x-allowed-roles:
+      - USER
+      x-auth-type: JWT
+      x-required-permissions: []
+      x-ownership-scope: null
+      x-access-conditions:
+      - Faqat faol va tasdiqlangan (APPROVED) kiyimlar; boshqalari 404.
+      x-access-status: DERIVED
+      x-access-policy:
+        allowed_roles:
+        - USER
+        auth_type: JWT
+        required_permissions: []
+        role_requirements: {}
+        ownership_scope: null
+        conditions:
+        - Faqat faol va tasdiqlangan (APPROVED) kiyimlar; boshqalari 404.
+        permission_classes:
+        - IsClientUser
+        status: DERIVED
+        review_reasons: []
+        label: USER
+      x-api-version: v1
+      description: |-
+        **Ruxsat:** USER
+
+        **Shartlar:**
+        * Faqat faol va tasdiqlangan (APPROVED) kiyimlar; boshqalari 404.
+      x-documentation:
+        status: DOCUMENTED
+        missing: []
+  /api/v1/virtual-tryon/garments/{id}/:
+    get:
+      operationId: virtual_tryon_garments_retrieve
+      summary: Kiyim tafsilotlari
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          pattern: ^[0-9a-fA-F-]{36}$
+        required: true
+      tags:
+      - virtual-tryon
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Garment'
+          description: ''
+        '401':
+          description: not_authenticated / invalid_credentials / session_invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: permission_denied — rol yoki ruxsat yetarli emas (yoki CSRF)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: not_found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: throttled / account_locked — `details.retry_after` soniyalarda
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      x-access:
+        auth_required: true
+        roles:
+        - USER
+        permission: null
+        label: USER
+      x-allowed-roles:
+      - USER
+      x-auth-type: JWT
+      x-required-permissions: []
+      x-ownership-scope: null
+      x-access-conditions:
+      - Faqat faol va tasdiqlangan (APPROVED) kiyimlar; boshqalari 404.
+      x-access-status: DERIVED
+      x-access-policy:
+        allowed_roles:
+        - USER
+        auth_type: JWT
+        required_permissions: []
+        role_requirements: {}
+        ownership_scope: null
+        conditions:
+        - Faqat faol va tasdiqlangan (APPROVED) kiyimlar; boshqalari 404.
+        permission_classes:
+        - IsClientUser
+        status: DERIVED
+        review_reasons: []
+        label: USER
+      x-api-version: v1
+      description: |-
+        **Ruxsat:** USER
+
+        **Shartlar:**
+        * Faqat faol va tasdiqlangan (APPROVED) kiyimlar; boshqalari 404.
+      x-documentation:
+        status: DOCUMENTED
+        missing: []
+  /api/v1/virtual-tryon/garments/{id}/assets/:
+    get:
+      operationId: virtual_tryon_garments_assets_retrieve
+      summary: Kiyimning AR qatlamlari (shaffof rasmlar + anchor nuqtalar)
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          pattern: ^[0-9a-fA-F-]{36}$
+        required: true
+      tags:
+      - virtual-tryon
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GarmentAsset'
+          description: ''
+        '401':
+          description: not_authenticated / invalid_credentials / session_invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: permission_denied — rol yoki ruxsat yetarli emas (yoki CSRF)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: not_found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: throttled / account_locked — `details.retry_after` soniyalarda
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      x-access:
+        auth_required: true
+        roles:
+        - USER
+        permission: null
+        label: USER
+      x-allowed-roles:
+      - USER
+      x-auth-type: JWT
+      x-required-permissions: []
+      x-ownership-scope: null
+      x-access-conditions:
+      - Faqat faol va tasdiqlangan (APPROVED) kiyimlar; boshqalari 404.
+      x-access-status: DERIVED
+      x-access-policy:
+        allowed_roles:
+        - USER
+        auth_type: JWT
+        required_permissions: []
+        role_requirements: {}
+        ownership_scope: null
+        conditions:
+        - Faqat faol va tasdiqlangan (APPROVED) kiyimlar; boshqalari 404.
+        permission_classes:
+        - IsClientUser
+        status: DERIVED
+        review_reasons: []
+        label: USER
+      x-api-version: v1
+      description: |-
+        **Ruxsat:** USER
+
+        **Shartlar:**
+        * Faqat faol va tasdiqlangan (APPROVED) kiyimlar; boshqalari 404.
+      x-documentation:
+        status: DOCUMENTED
+        missing: []
+  /api/v1/virtual-tryon/sessions/:
+    post:
+      operationId: virtual_tryon_sessions_create
+      summary: Kiyib ko'rish seansini boshlash (statistika, kadrlar yuborilmaydi)
+      tags:
+      - virtual-tryon
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SessionCreateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SessionCreateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SessionCreateRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Session'
+          description: ''
+        '400':
+          description: validation_error — maydonlar bo'yicha xatolar `details` ichida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '401':
+          description: not_authenticated / invalid_credentials / session_invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: permission_denied — rol yoki ruxsat yetarli emas (yoki CSRF)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: throttled / account_locked — `details.retry_after` soniyalarda
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      x-access:
+        auth_required: true
+        roles:
+        - USER
+        permission: null
+        label: USER
+      x-allowed-roles:
+      - USER
+      x-auth-type: JWT
+      x-required-permissions: []
+      x-ownership-scope: null
+      x-access-conditions:
+      - Faqat kamerada kiyib ko'rish mumkin bo'lgan kiyim uchun.
+      x-access-status: DERIVED
+      x-access-policy:
+        allowed_roles:
+        - USER
+        auth_type: JWT
+        required_permissions: []
+        role_requirements: {}
+        ownership_scope: null
+        conditions:
+        - Faqat kamerada kiyib ko'rish mumkin bo'lgan kiyim uchun.
+        permission_classes:
+        - IsClientUser
+        status: DERIVED
+        review_reasons: []
+        label: USER
+      x-api-version: v1
+      description: |-
+        **Ruxsat:** USER
+
+        **Shartlar:**
+        * Faqat kamerada kiyib ko'rish mumkin bo'lgan kiyim uchun.
+      x-documentation:
+        status: DOCUMENTED
+        missing: []
+  /api/v1/virtual-tryon/sessions/{id}/finish/:
+    post:
+      operationId: virtual_tryon_sessions_finish_create
+      summary: Kiyib ko'rish seansini yakunlash
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: string
+          pattern: ^[0-9a-fA-F-]{36}$
+        required: true
+      tags:
+      - virtual-tryon
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Session'
+          description: ''
+        '400':
+          description: validation_error — maydonlar bo'yicha xatolar `details` ichida
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '401':
+          description: not_authenticated / invalid_credentials / session_invalid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '403':
+          description: permission_denied — rol yoki ruxsat yetarli emas (yoki CSRF)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '404':
+          description: not_found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+        '429':
+          description: throttled / account_locked — `details.retry_after` soniyalarda
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorEnvelope'
+      x-access:
+        auth_required: true
+        roles:
+        - USER
+        permission: null
+        label: USER
+      x-allowed-roles:
+      - USER
+      x-auth-type: JWT
+      x-required-permissions: []
+      x-ownership-scope: Faqat o'z seansini yakunlaydi (boshqalarniki 404).
+      x-access-conditions: []
+      x-access-status: DERIVED
+      x-access-policy:
+        allowed_roles:
+        - USER
+        auth_type: JWT
+        required_permissions: []
+        role_requirements: {}
+        ownership_scope: Faqat o'z seansini yakunlaydi (boshqalarniki 404).
+        conditions: []
+        permission_classes:
+        - IsClientUser
+        status: DERIVED
+        review_reasons: []
+        label: USER
+      x-api-version: v1
+      description: |-
+        **Ruxsat:** USER
+
+        **Ma'lumot doirasi:** Faqat o'z seansini yakunlaydi (boshqalarniki 404).
+      x-documentation:
+        status: DOCUMENTED
+        missing: []
 components:
   schemas:
     AcceptResult:
@@ -18969,6 +23011,63 @@ components:
         * `ACTIVE` - ACTIVE
         * `DECLINED` - DECLINED
         * `REVOKED` - REVOKED
+    AccountFeature:
+      type: object
+      properties:
+        code:
+          type: string
+        role:
+          type: string
+        label:
+          type: string
+        enabled:
+          type: boolean
+          description: Shu hisob uchun yoqilganmi
+        platform_enabled:
+          type: boolean
+          description: Platforma boshqaruvida (butun rol uchun) yoqilganmi
+      required:
+      - code
+      - enabled
+      - label
+      - platform_enabled
+      - role
+    AccountFolder:
+      type: object
+      description: One folder of an account, as the panel sees it.
+      properties:
+        id:
+          type: string
+          format: uuid
+        folder_name:
+          type: string
+          readOnly: true
+        is_custom:
+          type: boolean
+          readOnly: true
+        title:
+          type: string
+        event_type:
+          type: string
+        event_date:
+          type: string
+          format: date
+        status:
+          type: string
+        studio:
+          $ref: '#/components/schemas/StudioBrief'
+        access_role:
+          $ref: '#/components/schemas/CeremonyAccessRoleEnum'
+      required:
+      - access_role
+      - event_date
+      - event_type
+      - folder_name
+      - id
+      - is_custom
+      - status
+      - studio
+      - title
     Admin:
       type: object
       description: |-
@@ -19042,7 +23141,7 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/PermissionsEnum'
-          maxItems: 28
+          maxItems: 33
       required:
       - created_at
       - full_name
@@ -19114,6 +23213,143 @@ components:
       - requested_by
       - status
       - studio
+    AdminGarment:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        category:
+          allOf:
+          - $ref: '#/components/schemas/CategoryRef'
+          readOnly: true
+        studio:
+          type: string
+          format: uuid
+          readOnly: true
+          nullable: true
+        name:
+          type: string
+          maxLength: 150
+        description:
+          type: string
+          maxLength: 2000
+        price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+        currency:
+          $ref: '#/components/schemas/CurrencyEnum'
+        sizes:
+          type: array
+          items:
+            type: string
+            maxLength: 20
+          maxItems: 20
+        colors:
+          type: array
+          items:
+            $ref: '#/components/schemas/Color'
+        cover_image_url:
+          type: string
+          nullable: true
+          readOnly: true
+        asset_type:
+          $ref: '#/components/schemas/GarmentAssetTypeEnum'
+        is_tryon_enabled:
+          type: boolean
+        is_active:
+          type: boolean
+        approval_status:
+          allOf:
+          - $ref: '#/components/schemas/GarmentApprovalStatusEnum'
+          readOnly: true
+        rejection_reason:
+          type: string
+          readOnly: true
+        sort_order:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+        tryon_ready:
+          type: boolean
+          readOnly: true
+        assets:
+          type: array
+          items:
+            $ref: '#/components/schemas/GarmentAsset'
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - approval_status
+      - assets
+      - category
+      - cover_image_url
+      - created_at
+      - id
+      - name
+      - rejection_reason
+      - studio
+      - tryon_ready
+      - updated_at
+    AdminGarmentRequest:
+      type: object
+      properties:
+        category_id:
+          type: string
+          format: uuid
+          writeOnly: true
+        name:
+          type: string
+          minLength: 1
+          maxLength: 150
+        description:
+          type: string
+          maxLength: 2000
+        price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+        currency:
+          $ref: '#/components/schemas/CurrencyEnum'
+        sizes:
+          type: array
+          items:
+            type: string
+            minLength: 1
+            maxLength: 20
+          maxItems: 20
+        colors:
+          type: array
+          items:
+            $ref: '#/components/schemas/ColorRequest'
+        cover_image:
+          type: string
+          format: binary
+          writeOnly: true
+        asset_type:
+          $ref: '#/components/schemas/GarmentAssetTypeEnum'
+        is_tryon_enabled:
+          type: boolean
+        is_active:
+          type: boolean
+        sort_order:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
+      required:
+      - category_id
+      - name
     AdminNoteRequest:
       type: object
       properties:
@@ -19168,7 +23404,7 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/PermissionsEnum'
-          maxItems: 28
+          maxItems: 33
     AdminReview:
       type: object
       description: 'Panel view: incl. the author''s account so moderators can act
@@ -19672,6 +23908,19 @@ components:
       - decided_at
       - decision
       - is_me
+    AssetUploadRequest:
+      type: object
+      properties:
+        kind:
+          $ref: '#/components/schemas/GarmentAssetKindEnum'
+        file:
+          type: string
+          format: binary
+        anchors:
+          description: Normallashgan anchor nuqtalari (JSON).
+      required:
+      - file
+      - kind
     BlankEnum:
       enum:
       - ''
@@ -19725,6 +23974,51 @@ components:
         * `BLOCKED` - Yopiq (to'yxona)
         * `REJECTED` - Rad etilgan
         * `CANCELLED` - Bekor qilingan
+    Category:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          readOnly: true
+        slug:
+          type: string
+          readOnly: true
+          pattern: ^[-a-zA-Z0-9_]+$
+        sort_order:
+          type: integer
+          readOnly: true
+        garment_count:
+          type: integer
+          readOnly: true
+          default: 0
+      required:
+      - garment_count
+      - id
+      - name
+      - slug
+      - sort_order
+    CategoryRef:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          readOnly: true
+        slug:
+          type: string
+          readOnly: true
+          pattern: ^[-a-zA-Z0-9_]+$
+      required:
+      - id
+      - name
+      - slug
     Ceremony:
       type: object
       properties:
@@ -19849,6 +24143,130 @@ components:
       - difficulty
       - min_seconds
       - token
+    ChatCustomer:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          readOnly: true
+      required:
+      - id
+      - name
+    ChatMessage:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        body:
+          type: string
+        from_studio:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+      required:
+      - body
+      - created_at
+      - from_studio
+      - id
+    ChatMessageWriteRequest:
+      type: object
+      properties:
+        body:
+          type: string
+          minLength: 1
+          maxLength: 2000
+      required:
+      - body
+    ChatStudio:
+      type: object
+      properties:
+        is_verified:
+          type: boolean
+          readOnly: true
+          description: Faol pulli obuna / biznes galichkasi (shaxs tasdig'i emas)
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        name:
+          type: string
+          readOnly: true
+        profile_picture:
+          type: string
+          format: uri
+          nullable: true
+          readOnly: true
+      required:
+      - id
+      - is_verified
+      - name
+      - profile_picture
+    Color:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 40
+        hex:
+          oneOf:
+          - type: string
+            pattern: ^#[0-9A-Fa-f]{6}$
+          - type: string
+            maxLength: 0
+      required:
+      - name
+    ColorRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 40
+        hex:
+          oneOf:
+          - type: string
+            pattern: ^#[0-9A-Fa-f]{6}$
+          - type: string
+            maxLength: 0
+      required:
+      - name
+    Comment:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        author_name:
+          type: string
+          readOnly: true
+        text:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        is_mine:
+          type: boolean
+          readOnly: true
+      required:
+      - author_name
+      - created_at
+      - id
+      - is_mine
+      - text
+    CommentWriteRequest:
+      type: object
+      properties:
+        text:
+          type: string
+          minLength: 1
+          maxLength: 500
+      required:
+      - text
     CurrencyEnum:
       enum:
       - UZS
@@ -19878,6 +24296,20 @@ components:
       - recent_profiles
       - role_distribution
       - totals
+    DayStatusWriteRequest:
+      type: object
+      properties:
+        status:
+          nullable: true
+          oneOf:
+          - $ref: '#/components/schemas/StudioDayStatusEnum'
+          - $ref: '#/components/schemas/NullEnum'
+        note:
+          type: string
+          default: ''
+          maxLength: 200
+      required:
+      - status
     DecisionRequest:
       type: object
       properties:
@@ -20018,6 +24450,7 @@ components:
       - USER.sharing
       - USER.subscriptions
       - USER.support
+      - USER.tryon
       - VENUE_OWNER.subscriptions
       - VENUE_OWNER.support
       - VENUE_OWNER.venues
@@ -20036,9 +24469,29 @@ components:
         * `USER.sharing` - USER.sharing
         * `USER.subscriptions` - USER.subscriptions
         * `USER.support` - USER.support
+        * `USER.tryon` - USER.tryon
         * `VENUE_OWNER.subscriptions` - VENUE_OWNER.subscriptions
         * `VENUE_OWNER.support` - VENUE_OWNER.support
         * `VENUE_OWNER.venues` - VENUE_OWNER.venues
+    Engagement:
+      type: object
+      properties:
+        like_count:
+          type: integer
+        dislike_count:
+          type: integer
+        comment_count:
+          type: integer
+        my_reaction:
+          nullable: true
+          oneOf:
+          - $ref: '#/components/schemas/PortfolioReactionEnum'
+          - $ref: '#/components/schemas/NullEnum'
+      required:
+      - comment_count
+      - dislike_count
+      - like_count
+      - my_reaction
     ErrorCategoryEnum:
       enum:
       - validation
@@ -20107,6 +24560,33 @@ components:
         * `BIRTHDAY` - Tug'ilgan kun
         * `ANNIVERSARY` - Yubiley
         * `OTHER` - Boshqa marosim
+    Favorite:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        garment:
+          allOf:
+          - $ref: '#/components/schemas/Garment'
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - garment
+      - id
+    FavoriteCreateRequest:
+      type: object
+      properties:
+        garment:
+          type: string
+          format: uuid
+      required:
+      - garment
     Feature:
       type: object
       properties:
@@ -20123,6 +24603,170 @@ components:
       - enabled
       - label
       - role
+    FolderResult:
+      type: object
+      properties:
+        folder_name:
+          type: string
+        is_custom:
+          type: boolean
+      required:
+      - folder_name
+      - is_custom
+    Garment:
+      type: object
+      description: What a USER sees in the catalogue.
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        category:
+          allOf:
+          - $ref: '#/components/schemas/CategoryRef'
+          readOnly: true
+        name:
+          type: string
+          readOnly: true
+        description:
+          type: string
+          readOnly: true
+        price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+          readOnly: true
+        currency:
+          allOf:
+          - $ref: '#/components/schemas/CurrencyEnum'
+          readOnly: true
+        sizes:
+          type: array
+          items:
+            type: string
+          readOnly: true
+        colors:
+          type: array
+          items:
+            $ref: '#/components/schemas/Color'
+          readOnly: true
+        cover_image:
+          type: string
+          nullable: true
+          readOnly: true
+        asset_type:
+          allOf:
+          - $ref: '#/components/schemas/GarmentAssetTypeEnum'
+          readOnly: true
+        tryon_ready:
+          type: boolean
+          readOnly: true
+          description: 'Kamerada kiyib ko''rish mumkin: yoqilgan va asosiy (BODY_FRONT)
+            qatlami bor.'
+        is_favorite:
+          type: boolean
+          readOnly: true
+        studio_name:
+          type: string
+          nullable: true
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - asset_type
+      - category
+      - colors
+      - cover_image
+      - currency
+      - description
+      - id
+      - is_favorite
+      - name
+      - price
+      - sizes
+      - studio_name
+      - tryon_ready
+      - updated_at
+    GarmentApprovalStatusEnum:
+      enum:
+      - DRAFT
+      - PENDING
+      - APPROVED
+      - REJECTED
+      type: string
+      description: |-
+        * `DRAFT` - Qoralama
+        * `PENDING` - Tasdiqlash kutilmoqda
+        * `APPROVED` - Tasdiqlangan
+        * `REJECTED` - Rad etilgan
+    GarmentAsset:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        kind:
+          allOf:
+          - $ref: '#/components/schemas/GarmentAssetKindEnum'
+          readOnly: true
+        url:
+          type: string
+          readOnly: true
+        width:
+          type: integer
+          readOnly: true
+        height:
+          type: integer
+          readOnly: true
+        size_bytes:
+          type: integer
+          readOnly: true
+        anchors:
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - anchors
+      - height
+      - id
+      - kind
+      - size_bytes
+      - updated_at
+      - url
+      - width
+    GarmentAssetKindEnum:
+      enum:
+      - BODY_FRONT
+      - BODY_BACK
+      - LOWER_BODY
+      - RIGHT_UPPER_ARM
+      - RIGHT_FOREARM
+      - LEFT_UPPER_ARM
+      - LEFT_FOREARM
+      - MODEL_GLB
+      type: string
+      description: |-
+        * `BODY_FRONT` - Old tomoni (asosiy qatlam)
+        * `BODY_BACK` - Orqa tomoni
+        * `LOWER_BODY` - Pastki kiyim (shim / yubka)
+        * `RIGHT_UPPER_ARM` - O'ng yeng (yelka–tirsak)
+        * `RIGHT_FOREARM` - O'ng yeng (tirsak–bilak)
+        * `LEFT_UPPER_ARM` - Chap yeng (yelka–tirsak)
+        * `LEFT_FOREARM` - Chap yeng (tirsak–bilak)
+        * `MODEL_GLB` - 3D model (GLB)
+    GarmentAssetTypeEnum:
+      enum:
+      - LAYERED_2D
+      - MODEL_3D
+      type: string
+      description: |-
+        * `LAYERED_2D` - 2D qatlamlar
+        * `MODEL_3D` - 3D model (tez orada)
     GoogleDriveConnect:
       type: object
       properties:
@@ -21128,6 +25772,10 @@ components:
           type: string
           format: uuid
           readOnly: true
+        folder_name:
+          type: string
+          readOnly: true
+          description: Shaxsiy papka nomi (o'zgartirilmagan bo'lsa — title)
         title:
           type: string
           readOnly: true
@@ -21170,6 +25818,7 @@ components:
       - description
       - event_date
       - event_type
+      - folder_name
       - id
       - my_role
       - participants
@@ -21245,6 +25894,10 @@ components:
       type: object
       description: A studio as seen by one of its members (no responsible user PII).
       properties:
+        is_verified:
+          type: boolean
+          readOnly: true
+          description: Faol pulli obuna / biznes galichkasi (shaxs tasdig'i emas)
         id:
           type: string
           format: uuid
@@ -21276,6 +25929,7 @@ components:
       - description
       - id
       - is_active
+      - is_verified
       - name
       - profile_picture
     MySubscription:
@@ -21423,6 +26077,18 @@ components:
     NullEnum:
       enum:
       - null
+    OffWeekdays:
+      type: object
+      properties:
+        off_weekdays:
+          type: array
+          items:
+            type: integer
+            maximum: 6
+            minimum: 0
+          maxItems: 7
+      required:
+      - off_weekdays
     OwnerBooking:
       type: object
       description: 'A calendar entry as the venue sees it: incl. the couple''s contact
@@ -22028,6 +26694,35 @@ components:
           type: integer
         total_pages:
           type: integer
+    PaginatedAdminGarmentList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdminGarment'
+        page:
+          type: integer
+        page_size:
+          type: integer
+        total_pages:
+          type: integer
     PaginatedAdminList:
       type: object
       required:
@@ -22202,6 +26897,35 @@ components:
           type: integer
         total_pages:
           type: integer
+    PaginatedFavoriteList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Favorite'
+        page:
+          type: integer
+        page_size:
+          type: integer
+        total_pages:
+          type: integer
     PaginatedFeatureList:
       type: object
       required:
@@ -22225,6 +26949,35 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Feature'
+        page:
+          type: integer
+        page_size:
+          type: integer
+        total_pages:
+          type: integer
+    PaginatedGarmentList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Garment'
         page:
           type: integer
         page_size:
@@ -22546,6 +27299,62 @@ components:
         * `IN_REVIEW` - Ko'rib chiqilmoqda
         * `APPROVED` - Qabul qilindi
         * `REJECTED` - Rad etildi
+    PatchedAccountFeaturesWriteRequest:
+      type: object
+      properties:
+        disabled_features:
+          type: array
+          items:
+            type: string
+            minLength: 1
+            maxLength: 64
+          maxItems: 50
+    PatchedAdminGarmentRequest:
+      type: object
+      properties:
+        category_id:
+          type: string
+          format: uuid
+          writeOnly: true
+        name:
+          type: string
+          minLength: 1
+          maxLength: 150
+        description:
+          type: string
+          maxLength: 2000
+        price:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,12}(?:\.\d{0,2})?$
+        currency:
+          $ref: '#/components/schemas/CurrencyEnum'
+        sizes:
+          type: array
+          items:
+            type: string
+            minLength: 1
+            maxLength: 20
+          maxItems: 20
+        colors:
+          type: array
+          items:
+            $ref: '#/components/schemas/ColorRequest'
+        cover_image:
+          type: string
+          format: binary
+          writeOnly: true
+        asset_type:
+          $ref: '#/components/schemas/GarmentAssetTypeEnum'
+        is_tryon_enabled:
+          type: boolean
+        is_active:
+          type: boolean
+        sort_order:
+          type: integer
+          maximum: 9223372036854775807
+          minimum: 0
+          format: int64
     PatchedAdminRequest:
       type: object
       description: |-
@@ -22594,7 +27403,7 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/PermissionsEnum'
-          maxItems: 28
+          maxItems: 33
     PatchedAdminReviewRequest:
       type: object
       description: 'Panel view: incl. the author''s account so moderators can act
@@ -22696,6 +27505,13 @@ components:
           maxLength: 2000
         status:
           $ref: '#/components/schemas/CeremonyStatusEnum'
+    PatchedFolderRenameRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Bo'sh — marosim nomiga qaytarish
+          maxLength: 100
     PatchedHallSessionRequest:
       type: object
       description: A hall's recurring slot. ``context["hall"]`` is required for writes
@@ -22777,6 +27593,16 @@ components:
         address:
           type: string
           maxLength: 255
+    PatchedOffWeekdaysRequest:
+      type: object
+      properties:
+        off_weekdays:
+          type: array
+          items:
+            type: integer
+            maximum: 6
+            minimum: 0
+          maxItems: 7
     PatchedOwnerBookingUpdateRequest:
       type: object
       properties:
@@ -22880,6 +27706,12 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/DisabledFeaturesEnum'
+    PatchedPortfolioItemUpdateRequest:
+      type: object
+      properties:
+        caption:
+          type: string
+          maxLength: 300
     PatchedSettingsRequest:
       type: object
       properties:
@@ -22907,6 +27739,11 @@ components:
         phone_number:
           type: string
           maxLength: 32
+        portfolio_quota_mb:
+          type: integer
+          maximum: 1048576
+          minimum: 0
+          description: Portfolio uchun joy (MB), standart 1024
         responsible_user_id:
           type: string
           format: uuid
@@ -23044,6 +27881,11 @@ components:
       - subscriptions.plans
       - requests.view
       - requests.media_delete
+      - tryon.view
+      - tryon.create
+      - tryon.update
+      - tryon.delete
+      - tryon.approve
       - support.view
       - support.monitor
       type: string
@@ -23074,6 +27916,11 @@ components:
         * `subscriptions.plans` - subscriptions.plans
         * `requests.view` - requests.view
         * `requests.media_delete` - requests.media_delete
+        * `tryon.view` - tryon.view
+        * `tryon.create` - tryon.create
+        * `tryon.update` - tryon.update
+        * `tryon.delete` - tryon.delete
+        * `tryon.approve` - tryon.approve
         * `support.view` - support.view
         * `support.monitor` - support.monitor
     PinflReveal:
@@ -23211,6 +28058,105 @@ components:
       - max_viewers
       - name
       - price
+    PortfolioItem:
+      type: object
+      description: A portfolio item with its likes / dislikes / comment count (``context["engagement"]``).
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        kind:
+          allOf:
+          - $ref: '#/components/schemas/PortfolioKindEnum'
+          readOnly: true
+        image:
+          type: string
+          nullable: true
+          readOnly: true
+          description: Rasm yoki reels muqovasi
+        video:
+          type: string
+          nullable: true
+          readOnly: true
+        caption:
+          type: string
+          readOnly: true
+        duration:
+          type: number
+          format: double
+          readOnly: true
+        size_bytes:
+          type: integer
+          readOnly: true
+        position:
+          type: integer
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        engagement:
+          allOf:
+          - $ref: '#/components/schemas/Engagement'
+          readOnly: true
+      required:
+      - caption
+      - created_at
+      - duration
+      - engagement
+      - id
+      - image
+      - kind
+      - position
+      - size_bytes
+      - video
+    PortfolioKindEnum:
+      enum:
+      - IMAGE
+      - VIDEO
+      type: string
+      description: |-
+        * `IMAGE` - Rasm
+        * `VIDEO` - Reels video
+    PortfolioReactionEnum:
+      enum:
+      - like
+      - dislike
+      type: string
+      description: |-
+        * `like` - like
+        * `dislike` - dislike
+    PortfolioStorageEnum:
+      enum:
+      - DRIVE
+      - LOCAL
+      type: string
+      description: |-
+        * `DRIVE` - Google Drive
+        * `LOCAL` - Server diski
+    PortfolioUsage:
+      type: object
+      properties:
+        used_bytes:
+          type: integer
+        quota_bytes:
+          type: integer
+        free_bytes:
+          type: integer
+        storage:
+          allOf:
+          - $ref: '#/components/schemas/PortfolioStorageEnum'
+          description: |-
+            Yangi fayllar qayerga yoziladi
+
+            * `DRIVE` - Google Drive
+            * `LOCAL` - Server diski
+      required:
+      - free_bytes
+      - quota_bytes
+      - storage
+      - used_bytes
     ProviderEnum:
       enum:
       - GOOGLE_DRIVE
@@ -23350,14 +28296,26 @@ components:
         images:
           type: array
           items:
-            $ref: '#/components/schemas/StudioImage'
+            $ref: '#/components/schemas/PortfolioItem'
           readOnly: true
+          description: Faqat rasmlar
+        reels:
+          type: array
+          items:
+            $ref: '#/components/schemas/PortfolioItem'
+          readOnly: true
+          description: Vertikal videolar — faqat galichka faol bo'lsa
+        chat_enabled:
+          type: boolean
+          readOnly: true
+          description: Studiyaga yozish mumkinmi (galichka faol)
         stats:
           allOf:
           - $ref: '#/components/schemas/Stats'
           readOnly: true
       required:
       - address
+      - chat_enabled
       - description
       - id
       - images
@@ -23365,6 +28323,7 @@ components:
       - name
       - phone_number
       - profile_picture
+      - reels
       - stats
     PublicVenue:
       type: object
@@ -23474,6 +28433,30 @@ components:
       required:
       - halls
       - venue
+    ReactionWriteRequest:
+      type: object
+      properties:
+        value:
+          $ref: '#/components/schemas/PortfolioReactionEnum'
+      required:
+      - value
+    ReelUploadRequest:
+      type: object
+      properties:
+        video:
+          type: string
+          format: binary
+          description: Vertikal (9:16) MP4 / MOV / WEBM, 1–90 soniya
+        poster:
+          type: string
+          format: binary
+          description: Muqova kadri (server ffmpeg bilan o'zi ham oladi)
+        caption:
+          type: string
+          default: ''
+          maxLength: 300
+      required:
+      - video
     RefreshRequest:
       type: object
       properties:
@@ -23502,6 +28485,15 @@ components:
       - password
       - password_confirm
       - phone_number
+    RejectRequest:
+      type: object
+      properties:
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 300
+      required:
+      - reason
     RequestLog:
       type: object
       properties:
@@ -23616,6 +28608,43 @@ components:
         * `STUDIO` - Studiya
         * `VENUE_OWNER` - To'yxona
         * `USER` - Foydalanuvchi
+    Session:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+        garment:
+          type: string
+          format: uuid
+          readOnly: true
+        started_at:
+          type: string
+          format: date-time
+          readOnly: true
+        ended_at:
+          type: string
+          format: date-time
+          readOnly: true
+          nullable: true
+        duration_seconds:
+          type: integer
+          readOnly: true
+      required:
+      - duration_seconds
+      - ended_at
+      - garment
+      - id
+      - started_at
+    SessionCreateRequest:
+      type: object
+      properties:
+        garment:
+          type: string
+          format: uuid
+      required:
+      - garment
     Settings:
       type: object
       properties:
@@ -23747,6 +28776,14 @@ components:
           items:
             $ref: '#/components/schemas/StudioImage'
           readOnly: true
+        portfolio_quota_mb:
+          type: integer
+          maximum: 1048576
+          minimum: 0
+          description: Portfolio uchun joy (MB), standart 1024
+        portfolio_used_bytes:
+          type: integer
+          readOnly: true
         responsible_user:
           allOf:
           - $ref: '#/components/schemas/UserSummary'
@@ -23768,6 +28805,7 @@ components:
       - images
       - is_verified
       - name
+      - portfolio_used_bytes
       - responsible_user
       - updated_at
     StudioBrief:
@@ -23815,6 +28853,38 @@ components:
       - id
       - status
       - title
+    StudioConversation:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        last_message_at:
+          type: string
+          format: date-time
+        unread:
+          type: integer
+        last_message:
+          allOf:
+          - $ref: '#/components/schemas/ChatMessage'
+          nullable: true
+          readOnly: true
+        customer:
+          $ref: '#/components/schemas/ChatCustomer'
+      required:
+      - customer
+      - id
+      - last_message
+      - last_message_at
+      - unread
+    StudioDayStatusEnum:
+      enum:
+      - BUSY
+      - 'OFF'
+      type: string
+      description: |-
+        * `BUSY` - Band
+        * `OFF` - Dam olish
     StudioImage:
       type: object
       properties:
@@ -23822,10 +28892,28 @@ components:
           type: string
           format: uuid
           readOnly: true
+        kind:
+          allOf:
+          - $ref: '#/components/schemas/PortfolioKindEnum'
+          readOnly: true
         image:
           type: string
-          format: uri
           nullable: true
+          readOnly: true
+          description: Rasm yoki reels muqovasi
+        video:
+          type: string
+          nullable: true
+          readOnly: true
+        caption:
+          type: string
+          readOnly: true
+        duration:
+          type: number
+          format: double
+          readOnly: true
+        size_bytes:
+          type: integer
           readOnly: true
         position:
           type: integer
@@ -23835,10 +28923,15 @@ components:
           format: date-time
           readOnly: true
       required:
+      - caption
       - created_at
+      - duration
       - id
       - image
+      - kind
       - position
+      - size_bytes
+      - video
     StudioImageUploadRequest:
       type: object
       properties:
@@ -23926,6 +29019,50 @@ components:
       - recipient_hint
       - responded_at
       - status
+    StudioPanelSchedule:
+      type: object
+      properties:
+        date_from:
+          type: string
+          format: date
+        date_to:
+          type: string
+          format: date
+        busy:
+          type: object
+          additionalProperties:
+            type: integer
+          description: '{YYYY-MM-DD: shu kuni marosimlar soni} — bo''sh kunlar yo''q.'
+        days:
+          type: object
+          additionalProperties:
+            enum:
+            - BUSY
+            - 'OFF'
+            type: string
+            description: |-
+              * `BUSY` - Band
+              * `OFF` - Dam olish
+          description: '{YYYY-MM-DD: BUSY | OFF} — studiya qo''lda belgilagan kunlar'
+        off_weekdays:
+          type: array
+          items:
+            type: integer
+            maximum: 6
+            minimum: 0
+          description: Haftalik dam olish kunlari (0 = Dushanba)
+        notes:
+          type: object
+          additionalProperties:
+            type: string
+          description: '{YYYY-MM-DD: ichki izoh}'
+      required:
+      - busy
+      - date_from
+      - date_to
+      - days
+      - notes
+      - off_weekdays
     StudioRequest:
       type: object
       properties:
@@ -23947,6 +29084,11 @@ components:
         phone_number:
           type: string
           maxLength: 32
+        portfolio_quota_mb:
+          type: integer
+          maximum: 1048576
+          minimum: 0
+          description: Portfolio uchun joy (MB), standart 1024
         responsible_user_id:
           type: string
           format: uuid
@@ -23971,10 +29113,50 @@ components:
           additionalProperties:
             type: integer
           description: '{YYYY-MM-DD: shu kuni marosimlar soni} — bo''sh kunlar yo''q.'
+        days:
+          type: object
+          additionalProperties:
+            enum:
+            - BUSY
+            - 'OFF'
+            type: string
+            description: |-
+              * `BUSY` - Band
+              * `OFF` - Dam olish
+          description: '{YYYY-MM-DD: BUSY | OFF} — studiya qo''lda belgilagan kunlar'
+        off_weekdays:
+          type: array
+          items:
+            type: integer
+            maximum: 6
+            minimum: 0
+          description: Haftalik dam olish kunlari (0 = Dushanba)
       required:
       - busy
       - date_from
       - date_to
+      - days
+      - off_weekdays
+    StudioThread:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        customer:
+          $ref: '#/components/schemas/ChatCustomer'
+        can_write:
+          type: boolean
+          description: Galichka faol va so'rovchi OWNER / MANAGER
+        messages:
+          type: array
+          items:
+            $ref: '#/components/schemas/ChatMessage'
+      required:
+      - can_write
+      - customer
+      - id
+      - messages
     SubscriptionAudienceEnum:
       enum:
       - USER
@@ -24358,6 +29540,30 @@ components:
       - filename
       - mime_type
       - size_bytes
+    UserConversation:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        last_message_at:
+          type: string
+          format: date-time
+        unread:
+          type: integer
+        last_message:
+          allOf:
+          - $ref: '#/components/schemas/ChatMessage'
+          nullable: true
+          readOnly: true
+        studio:
+          $ref: '#/components/schemas/ChatStudio'
+      required:
+      - id
+      - last_message
+      - last_message_at
+      - studio
+      - unread
     UserSummary:
       type: object
       description: Compact, safe representation used inside other resources (studios,
@@ -24423,6 +29629,22 @@ components:
       - pinfl_masked
       - profile_picture
       - role
+    UserThread:
+      type: object
+      properties:
+        studio:
+          $ref: '#/components/schemas/ChatStudio'
+        can_write:
+          type: boolean
+          description: Studiya galichkasi faol
+        messages:
+          type: array
+          items:
+            $ref: '#/components/schemas/ChatMessage'
+      required:
+      - can_write
+      - messages
+      - studio
     VenueAvailability:
       type: object
       properties:
