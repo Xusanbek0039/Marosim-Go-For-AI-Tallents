@@ -1,0 +1,334 @@
+# Progress
+
+## 2026-11-10 — Marosim papkalari, har bir profil uchun imkoniyatlar, studiyaga 1 GB Drive joyi ✅
+
+* **Mening marosimlarim — papkalar** (`ceremonies/0006`, `CeremonyFolder`): foydalanuvchi ilovasida har bir marosim papka; ikki guruh — "Mening to'yim" (OWNER) va "Menga ruxsat berilganlar" (VIEWER). Papka nomi shaxsiy: `PATCH /me/ceremonies/{id}/folder/` (bo'sh nom — marosim nomiga qaytadi), studiya va boshqa a'zolar asl nomni ko'radi. `MyCeremony.folder_name` qo'shildi.
+* **Admin / Super Admin:** profil oynasida (Foydalanuvchilar) "Marosim papkalari" — `GET /users/{id}/folders/` (`users.view`), `PATCH /users/{id}/folders/{ceremony}/` (`users.update`).
+* **Har bir profil uchun imkoniyatlar** (`accounts/0005`, `User.disabled_features`): "Platforma boshqaruvi"dagi rol kalitlari endi har bir hisob uchun ham — `GET|PATCH /users/{id}/features/` (`platform.view` / `platform.manage`). Server har so'rovda rol + hisob kalitini tekshiradi (403). Profil oynasida "Imkoniyatlar (shu profil uchun)" bo'limi.
+* **Studiya portfoliosi — 1 GB Drive** (`studios/0005`): `Studio.portfolio_quota_mb` (standart 1024, admin studiya formasida GB bilan o'zgartiradi), `StudioImage.storage / drive_file_id / drive_poster_id / size_bytes`. Yangi fayllar Drive'ga: `MarosimGo / Studio_<nom> / Portfolio` (marosimlar bilan bir studiya papkasida); Drive ulanmagan bo'lsa — server diski (`STUDIO_PORTFOLIO_STORAGE` = auto / drive / local). Rasm, reels va muqova birga hisoblanadi; joy tugasa 400. Fayllar `GET /public/studios/{id}/portfolio/{item}/file/{main|poster}/` orqali (Range bilan) beriladi; o'chirilganda Drive savatiga. Studiya panelida joy ko'rsatkichi, `GET /studios/me/{id}/storage/`.
+* **Testlar:** `tests/test_account_folders_features.py` (5), kontrakt 221 operatsiya, to'liq to'plam yashil. Brauzerda bosib ko'rilmadi; haqiqiy Drive'ga yuklash faqat soxta gateway bilan tekshirildi.
+
+## 2026-11-10 — Studiya portfoliosi: Reels, like / dislike / izoh, chat (galichka bilan), studiya grafigi ✅
+
+Foydalanuvchi so'rovi: portfolio'ga videolar (Reels formatida), like / dislike / izoh va studiya bilan yozishish — faqat **galichka** (faol pulli obuna) bo'lganda; galichkasiz studiyaga uni olishga undov. Studiyada ham to'yxonalardek ish / band / dam olish kunlari grafigi.
+
+* **Model** (`studios/0004`): `StudioImage.kind` (IMAGE / VIDEO), `video`, `caption`, `duration`; `StudioPortfolioReaction` (+1 / -1, bittadan), `StudioPortfolioComment`, `StudioDayStatus` (BUSY / OFF + ichki izoh), `Studio.off_weekdays`, `StudioConversation` + `StudioChatMessage`.
+* **Reels** (`apps/studios/reels.py`): vertikal (bo'yi ≥ 1.5 × eni, 9:16), 1–90 s, MP4 / MOV / WEBM, `STUDIO_REEL_MAX_MB` (100). ffprobe bilan tekshiriladi, poster ffmpeg yoki brauzer kadridan; ko'pi bilan 15 ta. Studiya panelining proxy'si faqat `/studios/me/{id}/reels/` uchun 110 MB qabul qiladi.
+* **Galichka shart** (`services.BadgeRequired`, 403 `badge_required`): reels yuklash, like / dislike, izoh yozish, chatda yozish (ikkala tomondan). Galichka tugasa reels ommadan yashiriladi (o'chirilmaydi), chat tarixi o'qiladi, lekin yozib bo'lmaydi.
+* **API:** `POST /studios/me/{id}/reels/`, `PATCH /studios/me/{id}/images/{item}/` (caption), `GET|DELETE …/images/{item}/comments/…` (moderatsiya), `GET|PATCH /studios/me/{id}/schedule/`, `PUT …/schedule/days/{date}/`, `GET /studios/me/{id}/chats/`, `GET|POST …/chats/{conversation}/`; ommaviy `PUT|DELETE /public/studios/{id}/portfolio/{item}/reaction/`, `GET|POST …/comments/`, `DELETE …/comments/{comment}/`; mijoz `GET /me/studio-chats/`, `GET|POST /me/studio-chats/{studio}/`. Ommaviy profil: `images` (faqat rasmlar), `reels`, `chat_enabled`, har bir ishda `engagement`; grafikda `days`, `off_weekdays`.
+* **Studiya paneli:** Portfolio — Reels / Rasmlar tablari, 9:16 kartalar, video tanlashda brauzerda tekshiruv + poster, izohlar va moderatsiya; galichkasizlarga `BadgeUpsell`. Yangi sahifalar: **Grafik** (oy kalendari, kunni band / dam olish qilish, haftalik dam olish kunlari) va **Xabarlar** (mijozlar bilan chat).
+* **Mijoz ilovasi:** studiya sahifasida Reels qatori va to'liq ekranli vertikal ko'ruvchi (svayp / ↑↓, ovoz, like / dislike, izohlar oynasi), "Studiyaga yozish"; yangi **Xabarlar** sahifasi; grafikda dam olish kunlari.
+* **Testlar:** `tests/test_studio_portfolio_engagement.py` (6), kontrakt yangilandi (`api_contract --write`, 214 operatsiya). Brauzerda bosib ko'rilmadi.
+
+## 2026-11-09 — Landing: oilaviy dizayn, light / dark, 3D nikoh uzuklari ✅
+
+* Iliq "to'y" uslubi: oltin, anor, olxo'ri ranglari, suzani naqshlari, serif sarlavhalar; yangi bo'limlar "Oilaviy lahzalar" (mozaika) va "Bu xotira kim uchun", iqtibos.
+* Light / Dark: tizim sozlamasi bo'yicha, menyuda almashtirish tugmasi (localStorage, sahifa ochilishida miltillamaydi).
+* 3D: bir-biriga kirgan ikki nikoh uzugi (oltin + pushti oltin), yaltirash, uchqunlar; telefonlarda kamroq qirra.
+* Tekshiruv: Chrome headless — light / dark, desktop / mobil screenshotlar, konsolda xato yo'q; topilgan 2 ta kamchilik (mozaika bo'shlig'i, "+998" bo'linishi) tuzatildi.
+
+## 2026-11-09 — Landing: glass dizayn, 3D, animatsiya, robotlardan himoya ✅
+
+* **Dizayn** (`backend/landing/index.html`, tashqi kutubxona / CDN yo'q — CSP faqat `'self'`): shaffof (glass) kartalar, harakatlanuvchi aurora fon, loader, scroll progress, scroll bo'yicha paydo bo'lish, kartalarning 3D egilishi, sarlavha so'zma-so'z animatsiyasi; `prefers-reduced-motion` hurmat qilinadi.
+* **3D model:** o'zimiz yozgan canvas renderer — qirrali 8 burchakli girih yulduzi va atrofida aylanuvchi kublar, yorug'lik/soya, sichqonchaga ergashadi; ekrandan chiqsa yoki tab yashirilsa to'xtaydi.
+* **Robotlardan himoya:** `GET /public/partner-applications/challenge/` — imzolangan bir martalik topshiriq; brauzer SHA-256 proof-of-work yechadi (16 bit, ~0.1–0.5 s, toza JS — HTTP LAN'da ham ishlaydi); forma kamida 3 s ochiq bo'lishi kerak; token bir marta ishlatiladi; bitta raqamdan kuniga 3 ta ariza; honeypot va IP cheklovi saqlandi. Sozlamalar: `PARTNER_APPLY_POW_BITS`, `PARTNER_APPLY_MIN_SECONDS`, `THROTTLE_PARTNER_CHALLENGE`.
+* **Tekshiruv:** JS SHA-256 `hashlib` bilan mos; JS yechgan proof server tomonidan qabul qilindi; Chrome headless'da desktop / mobil screenshotlar; `tests/test_partner_applications.py` (7) + to'liq to'plam yashil.
+
+## 2026-11-09 — Landing: hamkorlik arizasi; User / To'yxona static kabinetlar ✅
+
+* **Landing** (`backend/landing/index.html`, marosimgo.uz): "Hamkor bo'lish" bo'limi — Video studiya / To'yxona tanlanadi; ism, telefon (+998), nomi, viloyat, xabar. Yashirin honeypot maydoni, IP cheklovi (`partner_apply`, 5/soat), bot himoyasi.
+* **API:** ochiq `POST /public/partner-applications/` (javobda shaxsiy ma'lumot yo'q); xodimlar `/admin/support/applications/` (list, filtr kind / status / region, qidiruv, PATCH holat + izoh, `summary`) — `support.view`. Model `PartnerApplication`, migratsiya `support/0002`.
+* **Admin / Super Admin → Yordam:** "Hamkorlik arizalari" tabi (holat, izoh, telefonga qo'ng'iroq havolasi); menyu belgisida yangi arizalar ham sanaladi.
+* **Domenlar:** `userlogin.marosimgo.uz` (`backend/panel-user/`) va `toyxona.marosimgo.uz` (`backend/panel-toyxona/`) — `npm run build:panel`, Node.js kerak emas. `start-lan.sh` beshala portda Django ishlatadi; `http://127.0.0.1:8000/` = landing.
+* **Testlar:** `tests/test_partner_applications.py` (3) + to'liq to'plam 2006 passed. Brauzerda bosib ko'rilmadi.
+
+## 2026-11-09 — Yordam (support) xatlari, 2-bosqich ✅
+
+Foydalanuvchi qarori: **umumiy navbat**. Foydalanuvchi / Studiya / To'yxona xatlari `support.view` ruxsati bor adminlarga va Super Admin'ga boradi; Admin xati faqat Super Admin'ga. Super Admin hammasini ko'radi (kim, qaysi studiya / to'yxonadan, kim javob bergan, kim yopgan); `support.monitor` bilan admin ham shunday ko'radi, lekin adminlar xatiga javob bera olmaydi.
+
+* **Backend** (`apps/support`): `SupportTicket` (OPEN / ANSWERED / CLOSED, `audience` STAFF / SUPER_ADMIN, yozilgan paytdagi studiya / to'yxona, `handled_by`, `closed_by`), `SupportMessage`. Migratsiya `support/0001`. Throttle `support_write` (60/soat).
+* **Ruxsatlar:** `support.view` (qabul qilish va javob berish), `support.monitor` (barcha xatlarni kuzatish, faqat o'qish).
+* **API:** muallif `/support/tickets/` (list, create, retrieve, `messages`, `close`, `summary`); xodim `/admin/support/tickets/` (list + filtrlar status / audience / author_role / studio / venue, qidiruv, retrieve, `messages`, `close`, `summary`). Mijozlarga javob bergan admin nomi emas, "MarosimGo yordam xizmati" ko'rinadi. Muallif yopilgan xatga yozsa, xat qayta ochiladi.
+* **Admin / Super Admin panel:** "Yordam" sahifasi: "Kelgan xatlar" (statistika, filtr, yozishma oynasi, javob, yopish) va adminlar uchun "Mening xatlarim" (Super Admin'ga yozish); menyuda javob kutayotganlar soni.
+* **frontend-studio, frontend-toyxona, frontend-user:** "Yordam" sahifasi: xatlar ro'yxati, yangi xat, yozishma, "Muammo hal bo'ldi".
+* **Testlar:** `tests/test_support.py` (5) + to'liq to'plam 1952 passed; 5 ta panel tsc / eslint / build toza. Brauzerda bosib ko'rilmadi.
+
+## 2026-11-09 — Media o'chirish: so'rov → admin tasdig'i (1-bosqich) ✅
+
+Foydalanuvchi qarorlari: tugallanmagan yuklashni studiya **o'zi** o'chiradi; tayyor (READY) fayl faqat **so'rov orqali** — Admin (`requests.media_delete`) yoki Super Admin tasdiqlaydi; tasdiqlanganda fayl **Google Drive savatiga** o'tadi (~30 kun tiklash mumkin), butunlay o'chirilmaydi.
+
+* **Backend** (`apps/media`): `MediaStatus.DELETED`, `CeremonyMedia.deleted_at`, `MediaDeletionRequest` (PENDING / APPROVED / REJECTED / CANCELLED, faylga bitta PENDING), `deletion.py`, Drive `trash_file`. Migratsiyalar `media/0005`, `audit/0008` (MEDIA_DISMISS, MEDIA_DELETE_REQUEST / APPROVE / REJECT / CANCEL).
+* **Ruxsatlar:** `requests.view`, `requests.media_delete` (modul "So'rovlar") — Super Admin adminlarga beradi.
+* **API:** studiya `DELETE /ceremonies/{id}/media/uploads/{media_id}/`, `POST …/media/{media_id}/delete-request/` (+ `cancel/`); admin `/admin/media-deletion-requests/` (list, retrieve, `approve`, `reject`, `summary`). Kontrakt + changelog yangilandi.
+* **frontend-studio:** har faylda o'chirish tugmasi; tayyor fayl uchun sabab so'raladi, "O'chirish so'ralgan" belgisi va qaytarib olish.
+* **Admin / Super Admin panel:** "So'rovlar" sahifasi (filtr, qidiruv, tasdiqlash / rad etish, izoh), menyuda kutilayotganlar soni.
+* Admin faylning o'zini ko'rmaydi (shaxsiy media) — faqat nomi, hajmi, studiya, marosim va sabab.
+* Watermark ishlayotgan paytda video o'chirilsa, logoli nusxa ham savatga tashlanadi. Muvaffaqiyatsiz watermark endi 30 soniyadan keyin qayta uriniladi (oldin 3 urinish bir zumda tugardi).
+* **Testlar:** `tests/test_media_deletion.py` (8) + to'liq to'plam 1837 passed; tsc/eslint toza; 4 ta panel build. Brauzerda bosib ko'rilmadi.
+
+## 2026-11-08 — To'yxona jadvali, sana bo'yicha qidiruv va bron ✅
+
+Foydalanuvchi qarorlari: kun **smenalarga** bo'linadi (standart Nahor 06–10, Kunduzgi 12–16, Kechki 18–23; to'yxonachi o'zgartiradi); bron = **so'rov → to'yxona tasdiqlaydi**; userga **faqat admin tasdiqlagan (APPROVED) va faol** to'yxonalar ko'rinadi.
+
+* **Backend** (`apps/venues`): `HallSession`, `HallBooking` (REQUESTED / CONFIRMED / BLOCKED / REJECTED / CANCELLED), migratsiyalar `0002`, `0003` (mavjud zallarga standart smenalar). Qoidalar `scheduling.py`da. Ikki marta band qilishdan himoya: zal qatori qulfi + `(session, date)` qisman unique index (CONFIRMED/BLOCKED) → 409. Tasdiqlanganda shu smenaga boshqa so'rovlar avtomatik rad etiladi.
+* **API:** ommaviy `GET /venues/search/?date=&region=&guests=&q=`, `GET /venues/{id}/`, `GET /venues/{id}/availability/?from=&to=`; mijoz `GET/POST /me/venue-bookings/`, `POST …/{id}/cancel/`; to'yxona `…/calendar/`, `…/bookings/` (+ confirm / reject / cancel / PATCH), `…/halls/{hall_id}/sessions/`. Kontrakt + changelog yangilandi.
+* **frontend-user:** "To'yxonalar" (sana, hudud, mehmonlar → bo'sh smenalar, "Band qilish"), to'yxona sahifasi (oylik bo'sh kunlar kalendari), "Bronlarim" (holat, bekor qilish).
+* **frontend-toyxona:** "Jadval" tabi — yangi so'rovlar (tasdiqlash/rad), oylik to'r (har smena: vaqt + marosim turi, rangli), kun paneli (mijoz, telefon, mehmonlar, izoh; mijoz yozish, smena yopish/ochish, bekor qilish), ro'yxat ko'rinishi, smenalar sozlamasi.
+* **Testlar:** `tests/test_venue_bookings.py` (14) + to'liq to'plam yashil; tsc/eslint toza; jonli e2e (user so'rov → to'yxona tasdiq → qidiruvda band) proxy orqali o'tdi. Brauzerda bosib ko'rilmadi.
+* Dev DB: "Demo Navro'z to'yxonasi" APPROVED qilindi.
+
+## 2026-11-07 (kech) — Admin panelda To'yxonalar, venues.* ruxsatlari, galereya, +998 telefon, UI tuzatishlari ✅
+
+* **Ruxsatlar:** `venues.view / create / update / delete / publish` — Super Admin adminlarga beradi/oladi (Adminlar → "N ta ruxsat"); har so'rovda qayta tekshiriladi.
+* **Admin panel → To'yxonalar** (`/venues`, Studiyalar yonida): ro'yxat (holat, ommaga chiqish, hudud filtrlari), yaratish (egasi — "To'yxona" rolidagi foydalanuvchi), tahrirlash, bloklash, o'chirish, ommaga chiqish holati (`venues.publish`), zallar, galereya, jamoa. API: `/api/v1/admin/venues/…`.
+* **Galereya:** 20 tagacha rasm, har biri 5 MB (JPG/PNG/WEBP → WEBP, EXIF yo'q, 1920 px); egasi (`frontend-toyxona` → Rasmlar) va admin paneli; chegara qulf ostida.
+* **Telefon:** barcha formalarda `+998` qotirilgan maydon, faqat 9 raqam; backend faqat UZ (o'zgarmagan). Ikki marta prefiks qo'shish xatosi brauzer testida topilib tuzatildi.
+* **UI tuzatishlari:** (1) "Yangi foydalanuvchi" oynasi scroll bo'lmasdi — Radix scroll-lock tashqi o'rovchini bloklardi; scroll endi oynaning o'zida. (2) Studiya/foydalanuvchi/to'yxona ilovalaridagi modal va galereya ko'rish oynasi karta ichida "qamalib" qolardi (transform/backdrop-filter) — portal orqali `body`ga. (3) Studiya ro'yxatida har marosimda "Video yuklash" tugmasi (to'g'ridan-to'g'ri yuklash bo'limiga).
+* **Tekshiruv:** backend 1384 passed (SQLite + PostgreSQL); 4 ta frontend tsc/eslint/build; ko'rinadigan Chrome'da to'liq ssenariy (admin → ruxsat → to'yxona + galereya; studiya → Drive'ga yuklash; mijoz → galereya va ko'rish oynasi; to'yxona → Rasmlar).
+* **Demo hisoblar (dev DB):** `+998900000001…05`, parol `Demo12345!` (Super Admin, Admin, Studiya, To'yxonachi, Mijoz).
+
+## 2026-11-07 (kech) — V4.1 Phase E: studiya yuklash UI, foydalanuvchi galereyasi, muddatli ulashish ✅
+
+* **Studiya** (`frontend-studio`, marosim sahifasi): drag & drop, bir vaqtda 2 fayl, bo'laklab to'g'ridan-to'g'ri Google Drive'ga, progress, bekor qilish, uzilsa davom etish.
+* **Drive papkasi:** `Studio_<nom>/Mijoz_****<oxirgi 4>_<id6>/{Videos,Photos}`, to'liq JSHSHIR yozilmaydi.
+* **Foydalanuvchi** (`frontend-user`, marosim sahifasi): video/rasm galereyasi, ko'rish oynasi; ega uchun yuklab olish; "Kimlar ko'ra oladi" paneli (telefon/JSHSHIR, 24 soat · 3 kun · 1 hafta · 1 oy, N/5, qolgan vaqt, bekor qilish).
+* **Backend:** `/me/ceremonies/{id}/media/` (list, thumbnail, stream, download), `access_duration`, `expires_at`, 5 kishilik chegara, `MEDIA_DOWNLOAD` audit; migratsiyalar `ceremonies/0005`, `audit/0007`.
+* **Jonli topilgan bug:** Google yakuniy javobga CORS faqat sessiya brauzer Origin bilan ochilganda qo'yadi → server allowlist'dagi Origin'ni uzatadi.
+* **Testlar:** 1251 passed (SQLite va PostgreSQL); ruff, spectacular, tsc, eslint, next build toza; haqiqiy Drive bilan e2e o'tdi.
+* **Tekshirilmagan:** UI haqiqiy brauzerda bosib ko'rilmadi (API va Google CORS jonli tekshirildi).
+
+## 2026-11-07 (kech) — V5.0: PostgreSQL + `frontend-toyxona` + frontend kutubxonalari tiklandi ✅
+
+* **PostgreSQL 17** o'rnatildi, `marosimgo` rol/baza, `btree_gist`; dev ma'lumotlari ko'chirildi; `.env` → PG.
+* **Bug:** venue sxemasi bazaga bog'liq edi (`PositiveIntegerField` diapazoni) → `MAX_CAPACITY=100 000`, test, kontrakt yangilandi.
+* **`frontend-toyxona/`** (3003): to'yxonalar ro'yxati/yaratish, profil, muqova, zallar, jamoa, jadval to'ri (Phase C'da jonlanadi).
+* **Tiklandi:** `.gitignore`dagi `lib/` sabab yo'qolgan `frontend-studio/src/lib`, `frontend-user/src/lib`.
+* **Testlar:** backend 1186 passed (SQLite) / 1186 passed (PostgreSQL); ruff toza; `spectacular --validate` toza;
+  3 ta frontend: `tsc`, `eslint`, `next build` toza.
+* **Keyingi:** Phase C (scheduling engine) — tasdiq kutilmoqda. Batafsil: [VENUE_AVAILABILITY.md](VENUE_AVAILABILITY.md).
+
+## 2026-11-07 — V4.1 Ceremony Ownership: Phase D (Google Drive media upload) ✅
+
+Batafsil: [STORAGE_ARCHITECTURE.md §6](STORAGE_ARCHITECTURE.md).
+
+* Arxitektura: mobil ilova baytlarni **to'g'ridan-to'g'ri Google Drive resumable sessiyaga** yuboradi; backend
+  sessiyani ochadi va yakunda faylni Drive'dan qayta o'qib tekshiradi. Disk / Celery / Redis kerak bo'lmadi.
+* Yangi `apps/media`: `CeremonyMedia` (PHOTO/VIDEO; UPLOADING → READY / FAILED / CANCELLED / EXPIRED), servislar,
+  `manage.py expire_media_uploads`. `apps/storage`: `DriveFolder` (idempotent papka daraxti), `folders.py`,
+  gateway: `start_resumable_upload`, `upload_status`, `cancel_upload`, `file_metadata`, `find_child_folder`.
+* Endpointlar (studiya: istalgan faol a'zo — OWNER/MANAGER/UPLOADER, SUPER_ADMIN):
+  `GET /ceremonies/{id}/media/`, `POST …/media/uploads/`, `GET …/uploads/{media_id}/` (jonli progress),
+  `POST …/uploads/{media_id}/complete/`, `POST …/uploads/{media_id}/cancel/`.
+* Xavfsizlik: OAuth token mijozga berilmaydi; session URI shifrlangan, faqat yuklovchiga; Drive ID'lar API'da yo'q;
+  fayl ID'si sessiyadan olinadi; papka/marker/hajm/tur/md5 tekshiruvi, mos kelmasa fayl o'chiriladi; Drive nomlarida PII yo'q.
+* Migratsiyalar: `storage/0002_drive_folder`, `media/0001_initial`, `audit/0006_media_upload_failed`.
+* Developer Center: Studio Mobile "Media yuklash / jarayoni / davom ettirish" endi AVAILABLE; `planned.py` dan D olib tashlandi.
+
+**Testlar**: to'liq to'plam yashil (venues bilan). Yangi `tests/test_media_upload.py` — 18 (soxta Drive:
+papka daraxti, idempotentlik, o'chirilgan papka, rollar/cross-studio, validatsiya, ombor yo'q, jonli progress,
+yakunlash, 6 xil soxtalashtirish, muddat, bekor qilish, akkaunt almashishi), `tests/test_drive_gateway_upload.py` — 9
+(haqiqiy gateway HTTP tahlili, `requests` stub). Mutatsiya: 4 qoida ataylab buzildi — hammasi ushlandi.
+**Jonli Drive bilan tekshirilmagan** — Google akkaunt ulanishi kerak (pastda).
+
+**Keyingi**: Phase E (foydalanuvchi media API: galereya, thumbnail, stream, download) — tasdiq kutilmoqda.
+
+## 2026-11-07 — V4.1 Ceremony Ownership: Phase C (xavfsiz taklif tizimi) ✅
+
+Batafsil: [CEREMONY_OWNERSHIP.md](CEREMONY_OWNERSHIP.md#phase-c--xavfsiz-taklif-tizimi-endpointlar).
+
+* Oqimlar `apps/ceremonies/invitations.py` (yaratish, qabul/rad, egalar tasdig'i, revoke/resend, leave) — qoidalar faqat
+  `ownership.py` dan; har holat o'zgarishi compare-and-set (parallel qabul/ovoz — bitta g'olib).
+* 13 yangi endpoint: studiya `/ceremonies/{id}/owners/` (+`invite/`); ega `/me/ceremonies/{id}/members|invitations|owner-requests|viewers/…|leave/`;
+  `/me/invitations/{id}/`. `/me/ceremonies/`, `/me/invitations/` yangi modelga o'tdi (`access_role` qo'shildi, v1 maydonlari saqlandi).
+* v1 `/ceremonies/{id}/participants/` — deprecated alias (yangi modelga yozadi, raqam endi maskalangan).
+  Accept javobi: `{status, access_role, ceremony}`.
+* Xavfsizlik: OWNER — doim tasdiqlangan telefon; tasdiqlanmagan raqamga kelgan taklifda marosim tafsilotlari yashiriladi;
+  JSHSHIR birinchi egalikka yaramaydi; studiya ACCEPTED egani olib tashlay olmaydi; ega faqat o'zi berganini bekor qiladi;
+  muddati o'tgan — 410 (EXPIRED saqlanadi); limitlar `CEREMONY_MAX_PENDING_INVITATIONS`, `CEREMONY_MAX_INVITATION_SENDS`;
+  throttle `invitation_respond`. `manage.py expire_ceremony_invitations`.
+* Migratsiya: `ceremonies/0004_backfill_late_participants` (data). ENUM_NAME_OVERRIDES — ceremony enumlari.
+* Kontrakt revision 5 (breaking yo'q), `API_ENDPOINTS.md`, `openapi.yaml` qayta yaratildi (venues sessiyasi bilan kelishilgan holda bir marta).
+
+**Testlar**: 1073 passed (to'liq to'plam, venues bilan). Yangi `tests/test_ceremony_invitations.py` — 25;
+v1 testlari yangi qoidalarga moslandi (maskalangan raqam, OWNER uchun tasdiqlangan telefon, kuyov — kelin tasdig'i,
+studiya ACCEPTED egani o'chira olmaydi). Mutatsiya tekshiruvi: 7 ta ruxsat qoidasi ataylab buzilganda hammasi ushlandi.
+`ruff`, `makemigrations --check`, `api_contract`, `spectacular --validate --fail-on-warn` toza.
+
+**Keyingi**: Phase D (Google Drive media upload) — tasdiq kutilmoqda.
+
+## 2026-11-07 — V5.0 Venue & Studio Availability: Phase A (audit) + Phase B (Venue/Hall, a'zoliklar) ✅
+
+Batafsil: [VENUE_AVAILABILITY.md](VENUE_AVAILABILITY.md).
+
+**Phase A — audit va DB arxitekturasi**
+* Mavjud pattern'lar qayta ishlatildi: `BaseModel`/`SoftDeleteModel`, rol darvozasi + a'zolik (`StudioMembership` kabi), `access_grant` kontrakti, audit.
+* C–I dizayni: umumiy `scheduling.Resource` (hall / studio resource), `CalendarEntry` + PostgreSQL exclusion constraint
+  (`btree_gist`, `tstzrange &&`) + `SELECT … FOR UPDATE`, deterministik narx tartibi, publication workflow, SQL availability search.
+* Xavflar: lokal PostgreSQL/Docker yo'q (SQLite'da concurrency isbotlanmaydi); parallel V4.1 sessiyasi va avto-commit.
+
+**Phase B — modellar, a'zoliklar, ruxsatlar**
+* `User.Role.VENUE_OWNER` (+ `CLIENT_ROLES`, `/users/` filtri, `access.ROLE_ORDER`). Migratsiya `accounts/0003_venue_owner_role`.
+* `apps/venues`: `Venue`, `VenueImage`, `VenueHall`, `VenueMembership` (OWNER/MANAGER/SCHEDULER/VIEWER) + `CAPABILITIES` matritsasi.
+  Migratsiya `venues/0001_initial`. DB cheklovlari: sig'im, narx ≥ 0, faqat UZS, koordinatalar, E.164, zal nomi unikal, a'zolik unikal.
+* Servislar: `create_venue` (OWNER a'zolik + "Asosiy zal", PRIVATE), `add_member`/`update_member` (faqat VENUE_OWNER hisoblar,
+  oxirgi OWNER himoyasi, venue qatori lock), `venues_for`/`ensure_capability` (blocked venue — faqat o'qish).
+* Endpointlar: `GET/POST /venue-owner/venues/`, `GET/PATCH /venue-owner/venues/{id}/`, `GET/POST …/halls/`, `PATCH …/halls/{hall_id}/`,
+  `GET/POST …/members/`, `PATCH …/members/{membership_id}/` (faqat OWNER; telefon bo'yicha, umumiy xato, throttle `venue_member_add`).
+* Audit: `Decimal` qiymatlar endi string sifatida yoziladi (avval JSON xatosi bo'lardi).
+* Panel (minimal, buzilmasligi uchun): `VENUE_OWNER` rol turi, badge, foydalanuvchi filtri va formasi (avval tahrirlash rolni USER'ga tushirib yuborardi),
+  Developer Center rol bo'limi `/developer/venue-owner`.
+
+**Testlar**: `tests/test_venues.py` — 41 (yaratish, egalik, cross-venue/hall izolyatsiyasi, a'zolik imkoniyatlari, bloklangan venue,
+admin maydonlari himoyasi, boshqa rollar 403, shaxsiy ma'lumot yo'qligi, DB constraint'lar, a'zolik servislari va API).
+To'liq to'plam: **1108 passed**. Kontrakt: revision 4 + 6 (79 operatsiya), `API_ENDPOINTS.md`, `openapi.yaml` qayta yaratildi (0 warning).
+Kontrakt runtime matritsasiga `VENUE_OWNER` chaqiruvchisi qo'shildi. `ruff`, `makemigrations --check`, `tsc`, `eslint` toza.
+Migratsiyalar dev DB nusxasida oldinga/orqaga/oldinga tekshirildi.
+
+Qarorlar: PostgreSQL o'rnatiladi; studiya va to'yxona — alohida hisoblar; a'zolar endpointi — ha.
+
+**Keyingi**: Phase C (umumiy scheduling engine) — PostgreSQL o'rnatilgach, tasdiq bilan.
+
+## 2026-11-07 — V4.1 Ceremony Ownership: Phase A (audit) + Phase B (modellar, ruxsatlar) ✅
+
+Batafsil: [CEREMONY_OWNERSHIP.md](CEREMONY_OWNERSHIP.md).
+
+**Phase A — audit**
+* Mavjud: `Ceremony` + v1 `CeremonyParticipant` (studiya telefon orqali BRIDE/GROOM/OTHER taklif qiladi, ACTIVE = to'liq kirish).
+  Yo'q edi: OWNER/VIEWER, ko'p egalar tasdig'i, JSHSHIR orqali taklif, muddat, ko'ruvchilarga ulashish.
+* Xavf: JSHSHIR ro'yxatdan o'tishda tekshirilmaydi → faqat identifikator; OTP yo'q → OWNER uchun tasdiqlangan telefon har doim shart;
+  v1'da studiya egalar roziligisiz yangi "ega" qo'sha olardi.
+
+**Phase B — DB va ruxsatlar**
+* Modellar: `CeremonyInvitation` (Fernet + HMAC identifikator, maskalangan hint, muddat, inviter_kind),
+  `CeremonyOwnership` (BRIDE/GROOM/FAMILY_OWNER/OTHER_OWNER; PENDING→ACCEPTED/REJECTED/REVOKED),
+  `CeremonyOwnershipApproval` (yangi egani mavjud egalar tasdiqlaydi), `CeremonyViewerAccess`.
+  `Ceremony.cover_image`, marosim turlari kengaytirildi.
+* DB cheklovlari: takroriy PENDING taklif, takroriy faol egalik/ko'ruvchi, ikkinchi kelin/kuyov, studiyadan VIEWER taklifi,
+  owner_type ⇔ rol, ACCEPTED ⇒ user / accepted_at.
+* Ruxsat qatlami `apps/ceremonies/ownership.py` + DRF `IsCeremonyMember` / `IsCeremonyOwner` (object-level).
+* Migratsiyalar: `ceremonies/0002_ownership_model`, `ceremonies/0003_backfill_ownership_from_participants`
+  (v1 → yangi model, idempotent, qaytariladigan; dev DB: 1 ACTIVE kuyov → ACCEPTED ega), `audit/0005_ceremony_ownership_actions`.
+* Sozlamalar: `CEREMONY_OWNER_REQUIRE_VERIFIED_PHONE=true`, `CEREMONY_INVITATION_TTL_DAYS=14` (`.env.example`).
+* `apps/devcenter/planned.py` — rejalashtirilgan endpointlar (C–F) haqiqiylaridan alohida; `API_ENDPOINTS.md` da alohida bo'lim.
+* Mavjud endpointlar o'zgarmadi (v1 oqimi ishlashda davom etadi). Kontrakt: faqat `event_type` enum kengaygani
+  (schema_fingerprint, breaking emas) — `api_contract --write`. `openapi.yaml` qayta yaratildi.
+
+**Testlar**: 756 passed (oldin 728; `tests/test_ceremony_ownership.py` — 27, `test_devcenter.py` — planned≠live).
+`ruff`, `makemigrations --check`, `api_contract`, `spectacular --validate --fail-on-warn` toza.
+Migratsiyalar dev DB nusxasida oldinga/orqaga/oldinga tekshirildi.
+
+**Keyingi**: Phase C (xavfsiz taklif tizimi) — tasdiq kutilmoqda.
+
+## 2026-11-07 — Studios & Ceremonies API + studiya va foydalanuvchi web ilovalari ✅
+
+**Backend (`apps/ceremonies`, `apps/studios`)**
+* `Studio.description`; `StudioMembership` rollari OWNER / MANAGER / UPLOADER. Data migration: har bir
+  studiyaning mas'ul shaxsi OWNER a'zo bo'ldi (dev DB: 4/4). Panelda egasi almashsa a'zolik sinxronlanadi.
+* `Ceremony` (DRAFT → READY → ARCHIVED; UPLOADING/PROCESSING — media pipeline uchun) va
+  `CeremonyParticipant` (BRIDE / GROOM / OTHER; INVITED → ACTIVE / DECLINED / REVOKED).
+* Telefon orqali taklif: javob raqam ro'yxatdan o'tganmi-yo'qligini bildirmaydi; ism faqat qabul qilingach
+  ko'rinadi; marosim faqat taklif egasi o'zi qabul qilganda ochiladi. Bitta kelin/kuyov — DB constraint.
+* `CEREMONY_INVITE_REQUIRE_VERIFIED_PHONE` — production'da yoqiq (OTP kelguncha qabul qilish faqat
+  tasdiqlangan telefon bilan), DEBUG'da o'chiq.
+* Endpointlar: `/studios/me/`, `/studios/me/ceremonies/`, `/ceremonies/` (CRUD, ADMIN kira olmaydi),
+  `/ceremonies/{id}/participants/` (+DELETE), `/me/ceremonies/`, `/me/invitations/` (+accept/decline).
+* Kontrakt: `access_grant` / `access_notes`, OWNERSHIP_TESTS ro'yxatga olindi, `api_contract --write`.
+
+**Frontend**
+* `frontend-studio/` (port 3001): marosimlar ro'yxati/filtr, yaratish, tahrirlash, holat, ishtirokchi taklifi.
+* `frontend-user/` (port 3002): ro'yxatdan o'tish, takliflarni qabul/rad, mening marosimlarim, profil.
+* Har ilova o'z cookie prefiksi bilan (`mgs_` / `mgu_`): localhost'da bitta brauzerda admin, studiya va
+  foydalanuvchi sessiyalari bir-biriga aralashmaydi; boshqa ilova cookie'lari backend'ga yuborilmaydi.
+
+**Testlar**: backend to'liq to'plam yashil (ceremonies: 27 yangi test). Jonli E2E (bitta brauzer):
+studiya marosim yaratdi → kelinni taklif qildi → kelin qabul qildi → ikkala sessiya saqlandi.
+
+**Keyingi**: media upload (Phase C) va `/me/ceremonies/{id}/media/`.
+
+## 2026-11-07 — API Developer Center: Phase 3 (backend) + Phase 4 (UI) ✅
+
+**Phase 3 — backend** (`apps/devcenter`, faqat SUPER_ADMIN, faqat o'qish, SSRF yuzasi yo'q)
+* `GET /api/v1/devcenter/overview/` — operatsiyalar, rollar, hujjat/kontrakt/holat statistikasi, oxirgi o'zgarish.
+* `GET /api/v1/devcenter/endpoints/?role=&version=&method=` — rol bo'yicha katalog + 24 soatlik real trafik.
+* `GET /api/v1/devcenter/mobile/` — User / Studio Mobile funksiyalari real `operation_id` larga bog'langan
+  (`apps/devcenter/mobile.py`); API'si yo'q funksiyalar alohida `PLANNED` (rasmlar, videolar, media upload…).
+* `GET /api/v1/devcenter/changelog/` — `contracts/api_changelog.json`. `manage.py api_contract --write [--note]`
+  har bir kontrakt o'zgarishini avtomatik yozadi; `breaking` (o'chirilgan / kirish o'zgargan) va
+  `schema_changed` alohida belgilanadi.
+
+**Phase 4 — UI** (`frontend/`)
+* Sidebar: yig'iladigan **Developer Center** guruhi — API Overview, All Endpoints, User / Studio / Admin /
+  Super Admin / Public APIs, Mobile API, API Monitoring, API Changelog.
+* **API Monitoring → Endpointlar**: rol tablari (Barchasi · Public · User · Studio · Admin · Super Admin, sonlari bilan),
+  ro'yxatda rol belgilari, tafsilotda "Kirish siyosati" (rollar, ADMIN ruxsat kodlari, ma'lumot doirasi,
+  shartlar, REVIEW / Documentation Missing / kontrakt ogohlantirishlari).
+* Kod namunalari: cURL, JavaScript, Python, **Kotlin/Retrofit, Swift/URLSession, Dart/Dio** — Copy bilan.
+* Endpoint ro'yxati frontendda hardcode qilinmagan — hammasi backend API'dan.
+
+**Testlar**: backend 728 passed (`tests/test_devcenter.py` qo'shildi: SUPER_ADMIN-only, rol guruhlari,
+mobil xarita faqat mavjud va rol chaqira oladigan operatsiyalarga ishora qiladi, changelog = kontrakt).
+`tsc`, `eslint`, `next build` toza. Jonli tekshiruv (vaqtinchalik DB nusxasi + Chrome headless): 6 ta Developer
+Center sahifasi, Monitoring rol filtri (Studio = 11), Kotlin namunasi, 390px ekran — konsolda xato yo'q.
+
+**Keyingi**: Phase 5 (API Testing Console) — tasdiq kutilmoqda.
+
+## 2026-11-07 — API Developer Center: Phase 1 (audit) + Phase 2 (rol kontrakti) ✅
+
+**Phase 1 — inventarizatsiya** ([API_INVENTORY.md](API_INVENTORY.md), [API_ENDPOINTS.md](API_ENDPOINTS.md))
+* 36 operatsiya: PUBLIC 8 · USER 2 · STUDIO 2 · ADMIN 14 (granular kod bilan) · SUPER_ADMIN 28.
+* Kamchiliklar: `/auth/me/` rollari bo'sh ko'rsatilardi; noma'lum permission class jimgina "istalgan
+  foydalanuvchi" bo'lardi; ownership/shartlar hujjatlanmagan; 16 operatsiyada `summary` yo'q; CI yo'q.
+* STUDIO roli uchun faqat auth + profil mavjud; ceremony/media API'lari — PLANNED.
+
+**Phase 2 — rol kontrakti**
+* `apps/accounts/access.py`: rollar faqat haqiqiy DRF permission class'laridan (`access_grant`, `&`/`|`,
+  `AllowAny`/`IsAuthenticated`) aniqlanadi; aniqlab bo'lmasa `REVIEW_REQUIRED` (rol taxmin qilinmaydi).
+* `access_notes` (`AccessNote`): ownership scope va qo'shimcha shartlar view yonida e'lon qilinadi.
+* OpenAPI: `x-allowed-roles`, `x-auth-type`, `x-required-permissions`, `x-ownership-scope`,
+  `x-access-conditions`, `x-access-status`, `x-access-policy`, `x-documentation`, `x-api-version`
+  (`x-access` saqlangan).
+* Katalog (`/monitoring/endpoints/`) yangi maydonlar + `contract_status`; `documentation_status`
+  ("Documentation Missing") alohida, traffic `status` alohida.
+* `contracts/api_access_contract.json` + `manage.py api_contract [--write]`; `export_api_endpoints`
+  rollar bo'yicha guruhlaydi.
+* Users/Admins/Studios/Dashboard uchun `summary` qo'shildi. Endpoint URL, method va javoblar o'zgarmadi.
+* CI: `.github/workflows/backend-ci.yml` (ruff, schema validate, api_contract, pytest).
+
+**Testlar**: 504 passed (oldin 186; yangi `test_api_access_contract.py` — 318). Runtime matritsa: 36 × 6
+chaqiruvchi. Mutatsiya tekshiruvi: `HasAdminPermission` ataylab buzilganda 12 ta test fail bo'ldi.
+`spectacular --validate --fail-on-warn` toza.
+
+**Ochiq masalalar**
+* `docs/openapi.yaml` qayta yaratilmadi — parallel sessiyaning tugallanmagan `studios` o'zgarishlari
+  ichiga tushib qolmasligi uchun. Ular tugagach: `python manage.py spectacular --validate --fail-on-warn --file ../docs/openapi.yaml`.
+* Studios/Ceremonies yangi endpointlari qo'shilganda `api_contract --write` qilinishi kerak (aks holda CI fail).
+
+**Keyingi**: Phase 3 (Developer Center backend: rol bo'limlari, mobile guruhlar, changelog) — tasdiq kutilmoqda.
+
+## 2026-11-07 — Phase A: Google OAuth Connection ✅
+
+**Qilindi**
+* `apps/storage`: OAuth Authorization Code Flow + PKCE, `access_type=offline`, `prompt=consent`.
+* Bir martalik, 10 daqiqalik, hash'langan `state` + httpOnly binding cookie (brauzerga bog'lash).
+* Callback JWT'siz (Google redirect), lekin faqat ulashni boshlagan faol SUPER_ADMIN uchun yakunlanadi.
+* Refresh token — alohida jadvalda, alohida Fernet kalit (`GOOGLE_TOKEN_ENCRYPTION_KEY`) bilan shifrlangan.
+* Endpointlar: `connect`, `callback`, `status`, `test`, `disconnect` (`/api/v1/admin/storage/google/`).
+* `RECONNECT_REQUIRED` (`invalid_grant`), Drive xatolari kodlarga map qilinadi (quota, permission, API disabled…).
+* `credentials/google_oauth_client.json` xavfsiz o'qiladi; `google_oauth_check`, `storage_selftest` komandalar.
+* Panel: **Google Drive** bo'limi — holat, akkaunt, scopes, Connect / Test / Disconnect, qayta ulash ogohlantirishi.
+* Audit: `STORAGE_CONNECT`, `STORAGE_CONNECT_FAILED`, `STORAGE_DISCONNECT`. API katalog/Swagger'ga avtomatik qo'shildi.
+* Log: `?code=&state=` runserver log'ida redaktsiya qilinadi.
+
+**Xavfsizlik tuzatishlari**
+* Git'da kuzatilgan `backend/.env` va Google client secret JSON aniqlandi. JSON push qilinmagan commitdan
+  olib tashlandi; `.env` kuzatuvdan chiqarildi; `.gitignore` ga sir qoidalari qo'shildi.
+* `.env` dagi noto'g'ri `PINFL_ENCRYPTION_KEYS` (500 xato) — yangi to'g'ri kalit; o'qib bo'lmaydigan 26 ta dev JSHSHIR tozalandi.
+
+**Testlar**: 186 passed (Phase A: 44 yangi). Jonli: haqiqiy Google consent sahifasi MarosimGo uchun ochildi (xatosiz).
+
+**Ochiq masalalar**
+* Haqiqiy akkaunt ulanishi va `storage_selftest` — egasi tomonidan bajariladi (Google login talab qiladi).
+* Picker + mavjud papka (`drive.file`) — Phase B'da jonli tasdiqlanadi.
+* GitHub'dagi eski `.env` sirlari tarixda qolgan — rotatsiya qilingan; tarixni tozalash (ixtiyoriy) egasining qarori.
+
+**Keyingi**: Phase B (Drive Folder Management) — tasdiq kutilmoqda.

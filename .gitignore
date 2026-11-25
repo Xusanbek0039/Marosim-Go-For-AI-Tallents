@@ -1,1 +1,66 @@
+# MarosimGo — files that must never reach git.
+# Every app (backend, frontend, frontend-user, frontend-studio, frontend-toyxona) is covered here;
+# each Next.js app also keeps its own small .gitignore.
+
+# ------------------------------------------------------------ secrets (never commit)
 .env
+.env.*
+*.env
+*.env.bak*
+!.env.example
+!**/.env.example
+!**/.env.production.example
+backend/credentials/*
+!backend/credentials/README.md
+client_secret*.json
+*oauth_client*.json
+*.pem
+*.key
+
+# ------------------------------------------------------------ databases & user uploads
+# The dev database holds real (encrypted) personal data — keep it on your machine only.
+*.sqlite3
+*.sqlite3-journal
+*.db
+backend/media/
+backend/.test-media/
+
+# ------------------------------------------------------------ Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+.coverage.*
+htmlcov/
+*.egg-info/
+*.log
+
+# ------------------------------------------------------------ Node / Next.js
+node_modules/
+.next/
+out/
+next-env.d.ts
+*.tsbuildinfo
+npm-debug.log*
+.npm/
+# Live try-on: copied from node_modules by frontend-user/scripts/prepare-mediapipe.mjs
+frontend-user/public/mediapipe/wasm/
+
+# ------------------------------------------------------------ OS / editors
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+*.swp
+tempCodeRunnerFile.py
+
+# ------------------------------------------------------------ local tooling
+/.qa/
+.claude/settings.local.json
