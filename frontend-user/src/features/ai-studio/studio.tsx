@@ -345,7 +345,7 @@ export function AiFashionStudio({ status }: { status: AiStatus }) {
               <img src={capture.url} alt="AI natijasidan olingan kadr" className="max-h-[60vh] w-full object-contain bg-black" />
               <div className="flex flex-col gap-3 p-4">
                 <p className="text-sm text-muted-foreground">
-                  Kadr faqat siz «Saqlash»ni bossangiz hisobingizga yuklanadi va faqat sizga ko'rinadi.
+                  {"Kadr faqat siz «Saqlash»ni bossangiz hisobingizga yuklanadi va faqat sizga ko'rinadi."}
                 </p>
                 {saveLook.error && <ErrorState error={saveLook.error} />}
                 {saveLook.isSuccess ? (
@@ -444,7 +444,7 @@ function StageOverlay({
           </p>
           <p className="text-xs text-white/60">
             Bugun: {Math.floor(status.seconds_left_today / 60)} daqiqa · {status.sessions_left_today} ta seans qoldi.
-            Bir seans ko'pi bilan {Math.round(status.max_session_seconds / 60)} daqiqa.
+            {" Bir seans ko'pi bilan "}{Math.round(status.max_session_seconds / 60)} daqiqa.
           </p>
           <label className="flex items-start gap-2 text-left text-white">
             <input
@@ -465,13 +465,13 @@ function StageOverlay({
     case "unsupported":
       return (
         <Panel icon={<VideoOffIcon />} title="Bu qurilmada ishlamaydi">
-          <p>{state.message} Chrome, Safari (iOS 16+) yoki Edge'ning yangi versiyasidan HTTPS orqali foydalaning.</p>
+          <p>{state.message} {"Chrome, Safari (iOS 16+) yoki Edge'ning yangi versiyasidan HTTPS orqali foydalaning."}</p>
         </Panel>
       );
     case "camera-denied":
       return (
         <Panel icon={<VideoOffIcon />} title="Kameraga ruxsat berilmadi">
-          <p>Manzil satridagi qulf belgisi → «Kamera» → «Ruxsat berish», so'ng qayta urinib ko'ring.</p>
+          <p>{"Manzil satridagi qulf belgisi → «Kamera» → «Ruxsat berish», so'ng qayta urinib ko'ring."}</p>
           <Button variant="outline" className="border-white/30 bg-white/15 text-white" onClick={onOpen}>
             <RefreshCwIcon /> Qayta urinish
           </Button>
@@ -535,7 +535,7 @@ function StageOverlay({
     case "paused":
       return (
         <Panel icon={<PauseIcon />} title="To'xtatildi">
-          <p>Sahifa fonga o'tgani uchun AI to'xtatildi.</p>
+          <p>{"Sahifa fonga o'tgani uchun AI to'xtatildi."}</p>
           <Button variant="outline" className="border-white/30 bg-white/15 text-white" onClick={onStart} disabled={!selected}>
             <SparklesIcon /> Davom ettirish
           </Button>
@@ -544,7 +544,7 @@ function StageOverlay({
     case "finished":
       return (
         <Panel icon={<ScanFaceIcon />} title="Seans yakunlandi">
-          <p>Kamera o'chirildi.</p>
+          <p>{"Kamera o'chirildi."}</p>
           <Button variant="outline" className="border-white/30 bg-white/15 text-white" onClick={onOpen}>
             <CameraIcon /> Kamerani qayta yoqish
           </Button>

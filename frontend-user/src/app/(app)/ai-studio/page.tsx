@@ -36,7 +36,7 @@ export default function AiStudioPage() {
             action={
               <Link href="/kiyib-korish">
                 <Button variant="outline">
-                  <ShirtIcon /> AR kiyib ko'rish
+                  <ShirtIcon /> {"AR kiyib ko'rish"}
                 </Button>
               </Link>
             }
@@ -45,7 +45,7 @@ export default function AiStudioPage() {
       ) : (
         <>
           <p className="flex items-center gap-2 text-xs text-muted-foreground">
-            <SparklesIcon className="size-3.5" /> Natija Decart AI tomonidan jonli yaratiladi; sifat internet tezligiga bog'liq.
+            <SparklesIcon className="size-3.5" /> {"Natija Decart AI tomonidan jonli yaratiladi; sifat internet tezligiga bog'liq."}
           </p>
           <AiFashionStudio status={status.data} />
         </>
