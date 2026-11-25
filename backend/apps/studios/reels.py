@@ -106,6 +106,22 @@ def _poster_from_video(path: str, at: float):
         out.unlink(missing_ok=True)
 
 
+#: Leading bytes of the accepted containers, used when ffprobe is not installed. ISO BMFF (MP4, M4V,
+#: MOV) has a box type at offset 4 (``ftyp`` normally; old QuickTime files may start with another
+#: top-level box); WebM is EBML (``1A 45 DF A3``).
+_BMFF_BOXES = {b"ftyp", b"moov", b"mdat", b"wide", b"free", b"skip", b"pnot"}
+_EBML_MAGIC = b"\x1a\x45\xdf\xa3"
+
+
+def _check_signature(path: str, ext: str) -> None:
+    """Without ffprobe the content is otherwise unchecked: at least require a video container."""
+    with open(path, "rb") as fh:
+        head = fh.read(12)
+    ok = head.startswith(_EBML_MAGIC) if ext == ".webm" else len(head) >= 8 and head[4:8] in _BMFF_BOXES
+    if not ok:
+        raise _error("Fayl yaroqli video emas.")
+
+
 def _check_portrait(w: int, h: int, field: str = "video") -> None:
     if w <= 0 or h < w * MIN_PORTRAIT_RATIO:
         raise _error("Video vertikal (Reels, 9:16) formatda bo'lishi kerak.", field)
@@ -121,7 +137,9 @@ def prepare(video, poster=None) -> dict:
 
     with _local_path(video) as path:
         info = _probe(path)
-        if info is not None:
+        if info is None:
+            _check_signature(path, ext)
+        else:
             _check_portrait(info.width, info.height)
             if info.duration and not (MIN_SECONDS <= info.duration <= MAX_SECONDS):
                 raise _error(f"Video {MIN_SECONDS}–{MAX_SECONDS} soniya bo'lishi kerak.")
