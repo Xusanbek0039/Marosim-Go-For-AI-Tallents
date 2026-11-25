@@ -9,6 +9,7 @@ status=0
 # 1) Forbidden file names (templates *.example are allowed).
 forbidden=$(git ls-files | grep -E \
   -e '(^|/)\.env$' \
+  -e '(^|/)env$' \
   -e '(^|/)\.env\.[^/]*$' \
   -e '(^|/)[^/]*\.env$' \
   -e '\.(sqlite3|sqlite3-journal|db)$' \
@@ -24,7 +25,11 @@ if [[ -n "$forbidden" ]]; then
 fi
 
 # 2) Secret patterns inside tracked text files (binary files skipped by -I).
+# Private keys, Google OAuth client secrets / refresh tokens, and any *KEY*/*SECRET* variable assigned a
+# Fernet-shaped value (44 url-safe base64 chars) — whatever the file is called (upstream leaked a
+# dot-less `backend/env`).
 patterns='-----BEGIN [A-Z ]*PRIVATE KEY-----|GOCSPX-[A-Za-z0-9_-]{10,}|"refresh_token" *: *"1//'
+patterns+='|^[A-Z0-9_]*(KEY|KEYS|SECRET)[A-Z0-9_]* *= *["'"'"']?[A-Za-z0-9_-]{43}='
 # git grep exits 0 = matches, 1 = no match, anything else = error (must fail the check, not pass it).
 grep_status=0
 hits=$(git grep -I -l -E -e "$patterns" -- . ':!tools/check-no-secrets.sh') || grep_status=$?
