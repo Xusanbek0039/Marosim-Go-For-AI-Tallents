@@ -4,10 +4,14 @@ Every secret and environment-specific value comes from environment variables
 (or a local ``backend/.env`` file in development). See ``.env.example``.
 """
 
+import warnings
 from datetime import timedelta
 from pathlib import Path
 
 import environ
+from django.core.exceptions import ImproperlyConfigured
+
+from config import secret_guard
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -211,6 +215,21 @@ LOGIN_LOCKOUT = {
 PINFL_ENCRYPTION_KEYS = env.list("PINFL_ENCRYPTION_KEYS")
 # Separate secret for the deterministic HMAC used for uniqueness / exact search.
 PINFL_HASH_KEY = env("PINFL_HASH_KEY")
+
+# Never boot production with empty or publicly known secrets (values copied from .env.example).
+_secret_problems = secret_guard.problems(
+    secret_key=SECRET_KEY,
+    jwt_signing_key=SIMPLE_JWT["SIGNING_KEY"],
+    pinfl_hash_key=PINFL_HASH_KEY,
+    pinfl_encryption_keys=PINFL_ENCRYPTION_KEYS,
+)
+if _secret_problems:
+    if not DEBUG:
+        raise ImproperlyConfigured("Insecure secret configuration: " + " ".join(_secret_problems))
+    warnings.warn(
+        "Insecure secret configuration (allowed only because DEBUG=true): " + " ".join(_secret_problems),
+        stacklevel=1,
+    )
 
 # ------------------------------------------------------------------- CORS & CSRF
 CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS", default=["http://localhost:3000"])
