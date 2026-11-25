@@ -1,0 +1,19 @@
+name: repo-hygiene
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: No env files, databases, credentials or secret patterns are tracked
+        run: bash tools/check-no-secrets.sh
+      - name: Static panel builds reference only existing assets
+        run: node tools/check-static-panels.mjs

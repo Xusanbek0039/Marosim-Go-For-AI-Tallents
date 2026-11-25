@@ -25,8 +25,14 @@ jobs:
       - run: pip install -r requirements-dev.txt
       - name: Lint
         run: ruff check .
+      - name: Formatting
+        run: ruff format --check .
+      - name: No missing migrations
+        run: python manage.py makemigrations --check --dry-run
       - name: OpenAPI schema is valid
         run: python manage.py spectacular --validate --fail-on-warn --file /tmp/openapi.yaml
+      - name: docs/openapi.yaml matches the code
+        run: diff -q /tmp/openapi.yaml ../docs/openapi.yaml
       - name: API access contract is up to date
         run: python manage.py api_contract
       - name: Tests (incl. role/permission contract matrix)
