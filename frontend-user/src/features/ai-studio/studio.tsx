@@ -18,7 +18,6 @@ import {
   Trash2Icon,
   VideoOffIcon,
   WifiOffIcon,
-  XIcon,
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
@@ -571,11 +570,11 @@ function GarmentPicker({ selected, onPick, disabled }: { selected: Garment | nul
   const garments = useAiGarments(category);
 
   const visibleCategories = useMemo(
-    () => (categories.data ?? []).filter((c) => audience === "ALL" || (c as { audience?: string }).audience === audience),
+    () => (categories.data ?? []).filter((c) => audience === "ALL" || c.audience === audience),
     [categories.data, audience],
   );
   const list = (garments.data?.results ?? []).filter(
-    (g) => audience === "ALL" || (g.category as { audience?: string }).audience === audience,
+    (g) => audience === "ALL" || g.category.audience === audience,
   );
 
   return (
@@ -733,4 +732,3 @@ function SavedLooks() {
   );
 }
 
-export { XIcon };

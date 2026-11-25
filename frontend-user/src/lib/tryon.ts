@@ -4,17 +4,20 @@ import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tansta
 
 import { api } from "./api";
 
+export type Audience = "MEN" | "WOMEN" | "UNISEX";
+
 export interface GarmentCategory {
   id: string;
   name: string;
   slug: string;
+  audience: Audience;
   sort_order: number;
   garment_count: number;
 }
 
 export interface Garment {
   id: string;
-  category: { id: string; name: string; slug: string };
+  category: { id: string; name: string; slug: string; audience: Audience };
   name: string;
   description: string;
   price: string;
@@ -25,6 +28,10 @@ export interface Garment {
   asset_type: "LAYERED_2D" | "MODEL_3D";
   /** Can be worn on camera (enabled + has the BODY_FRONT layer). */
   tryon_ready: boolean;
+  /** Has a validated reference image for the AI (Decart) try-on. */
+  ai_ready: boolean;
+  ai_reference_image: string | null;
+  ai_prompt: string;
   is_favorite: boolean;
   studio_name: string | null;
   updated_at: string;

@@ -11,6 +11,8 @@ const isDev = process.env.NODE_ENV !== "production";
  */
 const isExport = process.env.PANEL_EXPORT === "1";
 
+const DECART = "https://api.decart.ai wss://api.decart.ai https://*.decart.ai wss://*.decart.ai";
+
 // Same-origin only: /api/v1 and /media are proxied to Django server-side.
 const csp = [
   "default-src 'self'",
@@ -19,7 +21,9 @@ const csp = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob:",
   "font-src 'self'",
-  `connect-src 'self'${isDev ? " ws: wss:" : ""}`,
+  // AI Fashion Studio: WebRTC signalling to Decart (api.decart.ai; media servers lk.decart.ai / *.lkc.decart.ai,
+  // per docs.platform.decart.ai/integrations/network-requirements). SDK telemetry is turned off.
+  `connect-src 'self' ${DECART}${isDev ? " ws: wss:" : ""}`,
   "frame-ancestors 'none'",
   "form-action 'self'",
   "base-uri 'self'",

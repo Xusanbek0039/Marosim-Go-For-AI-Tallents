@@ -39,7 +39,11 @@ PLACEHOLDER = "_"
 # Pages a bare "/" opens, per site (the Super Admin / Admin panels have no root page).
 HOME = {"superadmin": "/dashboard", "admin": "/dashboard"}
 # Extra browser connections a site needs: the studio uploads videos straight to Google Drive.
-EXTRA_CONNECT = {"studio": " https://www.googleapis.com"}
+EXTRA_CONNECT = {
+    "studio": " https://www.googleapis.com",
+    # AI Fashion Studio: WebRTC signalling to Decart (keep in sync with frontend-user/next.config.ts).
+    "user": " https://api.decart.ai wss://api.decart.ai https://*.decart.ai wss://*.decart.ai",
+}
 # The user cabinet's live try-on runs a WebAssembly body tracker and opens the camera (same origin only).
 EXTRA_SCRIPT = {"user": " 'wasm-unsafe-eval'"}
 CAMERA_SITES = {"user"}
