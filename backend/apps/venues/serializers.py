@@ -143,10 +143,13 @@ class OwnerVenueSerializer(PaidBadgeSerializer, serializers.ModelSerializer):
 
     # ------------------------------------------------------------ read side
     def _membership(self, venue):
-        cache = self.context.setdefault("_memberships", {})
-        if venue.pk not in cache:
-            cache[venue.pk] = services.membership_of(self.context["request"].user, venue)
-        return cache[venue.pk]
+        # All of the user's active memberships in one query, shared by every row of a list
+        # (unique per venue + user, so this equals services.membership_of()).
+        cache = self.context.get("_memberships")
+        if cache is None:
+            user = self.context["request"].user
+            cache = self.context["_memberships"] = {m.venue_id: m for m in services.active_memberships(user)}
+        return cache.get(venue.pk)
 
     @extend_schema_field(VenueHallSerializer(many=True))
     def get_halls(self, venue):
@@ -160,7 +163,7 @@ class OwnerVenueSerializer(PaidBadgeSerializer, serializers.ModelSerializer):
 
     @extend_schema_field(serializers.ListField(child=serializers.CharField()))
     def get_membership_capabilities(self, venue):
-        return sorted(services.capabilities_for(self.context["request"].user, venue))
+        return sorted(services.capabilities_of(self._membership(venue), venue))
 
     # ----------------------------------------------------------- write side
     def validate_name(self, value: str) -> str:

@@ -18,8 +18,7 @@ class PaidBadgeSerializer(serializers.Serializer):
         key = f"_paid_badges_{target}"
         cache = self.context.setdefault(key, {})
         if obj.pk not in cache:
-            parent_rows = getattr(self.parent, "instance", None)
-            rows = parent_rows if isinstance(parent_rows, (list, tuple, QuerySet)) else [obj]
+            rows = self._batch_rows(obj)
             ids = [row.pk for row in rows if type(row) is type(obj)]
             if obj.pk not in ids:
                 ids.append(obj.pk)
@@ -32,3 +31,33 @@ class PaidBadgeSerializer(serializers.Serializer):
             verified = set(qs.values_list(f"{target}_id", flat=True))
             cache.update({pk: pk in verified for pk in ids})
         return cache[obj.pk] and getattr(obj, "is_active", True) and not obj.is_deleted
+
+    def _batch_rows(self, obj) -> list:
+        """The rows whose badges are looked up together with ``obj``'s, in one query.
+
+        * directly inside a list (``many=True``): every row of that list;
+        * nested inside a listed row (e.g. ``Studio.responsible_user`` in the studio list): the same
+          attribute (``source``) of every row of the outer list;
+        * otherwise just ``obj``.
+
+        DRF hands the outer list to the per-row serializer as well, so a candidate list may hold
+        rows of another type; those are mapped through ``source`` instead of used directly.
+        """
+        kind = type(obj)
+        source = getattr(self, "source", None)
+        mappable = bool(source) and "." not in source and source != "*"
+        candidates = (
+            getattr(self.parent, "instance", None),
+            getattr(getattr(self.parent, "parent", None), "instance", None),
+        )
+        for rows in candidates:
+            if not isinstance(rows, (list, tuple, QuerySet)):
+                continue
+            rows = list(rows)
+            if any(type(row) is kind for row in rows):
+                return rows
+            if mappable:
+                related = [getattr(row, source, None) for row in rows]
+                if any(type(row) is kind for row in related):
+                    return related
+        return [obj]

@@ -112,7 +112,7 @@ class StudioMeCeremoniesView(ListAPIView):
     def get_queryset(self):
         if getattr(self, "swagger_fake_view", False):  # schema generation
             return Ceremony.objects.none()
-        qs = services.ceremonies_for(self.request.user)
+        qs = services.with_participant_counts(services.ceremonies_for(self.request.user))
         params = self.request.query_params
         if params.get("status"):
             qs = qs.filter(status=params["status"])
@@ -187,6 +187,8 @@ class CeremonyViewSet(
         if getattr(self, "swagger_fake_view", False):
             return Ceremony.objects.none()
         qs = services.ceremonies_for(self.request.user)
+        if self.action == "list":  # detail responses count per object, so they are never stale
+            qs = services.with_participant_counts(qs)
         if self.request.query_params.get("status"):
             qs = qs.filter(status=self.request.query_params["status"])
         return qs

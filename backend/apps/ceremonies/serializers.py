@@ -103,6 +103,8 @@ class CeremonySerializer(serializers.ModelSerializer):
     @extend_schema_field(serializers.DictField(child=serializers.IntegerField()))
     def get_participants_summary(self, obj) -> dict:
         """Owners only (viewers are the owners' private sharing): open owner invitations / accepted owners."""
+        if hasattr(obj, "summary_invited"):  # list querysets: services.with_participant_counts
+            return {"invited": obj.summary_invited, "active": obj.summary_active}
         invited = obj.invitations.filter(
             requested_role=AccessRole.OWNER, status=InvitationStatus.PENDING, expires_at__gt=timezone.now()
         ).count()
@@ -110,7 +112,13 @@ class CeremonySerializer(serializers.ModelSerializer):
         return {"invited": invited, "active": active}
 
     def get_can_manage(self, obj) -> bool:
-        return services.can_manage(self._user(), obj)
+        user = self._user()
+        if user.role != Role.STUDIO:
+            return services.can_manage(user, obj)
+        # shared by every row of a list (one context per request)
+        if "_managed_studio_ids" not in self.context:
+            self.context["_managed_studio_ids"] = set(services.studio_ids(user, managing_only=True))
+        return services.can_manage(user, obj, managed_studio_ids=self.context["_managed_studio_ids"])
 
     def validate_title(self, value: str) -> str:
         value = " ".join(value.split())

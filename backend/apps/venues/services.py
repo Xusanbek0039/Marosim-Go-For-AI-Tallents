@@ -64,7 +64,11 @@ def membership_of(user, venue: Venue) -> VenueMembership | None:
 
 
 def capabilities_for(user, venue: Venue) -> frozenset[str]:
-    membership = membership_of(user, venue)
+    return capabilities_of(membership_of(user, venue), venue)
+
+
+def capabilities_of(membership: VenueMembership | None, venue: Venue) -> frozenset[str]:
+    """What ``membership`` may do on ``venue`` (callers that already hold the membership)."""
     if membership is None:
         return frozenset()
     if not venue.is_active:  # blocked by an admin: members may only look
