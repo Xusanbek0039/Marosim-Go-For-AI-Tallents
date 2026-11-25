@@ -261,7 +261,9 @@ export class StudioSession {
 
   private onError(error: unknown) {
     const code = (error as { code?: string })?.code ?? "";
-    if (code === "WEB_RTC_ERROR") return; // the SDK reconnects; "disconnected" decides
+    // WEBRTC_WEBSOCKET/ICE/TIMEOUT/SERVER/SIGNALING_ERROR (SDK 0.2.14): the SDK retries on its own;
+    // a lost connection ends with "disconnected" and a terminal one with "sessionEnded".
+    if (code.startsWith("WEBRTC_")) return;
     const message =
       code === "TOKEN_EXPIRED" || code === "INVALID_API_KEY" || code === "TOKEN_INVALID"
         ? "AI xizmatiga ruxsat tugadi. Qayta boshlang."

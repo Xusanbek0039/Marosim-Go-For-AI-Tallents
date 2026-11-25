@@ -277,4 +277,18 @@ describe("AI studio session", () => {
     assert.equal(t.studio.snapshot.phase, "provider-error");
     assert.equal(t.calls.finish[0][1], "PROVIDER_ERROR");
   });
+
+  it("transient WebRTC errors leave the live session to the SDK's own reconnect", async () => {
+    const t = setup();
+    await t.studio.openCamera();
+    await t.studio.start(DRESS);
+    t.calls.connect[0].onConnectionChange("generating");
+    for (const code of ["WEBRTC_ICE_ERROR", "WEBRTC_SIGNALING_ERROR", "WEBRTC_SERVER_ERROR"]) {
+      t.client.emit("error", { code });
+    }
+    await new Promise((r) => setImmediate(r));
+    assert.equal(t.studio.snapshot.phase, "live");
+    assert.equal(t.client.disconnected, 0);
+    assert.equal(t.calls.finish.length, 0);
+  });
 });

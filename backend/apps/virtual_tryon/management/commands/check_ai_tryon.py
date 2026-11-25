@@ -22,14 +22,18 @@ class Command(BaseCommand):
         self.stdout.write(f"API: {cfg['API_BASE']}  model: {cfg['MODEL']}")
         self.stdout.write(f"allowedOrigins: {', '.join(cfg['ALLOWED_ORIGINS']) or '(cheklanmagan)'}")
         if not decart.is_configured():
-            raise CommandError("DECART_API_KEY o'rnatilmagan: AI Fashion Studio o'chiq. docs/AI_FASHION_STUDIO.md ga qarang.")
+            raise CommandError(
+                "DECART_API_KEY o'rnatilmagan: AI Fashion Studio o'chiq. docs/AI_FASHION_STUDIO.md ga qarang."
+            )
         try:
             token = decart.mint_client_token(max_session_seconds=decart.MIN_SESSION_SECONDS)
         except decart.DecartError as exc:
             hint = {
                 "provider_auth_failed": "Kalit noto'g'ri yoki bekor qilingan (HTTP 401/403).",
                 "provider_insufficient_credits": "Decart hisobida kredit yetarli emas (HTTP 402).",
-                "provider_rejected_request": "So'rov rad etildi (HTTP 422): DECART_TRYON_MODEL yoki origin'larni tekshiring.",
+                "provider_rejected_request": (
+                    "So'rov rad etildi (HTTP 422): DECART_TRYON_MODEL yoki origin'larni tekshiring."
+                ),
                 "provider_rate_limited": "Decart so'rovlar chegarasi (HTTP 429).",
                 "provider_timeout": "Decart javob bermadi (tarmoq/proksi).",
             }.get(exc.code, "Decart bilan aloqa bo'lmadi.")
