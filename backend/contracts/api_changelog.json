@@ -1,0 +1,1379 @@
+{
+  "_comment": "Appended by `python manage.py api_contract --write`. One entry per accepted contract change.",
+  "entries": [
+    {
+      "revision": 1,
+      "date": "2026-11-07",
+      "note": "Boshlang'ich kontrakt: auth, users, admins, studios, ceremonies, monitoring, storage, health + Developer Center API",
+      "added": [
+        "DELETE /api/v1/admins/{id}/",
+        "DELETE /api/v1/ceremonies/{id}/participants/{participant_id}/",
+        "DELETE /api/v1/studios/{id}/",
+        "DELETE /api/v1/users/{id}/",
+        "GET /api/v1/admin/storage/google/callback/",
+        "GET /api/v1/admin/storage/google/connect/",
+        "GET /api/v1/admin/storage/google/status/",
+        "GET /api/v1/admins/",
+        "GET /api/v1/admins/permissions/",
+        "GET /api/v1/admins/{id}/",
+        "GET /api/v1/admins/{id}/pinfl/",
+        "GET /api/v1/auth/csrf/",
+        "GET /api/v1/auth/me/",
+        "GET /api/v1/ceremonies/",
+        "GET /api/v1/ceremonies/{id}/",
+        "GET /api/v1/ceremonies/{id}/participants/",
+        "GET /api/v1/dashboard/overview/",
+        "GET /api/v1/devcenter/changelog/",
+        "GET /api/v1/devcenter/endpoints/",
+        "GET /api/v1/devcenter/mobile/",
+        "GET /api/v1/devcenter/overview/",
+        "GET /api/v1/health/live/",
+        "GET /api/v1/health/ready/",
+        "GET /api/v1/me/ceremonies/",
+        "GET /api/v1/me/ceremonies/{id}/",
+        "GET /api/v1/me/invitations/",
+        "GET /api/v1/monitoring/endpoints/",
+        "GET /api/v1/monitoring/logs/",
+        "GET /api/v1/monitoring/overview/",
+        "GET /api/v1/studios/",
+        "GET /api/v1/studios/me/",
+        "GET /api/v1/studios/me/ceremonies/",
+        "GET /api/v1/studios/{id}/",
+        "GET /api/v1/users/",
+        "GET /api/v1/users/{id}/",
+        "GET /api/v1/users/{id}/pinfl/",
+        "PATCH /api/v1/admins/{id}/",
+        "PATCH /api/v1/auth/me/",
+        "PATCH /api/v1/ceremonies/{id}/",
+        "PATCH /api/v1/studios/{id}/",
+        "PATCH /api/v1/users/{id}/",
+        "POST /api/v1/admin/storage/google/disconnect/",
+        "POST /api/v1/admin/storage/google/test/",
+        "POST /api/v1/admins/",
+        "POST /api/v1/auth/login/",
+        "POST /api/v1/auth/logout/",
+        "POST /api/v1/auth/refresh/",
+        "POST /api/v1/auth/register/",
+        "POST /api/v1/ceremonies/",
+        "POST /api/v1/ceremonies/{id}/participants/",
+        "POST /api/v1/me/invitations/{id}/accept/",
+        "POST /api/v1/me/invitations/{id}/decline/",
+        "POST /api/v1/studios/",
+        "POST /api/v1/users/"
+      ],
+      "removed": [],
+      "changed": {},
+      "breaking": [],
+      "schema_changed": []
+    },
+    {
+      "revision": 2,
+      "date": "2026-11-07",
+      "note": "Adminlar users.update ruxsati bilan va Super Admin telefon raqamini audit orqali tasdiqlashi mumkin.",
+      "added": [
+        "POST /api/v1/admins/{id}/verify-phone/",
+        "POST /api/v1/users/{id}/verify-phone/"
+      ],
+      "removed": [],
+      "changed": {},
+      "breaking": [],
+      "schema_changed": []
+    },
+    {
+      "revision": 3,
+      "date": "2026-11-07",
+      "note": "Phase B: ceremony_type (event_type) qiymatlari kengaytirildi (ENGAGEMENT, SUNNAT, BESHIK, BIRTHDAY, ANNIVERSARY, OTHER) — breaking emas",
+      "added": [],
+      "removed": [],
+      "changed": {
+        "GET /api/v1/ceremonies/": [
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/ceremonies/{id}/": [
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/me/ceremonies/": [
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/me/ceremonies/{id}/": [
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/studios/me/ceremonies/": [
+          "schema_fingerprint"
+        ],
+        "PATCH /api/v1/ceremonies/{id}/": [
+          "schema_fingerprint"
+        ],
+        "POST /api/v1/ceremonies/": [
+          "schema_fingerprint"
+        ],
+        "POST /api/v1/me/invitations/{id}/accept/": [
+          "schema_fingerprint"
+        ]
+      },
+      "breaking": [],
+      "schema_changed": [
+        "GET /api/v1/ceremonies/",
+        "GET /api/v1/ceremonies/{id}/",
+        "GET /api/v1/me/ceremonies/",
+        "GET /api/v1/me/ceremonies/{id}/",
+        "GET /api/v1/studios/me/ceremonies/",
+        "PATCH /api/v1/ceremonies/{id}/",
+        "POST /api/v1/ceremonies/",
+        "POST /api/v1/me/invitations/{id}/accept/"
+      ]
+    },
+    {
+      "revision": 4,
+      "date": "2026-11-07",
+      "note": "V5.0 Phase B: VENUE_OWNER roli; /venue-owner/venues/ (+halls) endpointlari; /users/ VENUE_OWNER hisoblarini boshqaradi",
+      "added": [
+        "GET /api/v1/venue-owner/venues/",
+        "GET /api/v1/venue-owner/venues/{id}/",
+        "GET /api/v1/venue-owner/venues/{id}/halls/",
+        "PATCH /api/v1/venue-owner/venues/{id}/",
+        "PATCH /api/v1/venue-owner/venues/{id}/halls/{hall_id}/",
+        "POST /api/v1/venue-owner/venues/",
+        "POST /api/v1/venue-owner/venues/{id}/halls/"
+      ],
+      "removed": [],
+      "changed": {
+        "DELETE /api/v1/users/{id}/": [
+          "ownership_scope"
+        ],
+        "GET /api/v1/admins/": [
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/auth/me/": [
+          "allowed_roles",
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/dashboard/overview/": [
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/devcenter/endpoints/": [
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/studios/": [
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/studios/{id}/": [
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/users/": [
+          "ownership_scope",
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/users/{id}/": [
+          "ownership_scope",
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/users/{id}/pinfl/": [
+          "ownership_scope"
+        ],
+        "PATCH /api/v1/auth/me/": [
+          "allowed_roles",
+          "schema_fingerprint"
+        ],
+        "PATCH /api/v1/studios/{id}/": [
+          "schema_fingerprint"
+        ],
+        "PATCH /api/v1/users/{id}/": [
+          "ownership_scope",
+          "schema_fingerprint"
+        ],
+        "POST /api/v1/admins/{id}/verify-phone/": [
+          "schema_fingerprint"
+        ],
+        "POST /api/v1/auth/login/": [
+          "schema_fingerprint"
+        ],
+        "POST /api/v1/auth/refresh/": [
+          "schema_fingerprint"
+        ],
+        "POST /api/v1/auth/register/": [
+          "schema_fingerprint"
+        ],
+        "POST /api/v1/studios/": [
+          "schema_fingerprint"
+        ],
+        "POST /api/v1/users/": [
+          "ownership_scope",
+          "schema_fingerprint"
+        ],
+        "POST /api/v1/users/{id}/verify-phone/": [
+          "ownership_scope",
+          "schema_fingerprint"
+        ]
+      },
+      "breaking": [
+        "GET /api/v1/auth/me/",
+        "PATCH /api/v1/auth/me/"
+      ],
+      "schema_changed": [
+        "GET /api/v1/admins/",
+        "GET /api/v1/auth/me/",
+        "GET /api/v1/dashboard/overview/",
+        "GET /api/v1/devcenter/endpoints/",
+        "GET /api/v1/studios/",
+        "GET /api/v1/studios/{id}/",
+        "GET /api/v1/users/",
+        "GET /api/v1/users/{id}/",
+        "PATCH /api/v1/auth/me/",
+        "PATCH /api/v1/studios/{id}/",
+        "PATCH /api/v1/users/{id}/",
+        "POST /api/v1/admins/{id}/verify-phone/",
+        "POST /api/v1/auth/login/",
+        "POST /api/v1/auth/refresh/",
+        "POST /api/v1/auth/register/",
+        "POST /api/v1/studios/",
+        "POST /api/v1/users/",
+        "POST /api/v1/users/{id}/verify-phone/"
+      ]
+    },
+    {
+      "revision": 5,
+      "date": "2026-11-07",
+      "note": "V4.1 Phase C: ceremony ownership — studio /owners/, owner invitations/members/owner-requests, viewer revoke, leave, invitation detail; v1 /participants/ deprecated (alias); accept javobi {status, access_role, ceremony}",
+      "added": [
+        "GET /api/v1/ceremonies/{id}/owners/",
+        "GET /api/v1/me/ceremonies/{id}/invitations/",
+        "GET /api/v1/me/ceremonies/{id}/members/",
+        "GET /api/v1/me/ceremonies/{id}/owner-requests/",
+        "GET /api/v1/me/invitations/{id}/",
+        "POST /api/v1/ceremonies/{id}/owners/invite/",
+        "POST /api/v1/me/ceremonies/{id}/invitations/",
+        "POST /api/v1/me/ceremonies/{id}/invitations/{invitation_id}/resend/",
+        "POST /api/v1/me/ceremonies/{id}/invitations/{invitation_id}/revoke/",
+        "POST /api/v1/me/ceremonies/{id}/leave/",
+        "POST /api/v1/me/ceremonies/{id}/owner-requests/{request_id}/approve/",
+        "POST /api/v1/me/ceremonies/{id}/owner-requests/{request_id}/reject/",
+        "POST /api/v1/me/ceremonies/{id}/viewers/{access_id}/revoke/"
+      ],
+      "removed": [],
+      "changed": {
+        "DELETE /api/v1/ceremonies/{id}/participants/{participant_id}/": [
+          "conditions",
+          "deprecated"
+        ],
+        "GET /api/v1/ceremonies/{id}/participants/": [
+          "conditions",
+          "deprecated"
+        ],
+        "GET /api/v1/me/ceremonies/": [
+          "ownership_scope",
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/me/ceremonies/{id}/": [
+          "ownership_scope",
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/me/invitations/": [
+          "ownership_scope",
+          "schema_fingerprint"
+        ],
+        "POST /api/v1/ceremonies/{id}/participants/": [
+          "conditions",
+          "deprecated"
+        ],
+        "POST /api/v1/me/invitations/{id}/accept/": [
+          "conditions",
+          "ownership_scope",
+          "schema_fingerprint"
+        ],
+        "POST /api/v1/me/invitations/{id}/decline/": [
+          "ownership_scope"
+        ]
+      },
+      "breaking": [],
+      "schema_changed": [
+        "GET /api/v1/me/ceremonies/",
+        "GET /api/v1/me/ceremonies/{id}/",
+        "GET /api/v1/me/invitations/",
+        "POST /api/v1/me/invitations/{id}/accept/"
+      ]
+    },
+    {
+      "revision": 6,
+      "date": "2026-11-07",
+      "note": "V5.0 Phase B: to'yxona a'zolari (/venue-owner/venues/{id}/members/)",
+      "added": [
+        "GET /api/v1/venue-owner/venues/{id}/members/",
+        "PATCH /api/v1/venue-owner/venues/{id}/members/{membership_id}/",
+        "POST /api/v1/venue-owner/venues/{id}/members/"
+      ],
+      "removed": [],
+      "changed": {},
+      "breaking": [],
+      "schema_changed": []
+    },
+    {
+      "revision": 7,
+      "date": "2026-11-07",
+      "note": "V4.1 Phase D: studio media upload — /ceremonies/{ceremony_id}/media/ (list), uploads/ (Drive resumable sessiya), uploads/{media_id}/ (progress), complete/, cancel/",
+      "added": [
+        "GET /api/v1/ceremonies/{ceremony_id}/media/",
+        "GET /api/v1/ceremonies/{ceremony_id}/media/uploads/{media_id}/",
+        "POST /api/v1/ceremonies/{ceremony_id}/media/uploads/",
+        "POST /api/v1/ceremonies/{ceremony_id}/media/uploads/{media_id}/cancel/",
+        "POST /api/v1/ceremonies/{ceremony_id}/media/uploads/{media_id}/complete/"
+      ],
+      "removed": [],
+      "changed": {},
+      "breaking": [],
+      "schema_changed": []
+    },
+    {
+      "revision": 8,
+      "date": "2026-11-07",
+      "note": "venues: sig'im maydonlariga aniq chegara (100 000) — sxema endi SQLite/PostgreSQL'da bir xil",
+      "added": [],
+      "removed": [],
+      "changed": {
+        "GET /api/v1/venue-owner/venues/": [
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/venue-owner/venues/{id}/": [
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/venue-owner/venues/{id}/halls/": [
+          "schema_fingerprint"
+        ],
+        "PATCH /api/v1/venue-owner/venues/{id}/": [
+          "schema_fingerprint"
+        ],
+        "PATCH /api/v1/venue-owner/venues/{id}/halls/{hall_id}/": [
+          "schema_fingerprint"
+        ],
+        "POST /api/v1/venue-owner/venues/": [
+          "schema_fingerprint"
+        ],
+        "POST /api/v1/venue-owner/venues/{id}/halls/": [
+          "schema_fingerprint"
+        ]
+      },
+      "breaking": [],
+      "schema_changed": [
+        "GET /api/v1/venue-owner/venues/",
+        "GET /api/v1/venue-owner/venues/{id}/",
+        "GET /api/v1/venue-owner/venues/{id}/halls/",
+        "PATCH /api/v1/venue-owner/venues/{id}/",
+        "PATCH /api/v1/venue-owner/venues/{id}/halls/{hall_id}/",
+        "POST /api/v1/venue-owner/venues/",
+        "POST /api/v1/venue-owner/venues/{id}/halls/"
+      ]
+    },
+    {
+      "revision": 9,
+      "date": "2026-11-07",
+      "note": "Media: ega/ko'ruvchi galereyasi (list/thumbnail/stream/download); VIEWER taklifi access_duration (24H/3D/1W/1M) talab qiladi; har bir ega 5 tagacha ko'ruvchi",
+      "added": [
+        "GET /api/v1/me/ceremonies/{ceremony_id}/media/",
+        "GET /api/v1/me/ceremonies/{ceremony_id}/media/{media_id}/download/",
+        "GET /api/v1/me/ceremonies/{ceremony_id}/media/{media_id}/stream/",
+        "GET /api/v1/me/ceremonies/{ceremony_id}/media/{media_id}/thumbnail/"
+      ],
+      "removed": [],
+      "changed": {
+        "GET /api/v1/me/ceremonies/{id}/invitations/": [
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/me/ceremonies/{id}/members/": [
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/me/invitations/": [
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/me/invitations/{id}/": [
+          "schema_fingerprint"
+        ],
+        "POST /api/v1/me/ceremonies/{id}/invitations/": [
+          "schema_fingerprint"
+        ],
+        "POST /api/v1/me/ceremonies/{id}/invitations/{invitation_id}/resend/": [
+          "schema_fingerprint"
+        ]
+      },
+      "breaking": [],
+      "schema_changed": [
+        "GET /api/v1/me/ceremonies/{id}/invitations/",
+        "GET /api/v1/me/ceremonies/{id}/members/",
+        "GET /api/v1/me/invitations/",
+        "GET /api/v1/me/invitations/{id}/",
+        "POST /api/v1/me/ceremonies/{id}/invitations/",
+        "POST /api/v1/me/ceremonies/{id}/invitations/{invitation_id}/resend/"
+      ]
+    },
+    {
+      "revision": 10,
+      "date": "2026-11-07",
+      "note": "To'yxonalar: admin panel API (/admin/venues/, venues.* ruxsatlari), galereya (20 ta rasm, 5 MB)",
+      "added": [
+        "DELETE /api/v1/admin/venues/{id}/",
+        "DELETE /api/v1/admin/venues/{id}/images/{image_id}/",
+        "DELETE /api/v1/venue-owner/venues/{id}/images/{image_id}/",
+        "GET /api/v1/admin/venues/",
+        "GET /api/v1/admin/venues/{id}/",
+        "GET /api/v1/venue-owner/venues/{id}/images/",
+        "PATCH /api/v1/admin/venues/{id}/",
+        "PATCH /api/v1/admin/venues/{id}/halls/{hall_id}/",
+        "POST /api/v1/admin/venues/",
+        "POST /api/v1/admin/venues/{id}/halls/",
+        "POST /api/v1/admin/venues/{id}/images/",
+        "POST /api/v1/venue-owner/venues/{id}/images/"
+      ],
+      "removed": [],
+      "changed": {
+        "GET /api/v1/admins/": [
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/admins/{id}/": [
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/venue-owner/venues/": [
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/venue-owner/venues/{id}/": [
+          "schema_fingerprint"
+        ],
+        "PATCH /api/v1/admins/{id}/": [
+          "schema_fingerprint"
+        ],
+        "PATCH /api/v1/venue-owner/venues/{id}/": [
+          "schema_fingerprint"
+        ],
+        "POST /api/v1/admins/": [
+          "schema_fingerprint"
+        ],
+        "POST /api/v1/venue-owner/venues/": [
+          "schema_fingerprint"
+        ]
+      },
+      "breaking": [],
+      "schema_changed": [
+        "GET /api/v1/admins/",
+        "GET /api/v1/admins/{id}/",
+        "GET /api/v1/venue-owner/venues/",
+        "GET /api/v1/venue-owner/venues/{id}/",
+        "PATCH /api/v1/admins/{id}/",
+        "PATCH /api/v1/venue-owner/venues/{id}/",
+        "POST /api/v1/admins/",
+        "POST /api/v1/venue-owner/venues/"
+      ]
+    },
+    {
+      "revision": 11,
+      "date": "2026-11-08",
+      "note": "To'yxona smenalari, sana bo'yicha qidiruv va bronlar (user so'rovi -> to'yxona tasdig'i)",
+      "added": [
+        "GET /api/v1/me/venue-bookings/",
+        "GET /api/v1/me/venue-bookings/{id}/",
+        "GET /api/v1/venue-owner/venues/{id}/bookings/",
+        "GET /api/v1/venue-owner/venues/{id}/calendar/",
+        "GET /api/v1/venue-owner/venues/{id}/halls/{hall_id}/sessions/",
+        "GET /api/v1/venues/search/",
+        "GET /api/v1/venues/{id}/",
+        "GET /api/v1/venues/{id}/availability/",
+        "PATCH /api/v1/venue-owner/venues/{id}/bookings/{booking_id}/",
+        "PATCH /api/v1/venue-owner/venues/{id}/halls/{hall_id}/sessions/{session_id}/",
+        "POST /api/v1/me/venue-bookings/",
+        "POST /api/v1/me/venue-bookings/{id}/cancel/",
+        "POST /api/v1/venue-owner/venues/{id}/bookings/",
+        "POST /api/v1/venue-owner/venues/{id}/bookings/{booking_id}/cancel/",
+        "POST /api/v1/venue-owner/venues/{id}/bookings/{booking_id}/confirm/",
+        "POST /api/v1/venue-owner/venues/{id}/bookings/{booking_id}/reject/",
+        "POST /api/v1/venue-owner/venues/{id}/halls/{hall_id}/sessions/"
+      ],
+      "removed": [],
+      "changed": {},
+      "breaking": [],
+      "schema_changed": []
+    },
+    {
+      "revision": 12,
+      "date": "2026-11-08",
+      "note": "Obunalar (tariflar, so'rov, admin tasdig'i, to'lovlar), logoli media va obunaga bog'liq yuklab olish",
+      "added": [
+        "GET /api/v1/admin/subscription-plans/",
+        "GET /api/v1/admin/subscription-settings/",
+        "GET /api/v1/admin/subscriptions/",
+        "GET /api/v1/admin/subscriptions/summary/",
+        "GET /api/v1/admin/subscriptions/{id}/",
+        "GET /api/v1/me/subscriptions/",
+        "GET /api/v1/me/subscriptions/status/",
+        "GET /api/v1/subscriptions/plans/",
+        "PATCH /api/v1/admin/subscription-plans/{id}/",
+        "PATCH /api/v1/admin/subscription-settings/",
+        "POST /api/v1/admin/subscription-plans/",
+        "POST /api/v1/admin/subscriptions/",
+        "POST /api/v1/admin/subscriptions/{id}/approve/",
+        "POST /api/v1/admin/subscriptions/{id}/cancel/",
+        "POST /api/v1/admin/subscriptions/{id}/reject/",
+        "POST /api/v1/me/subscriptions/",
+        "POST /api/v1/me/subscriptions/{id}/cancel/"
+      ],
+      "removed": [],
+      "changed": {
+        "GET /api/v1/admins/": [
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/admins/{id}/": [
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/me/ceremonies/{ceremony_id}/media/": [
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/me/ceremonies/{ceremony_id}/media/{media_id}/download/": [
+          "conditions"
+        ],
+        "GET /api/v1/me/ceremonies/{ceremony_id}/media/{media_id}/stream/": [
+          "conditions"
+        ],
+        "GET /api/v1/me/ceremonies/{ceremony_id}/media/{media_id}/thumbnail/": [
+          "conditions"
+        ],
+        "GET /api/v1/me/ceremonies/{id}/members/": [
+          "schema_fingerprint"
+        ],
+        "PATCH /api/v1/admins/{id}/": [
+          "schema_fingerprint"
+        ],
+        "POST /api/v1/admins/": [
+          "schema_fingerprint"
+        ]
+      },
+      "breaking": [],
+      "schema_changed": [
+        "GET /api/v1/admins/",
+        "GET /api/v1/admins/{id}/",
+        "GET /api/v1/me/ceremonies/{ceremony_id}/media/",
+        "GET /api/v1/me/ceremonies/{id}/members/",
+        "PATCH /api/v1/admins/{id}/",
+        "POST /api/v1/admins/"
+      ]
+    },
+    {
+      "revision": 13,
+      "date": "2026-11-08",
+      "note": "Media ro'yxati: video logoli nusxasi tayyorlanish foizi (progress, 0-100 yoki null)",
+      "added": [],
+      "removed": [],
+      "changed": {
+        "GET /api/v1/me/ceremonies/{ceremony_id}/media/": [
+          "schema_fingerprint"
+        ]
+      },
+      "breaking": [],
+      "schema_changed": [
+        "GET /api/v1/me/ceremonies/{ceremony_id}/media/"
+      ]
+    },
+    {
+      "revision": 14,
+      "date": "2026-11-09",
+      "note": "Media o'chirish: studiya tugallanmagan yuklashni o'chiradi; tayyor fayl uchun so'rov, admin (requests.*) tasdiqlaydi",
+      "added": [
+        "DELETE /api/v1/ceremonies/{ceremony_id}/media/uploads/{media_id}/",
+        "GET /api/v1/admin/media-deletion-requests/",
+        "GET /api/v1/admin/media-deletion-requests/summary/",
+        "GET /api/v1/admin/media-deletion-requests/{id}/",
+        "POST /api/v1/admin/media-deletion-requests/{id}/approve/",
+        "POST /api/v1/admin/media-deletion-requests/{id}/reject/",
+        "POST /api/v1/ceremonies/{ceremony_id}/media/{media_id}/delete-request/",
+        "POST /api/v1/ceremonies/{ceremony_id}/media/{media_id}/delete-request/cancel/"
+      ],
+      "removed": [],
+      "changed": {
+        "GET /api/v1/admin/subscriptions/": [
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/admin/subscriptions/{id}/": [
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/admins/": [
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/admins/{id}/": [
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/ceremonies/{ceremony_id}/media/": [
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/ceremonies/{ceremony_id}/media/uploads/{media_id}/": [
+          "schema_fingerprint"
+        ],
+        "PATCH /api/v1/admins/{id}/": [
+          "schema_fingerprint"
+        ],
+        "POST /api/v1/admin/subscriptions/": [
+          "schema_fingerprint"
+        ],
+        "POST /api/v1/admin/subscriptions/{id}/approve/": [
+          "schema_fingerprint"
+        ],
+        "POST /api/v1/admin/subscriptions/{id}/cancel/": [
+          "schema_fingerprint"
+        ],
+        "POST /api/v1/admin/subscriptions/{id}/reject/": [
+          "schema_fingerprint"
+        ],
+        "POST /api/v1/admins/": [
+          "schema_fingerprint"
+        ],
+        "POST /api/v1/ceremonies/{ceremony_id}/media/uploads/": [
+          "schema_fingerprint"
+        ],
+        "POST /api/v1/ceremonies/{ceremony_id}/media/uploads/{media_id}/cancel/": [
+          "schema_fingerprint"
+        ],
+        "POST /api/v1/ceremonies/{ceremony_id}/media/uploads/{media_id}/complete/": [
+          "schema_fingerprint"
+        ]
+      },
+      "breaking": [],
+      "schema_changed": [
+        "GET /api/v1/admin/subscriptions/",
+        "GET /api/v1/admin/subscriptions/{id}/",
+        "GET /api/v1/admins/",
+        "GET /api/v1/admins/{id}/",
+        "GET /api/v1/ceremonies/{ceremony_id}/media/",
+        "GET /api/v1/ceremonies/{ceremony_id}/media/uploads/{media_id}/",
+        "PATCH /api/v1/admins/{id}/",
+        "POST /api/v1/admin/subscriptions/",
+        "POST /api/v1/admin/subscriptions/{id}/approve/",
+        "POST /api/v1/admin/subscriptions/{id}/cancel/",
+        "POST /api/v1/admin/subscriptions/{id}/reject/",
+        "POST /api/v1/admins/",
+        "POST /api/v1/ceremonies/{ceremony_id}/media/uploads/",
+        "POST /api/v1/ceremonies/{ceremony_id}/media/uploads/{media_id}/cancel/",
+        "POST /api/v1/ceremonies/{ceremony_id}/media/uploads/{media_id}/complete/"
+      ]
+    },
+    {
+      "revision": 15,
+      "date": "2026-11-09",
+      "note": "Media o'chirish so'rovlari (serializer nomlari)",
+      "added": [],
+      "removed": [],
+      "changed": {
+        "GET /api/v1/admin/subscriptions/": [
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/admin/subscriptions/{id}/": [
+          "schema_fingerprint"
+        ],
+        "POST /api/v1/admin/subscriptions/": [
+          "schema_fingerprint"
+        ],
+        "POST /api/v1/admin/subscriptions/{id}/approve/": [
+          "schema_fingerprint"
+        ],
+        "POST /api/v1/admin/subscriptions/{id}/cancel/": [
+          "schema_fingerprint"
+        ],
+        "POST /api/v1/admin/subscriptions/{id}/reject/": [
+          "schema_fingerprint"
+        ]
+      },
+      "breaking": [],
+      "schema_changed": [
+        "GET /api/v1/admin/subscriptions/",
+        "GET /api/v1/admin/subscriptions/{id}/",
+        "POST /api/v1/admin/subscriptions/",
+        "POST /api/v1/admin/subscriptions/{id}/approve/",
+        "POST /api/v1/admin/subscriptions/{id}/cancel/",
+        "POST /api/v1/admin/subscriptions/{id}/reject/"
+      ]
+    },
+    {
+      "revision": 16,
+      "date": "2026-11-09",
+      "note": "Yordam xatlari: /support/tickets/ (muallif) va /admin/support/tickets/ (support.view, support.monitor)",
+      "added": [
+        "GET /api/v1/admin/support/tickets/",
+        "GET /api/v1/admin/support/tickets/summary/",
+        "GET /api/v1/admin/support/tickets/{id}/",
+        "GET /api/v1/support/tickets/",
+        "GET /api/v1/support/tickets/summary/",
+        "GET /api/v1/support/tickets/{id}/",
+        "POST /api/v1/admin/support/tickets/{id}/close/",
+        "POST /api/v1/admin/support/tickets/{id}/messages/",
+        "POST /api/v1/support/tickets/",
+        "POST /api/v1/support/tickets/{id}/close/",
+        "POST /api/v1/support/tickets/{id}/messages/"
+      ],
+      "removed": [],
+      "changed": {
+        "GET /api/v1/admins/": [
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/admins/{id}/": [
+          "schema_fingerprint"
+        ],
+        "PATCH /api/v1/admins/{id}/": [
+          "schema_fingerprint"
+        ],
+        "POST /api/v1/admins/": [
+          "schema_fingerprint"
+        ]
+      },
+      "breaking": [],
+      "schema_changed": [
+        "GET /api/v1/admins/",
+        "GET /api/v1/admins/{id}/",
+        "PATCH /api/v1/admins/{id}/",
+        "POST /api/v1/admins/"
+      ]
+    },
+    {
+      "revision": 17,
+      "date": "2026-11-09",
+      "note": "Hamkorlik arizalari: ochiq POST /public/partner-applications/ (landing), xodimlar /admin/support/applications/ (support.view)",
+      "added": [
+        "GET /api/v1/admin/support/applications/",
+        "GET /api/v1/admin/support/applications/summary/",
+        "GET /api/v1/admin/support/applications/{id}/",
+        "PATCH /api/v1/admin/support/applications/{id}/",
+        "POST /api/v1/public/partner-applications/"
+      ],
+      "removed": [],
+      "changed": {},
+      "breaking": [],
+      "schema_changed": []
+    },
+    {
+      "revision": 18,
+      "date": "2026-11-09",
+      "note": "Hamkorlik arizasi javobi hujjatlandi",
+      "added": [],
+      "removed": [],
+      "changed": {
+        "POST /api/v1/public/partner-applications/": [
+          "schema_fingerprint"
+        ]
+      },
+      "breaking": [],
+      "schema_changed": [
+        "POST /api/v1/public/partner-applications/"
+      ]
+    },
+    {
+      "revision": 19,
+      "date": "2026-11-09",
+      "note": "Hamkorlik arizasi: bot himoyasi — GET challenge/ (proof-of-work, kamida 3 s, bir martalik), telefon bo'yicha kunlik cheklov",
+      "added": [
+        "GET /api/v1/public/partner-applications/challenge/"
+      ],
+      "removed": [],
+      "changed": {
+        "POST /api/v1/public/partner-applications/": [
+          "conditions",
+          "schema_fingerprint"
+        ]
+      },
+      "breaking": [],
+      "schema_changed": [
+        "POST /api/v1/public/partner-applications/"
+      ]
+    },
+    {
+      "revision": 20,
+      "date": "2026-11-09",
+      "note": "Sharhlar/like, studiyalar ommaviy katalogi va jadvali, panelda to'yxona jadvali boshqaruvi",
+      "added": [
+        "DELETE /api/v1/admin/reviews/{id}/",
+        "DELETE /api/v1/public/studios/{target_id}/like/",
+        "DELETE /api/v1/public/studios/{target_id}/reviews/mine/",
+        "DELETE /api/v1/studios/me/{studio_id}/images/{image_id}/",
+        "DELETE /api/v1/studios/{id}/images/{image_id}/",
+        "DELETE /api/v1/venues/{target_id}/like/",
+        "DELETE /api/v1/venues/{target_id}/reviews/mine/",
+        "GET /api/v1/admin/reviews/",
+        "GET /api/v1/admin/reviews/{id}/",
+        "GET /api/v1/admin/venues/{id}/bookings/",
+        "GET /api/v1/admin/venues/{id}/calendar/",
+        "GET /api/v1/admin/venues/{id}/halls/{hall_id}/sessions/",
+        "GET /api/v1/public/studios/",
+        "GET /api/v1/public/studios/{id}/",
+        "GET /api/v1/public/studios/{id}/schedule/",
+        "GET /api/v1/public/studios/{target_id}/reviews/",
+        "GET /api/v1/studios/me/{studio_id}/images/",
+        "GET /api/v1/studios/{id}/calendar/",
+        "GET /api/v1/venues/",
+        "GET /api/v1/venues/{target_id}/reviews/",
+        "PATCH /api/v1/admin/reviews/{id}/",
+        "PATCH /api/v1/admin/venues/{id}/bookings/{booking_id}/",
+        "PATCH /api/v1/admin/venues/{id}/halls/{hall_id}/sessions/{session_id}/",
+        "POST /api/v1/admin/venues/{id}/bookings/",
+        "POST /api/v1/admin/venues/{id}/bookings/{booking_id}/cancel/",
+        "POST /api/v1/admin/venues/{id}/bookings/{booking_id}/confirm/",
+        "POST /api/v1/admin/venues/{id}/bookings/{booking_id}/reject/",
+        "POST /api/v1/admin/venues/{id}/halls/{hall_id}/sessions/",
+        "POST /api/v1/public/studios/{target_id}/like/",
+        "POST /api/v1/studios/me/{studio_id}/images/",
+        "POST /api/v1/studios/{id}/images/",
+        "POST /api/v1/venues/{target_id}/like/",
+        "PUT /api/v1/public/studios/{target_id}/reviews/mine/",
+        "PUT /api/v1/venues/{target_id}/reviews/mine/"
+      ],
+      "removed": [],
+      "changed": {
+        "GET /api/v1/admins/": [
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/admins/{id}/": [
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/studios/": [
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/studios/{id}/": [
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/venues/search/": [
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/venues/{id}/": [
+          "schema_fingerprint"
+        ],
+        "PATCH /api/v1/admins/{id}/": [
+          "schema_fingerprint"
+        ],
+        "PATCH /api/v1/studios/{id}/": [
+          "schema_fingerprint"
+        ],
+        "POST /api/v1/admins/": [
+          "schema_fingerprint"
+        ],
+        "POST /api/v1/studios/": [
+          "schema_fingerprint"
+        ]
+      },
+      "breaking": [],
+      "schema_changed": [
+        "GET /api/v1/admins/",
+        "GET /api/v1/admins/{id}/",
+        "GET /api/v1/studios/",
+        "GET /api/v1/studios/{id}/",
+        "GET /api/v1/venues/search/",
+        "GET /api/v1/venues/{id}/",
+        "PATCH /api/v1/admins/{id}/",
+        "PATCH /api/v1/studios/{id}/",
+        "POST /api/v1/admins/",
+        "POST /api/v1/studios/"
+      ]
+    },
+    {
+      "revision": 21,
+      "date": "2026-11-09",
+      "note": "Paid business badges, subscriber badges and delegated role capability controls",
+      "added": [
+        "GET /api/v1/admin/platform-policy/",
+        "GET /api/v1/me/subscriptions/targets/",
+        "PATCH /api/v1/admin/platform-policy/"
+      ],
+      "removed": [],
+      "changed": {
+        "GET /api/v1/admin/subscription-plans/": [
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/admin/subscriptions/": [
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/admin/subscriptions/{id}/": [
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/admin/venues/": [
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/admin/venues/{id}/": [
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/admins/": [
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/admins/{id}/": [
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/auth/me/": [
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/dashboard/overview/": [
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/me/subscriptions/": [
+          "allowed_roles",
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/me/subscriptions/status/": [
+          "allowed_roles",
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/public/studios/": [
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/public/studios/{id}/": [
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/studios/": [
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/studios/{id}/": [
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/subscriptions/plans/": [
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/users/": [
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/users/{id}/": [
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/venue-owner/venues/": [
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/venue-owner/venues/{id}/": [
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/venues/": [
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/venues/search/": [
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/venues/{id}/": [
+          "schema_fingerprint"
+        ],
+        "PATCH /api/v1/admin/subscription-plans/{id}/": [
+          "schema_fingerprint"
+        ],
+        "PATCH /api/v1/admin/venues/{id}/": [
+          "schema_fingerprint"
+        ],
+        "PATCH /api/v1/admins/{id}/": [
+          "schema_fingerprint"
+        ],
+        "PATCH /api/v1/auth/me/": [
+          "schema_fingerprint"
+        ],
+        "PATCH /api/v1/studios/{id}/": [
+          "schema_fingerprint"
+        ],
+        "PATCH /api/v1/users/{id}/": [
+          "schema_fingerprint"
+        ],
+        "PATCH /api/v1/venue-owner/venues/{id}/": [
+          "schema_fingerprint"
+        ],
+        "POST /api/v1/admin/subscription-plans/": [
+          "schema_fingerprint"
+        ],
+        "POST /api/v1/admin/subscriptions/": [
+          "schema_fingerprint"
+        ],
+        "POST /api/v1/admin/subscriptions/{id}/approve/": [
+          "schema_fingerprint"
+        ],
+        "POST /api/v1/admin/subscriptions/{id}/cancel/": [
+          "schema_fingerprint"
+        ],
+        "POST /api/v1/admin/subscriptions/{id}/reject/": [
+          "schema_fingerprint"
+        ],
+        "POST /api/v1/admin/venues/": [
+          "schema_fingerprint"
+        ],
+        "POST /api/v1/admins/": [
+          "schema_fingerprint"
+        ],
+        "POST /api/v1/admins/{id}/verify-phone/": [
+          "schema_fingerprint"
+        ],
+        "POST /api/v1/auth/login/": [
+          "schema_fingerprint"
+        ],
+        "POST /api/v1/auth/refresh/": [
+          "schema_fingerprint"
+        ],
+        "POST /api/v1/auth/register/": [
+          "schema_fingerprint"
+        ],
+        "POST /api/v1/me/subscriptions/": [
+          "allowed_roles",
+          "schema_fingerprint"
+        ],
+        "POST /api/v1/me/subscriptions/{id}/cancel/": [
+          "allowed_roles",
+          "schema_fingerprint"
+        ],
+        "POST /api/v1/studios/": [
+          "schema_fingerprint"
+        ],
+        "POST /api/v1/users/": [
+          "schema_fingerprint"
+        ],
+        "POST /api/v1/users/{id}/verify-phone/": [
+          "schema_fingerprint"
+        ],
+        "POST /api/v1/venue-owner/venues/": [
+          "schema_fingerprint"
+        ]
+      },
+      "breaking": [
+        "GET /api/v1/me/subscriptions/",
+        "GET /api/v1/me/subscriptions/status/",
+        "POST /api/v1/me/subscriptions/",
+        "POST /api/v1/me/subscriptions/{id}/cancel/"
+      ],
+      "schema_changed": [
+        "GET /api/v1/admin/subscription-plans/",
+        "GET /api/v1/admin/subscriptions/",
+        "GET /api/v1/admin/subscriptions/{id}/",
+        "GET /api/v1/admin/venues/",
+        "GET /api/v1/admin/venues/{id}/",
+        "GET /api/v1/admins/",
+        "GET /api/v1/admins/{id}/",
+        "GET /api/v1/auth/me/",
+        "GET /api/v1/dashboard/overview/",
+        "GET /api/v1/me/subscriptions/",
+        "GET /api/v1/me/subscriptions/status/",
+        "GET /api/v1/public/studios/",
+        "GET /api/v1/public/studios/{id}/",
+        "GET /api/v1/studios/",
+        "GET /api/v1/studios/{id}/",
+        "GET /api/v1/subscriptions/plans/",
+        "GET /api/v1/users/",
+        "GET /api/v1/users/{id}/",
+        "GET /api/v1/venue-owner/venues/",
+        "GET /api/v1/venue-owner/venues/{id}/",
+        "GET /api/v1/venues/",
+        "GET /api/v1/venues/search/",
+        "GET /api/v1/venues/{id}/",
+        "PATCH /api/v1/admin/subscription-plans/{id}/",
+        "PATCH /api/v1/admin/venues/{id}/",
+        "PATCH /api/v1/admins/{id}/",
+        "PATCH /api/v1/auth/me/",
+        "PATCH /api/v1/studios/{id}/",
+        "PATCH /api/v1/users/{id}/",
+        "PATCH /api/v1/venue-owner/venues/{id}/",
+        "POST /api/v1/admin/subscription-plans/",
+        "POST /api/v1/admin/subscriptions/",
+        "POST /api/v1/admin/subscriptions/{id}/approve/",
+        "POST /api/v1/admin/subscriptions/{id}/cancel/",
+        "POST /api/v1/admin/subscriptions/{id}/reject/",
+        "POST /api/v1/admin/venues/",
+        "POST /api/v1/admins/",
+        "POST /api/v1/admins/{id}/verify-phone/",
+        "POST /api/v1/auth/login/",
+        "POST /api/v1/auth/refresh/",
+        "POST /api/v1/auth/register/",
+        "POST /api/v1/me/subscriptions/",
+        "POST /api/v1/me/subscriptions/{id}/cancel/",
+        "POST /api/v1/studios/",
+        "POST /api/v1/users/",
+        "POST /api/v1/users/{id}/verify-phone/",
+        "POST /api/v1/venue-owner/venues/"
+      ]
+    },
+    {
+      "revision": 22,
+      "date": "2026-11-09",
+      "note": "Document plan audience and per-business subscription status",
+      "added": [],
+      "removed": [],
+      "changed": {
+        "GET /api/v1/me/subscriptions/status/": [
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/subscriptions/plans/": [
+          "schema_fingerprint"
+        ],
+        "POST /api/v1/me/subscriptions/": [
+          "conditions"
+        ]
+      },
+      "breaking": [],
+      "schema_changed": [
+        "GET /api/v1/me/subscriptions/status/",
+        "GET /api/v1/subscriptions/plans/"
+      ]
+    },
+    {
+      "revision": 23,
+      "date": "2026-11-09",
+      "note": "Filter business badge purchases by audience and business name",
+      "added": [],
+      "removed": [],
+      "changed": {
+        "GET /api/v1/admin/subscriptions/": [
+          "schema_fingerprint"
+        ]
+      },
+      "breaking": [],
+      "schema_changed": [
+        "GET /api/v1/admin/subscriptions/"
+      ]
+    },
+    {
+      "revision": 24,
+      "date": "2026-11-10",
+      "note": "",
+      "added": [
+        "DELETE /api/v1/public/studios/{studio_id}/portfolio/{item_id}/comments/{comment_id}/",
+        "DELETE /api/v1/public/studios/{studio_id}/portfolio/{item_id}/reaction/",
+        "DELETE /api/v1/studios/me/{studio_id}/images/{image_id}/comments/{comment_id}/",
+        "GET /api/v1/me/studio-chats/",
+        "GET /api/v1/me/studio-chats/{studio_id}/",
+        "GET /api/v1/public/studios/{studio_id}/portfolio/{item_id}/comments/",
+        "GET /api/v1/studios/me/{studio_id}/chats/",
+        "GET /api/v1/studios/me/{studio_id}/chats/{conversation_id}/",
+        "GET /api/v1/studios/me/{studio_id}/images/{image_id}/comments/",
+        "GET /api/v1/studios/me/{studio_id}/schedule/",
+        "PATCH /api/v1/studios/me/{studio_id}/images/{image_id}/",
+        "PATCH /api/v1/studios/me/{studio_id}/schedule/",
+        "POST /api/v1/me/studio-chats/{studio_id}/",
+        "POST /api/v1/public/studios/{studio_id}/portfolio/{item_id}/comments/",
+        "POST /api/v1/studios/me/{studio_id}/chats/{conversation_id}/",
+        "POST /api/v1/studios/me/{studio_id}/reels/",
+        "PUT /api/v1/public/studios/{studio_id}/portfolio/{item_id}/reaction/",
+        "PUT /api/v1/studios/me/{studio_id}/schedule/days/{day}/"
+      ],
+      "removed": [],
+      "changed": {
+        "DELETE /api/v1/studios/me/{studio_id}/images/{image_id}/": [
+          "ownership_scope"
+        ],
+        "GET /api/v1/public/studios/": [
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/public/studios/{id}/": [
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/public/studios/{id}/schedule/": [
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/studios/": [
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/studios/me/": [
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/studios/me/{studio_id}/images/": [
+          "ownership_scope",
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/studios/{id}/": [
+          "schema_fingerprint"
+        ],
+        "PATCH /api/v1/studios/{id}/": [
+          "schema_fingerprint"
+        ],
+        "POST /api/v1/studios/": [
+          "schema_fingerprint"
+        ],
+        "POST /api/v1/studios/me/{studio_id}/images/": [
+          "conditions",
+          "ownership_scope",
+          "schema_fingerprint"
+        ],
+        "POST /api/v1/studios/{id}/images/": [
+          "schema_fingerprint"
+        ]
+      },
+      "breaking": [],
+      "schema_changed": [
+        "GET /api/v1/public/studios/",
+        "GET /api/v1/public/studios/{id}/",
+        "GET /api/v1/public/studios/{id}/schedule/",
+        "GET /api/v1/studios/",
+        "GET /api/v1/studios/me/",
+        "GET /api/v1/studios/me/{studio_id}/images/",
+        "GET /api/v1/studios/{id}/",
+        "PATCH /api/v1/studios/{id}/",
+        "POST /api/v1/studios/",
+        "POST /api/v1/studios/me/{studio_id}/images/",
+        "POST /api/v1/studios/{id}/images/"
+      ]
+    },
+    {
+      "revision": 25,
+      "date": "2026-11-10",
+      "note": "",
+      "added": [
+        "GET /api/v1/public/studios/{studio_id}/portfolio/{item_id}/file/{part}/",
+        "GET /api/v1/studios/me/{studio_id}/storage/",
+        "GET /api/v1/users/{id}/features/",
+        "GET /api/v1/users/{id}/folders/",
+        "PATCH /api/v1/me/ceremonies/{id}/folder/",
+        "PATCH /api/v1/users/{id}/features/",
+        "PATCH /api/v1/users/{id}/folders/{ceremony_id}/"
+      ],
+      "removed": [],
+      "changed": {
+        "GET /api/v1/me/ceremonies/": [
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/me/ceremonies/{id}/": [
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/public/studios/": [
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/public/studios/{id}/": [
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/studios/": [
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/studios/me/{studio_id}/images/": [
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/studios/{id}/": [
+          "schema_fingerprint"
+        ],
+        "PATCH /api/v1/studios/me/{studio_id}/images/{image_id}/": [
+          "schema_fingerprint"
+        ],
+        "PATCH /api/v1/studios/{id}/": [
+          "schema_fingerprint"
+        ],
+        "POST /api/v1/me/ceremonies/{id}/leave/": [
+          "schema_fingerprint"
+        ],
+        "POST /api/v1/me/invitations/{id}/accept/": [
+          "schema_fingerprint"
+        ],
+        "POST /api/v1/studios/": [
+          "schema_fingerprint"
+        ],
+        "POST /api/v1/studios/me/{studio_id}/images/": [
+          "schema_fingerprint"
+        ],
+        "POST /api/v1/studios/me/{studio_id}/reels/": [
+          "schema_fingerprint"
+        ],
+        "POST /api/v1/studios/{id}/images/": [
+          "schema_fingerprint"
+        ]
+      },
+      "breaking": [],
+      "schema_changed": [
+        "GET /api/v1/me/ceremonies/",
+        "GET /api/v1/me/ceremonies/{id}/",
+        "GET /api/v1/public/studios/",
+        "GET /api/v1/public/studios/{id}/",
+        "GET /api/v1/studios/",
+        "GET /api/v1/studios/me/{studio_id}/images/",
+        "GET /api/v1/studios/{id}/",
+        "PATCH /api/v1/studios/me/{studio_id}/images/{image_id}/",
+        "PATCH /api/v1/studios/{id}/",
+        "POST /api/v1/me/ceremonies/{id}/leave/",
+        "POST /api/v1/me/invitations/{id}/accept/",
+        "POST /api/v1/studios/",
+        "POST /api/v1/studios/me/{studio_id}/images/",
+        "POST /api/v1/studios/me/{studio_id}/reels/",
+        "POST /api/v1/studios/{id}/images/"
+      ]
+    },
+    {
+      "revision": 26,
+      "date": "2026-11-25",
+      "note": "Virtual kiyib ko'rish: kiyimlar katalogi, AR qatlamlari, sevimlilar, seans statistikasi + admin boshqaruvi (tryon.* ruxsatlari, USER.tryon imkoniyati)",
+      "added": [
+        "DELETE /api/v1/admin/virtual-tryon/garments/{id}/",
+        "DELETE /api/v1/admin/virtual-tryon/garments/{id}/assets/{kind}/",
+        "DELETE /api/v1/virtual-tryon/favorites/{id}/",
+        "GET /api/v1/admin/virtual-tryon/garments/",
+        "GET /api/v1/admin/virtual-tryon/garments/{id}/",
+        "GET /api/v1/virtual-tryon/categories/",
+        "GET /api/v1/virtual-tryon/favorites/",
+        "GET /api/v1/virtual-tryon/garments/",
+        "GET /api/v1/virtual-tryon/garments/{id}/",
+        "GET /api/v1/virtual-tryon/garments/{id}/assets/",
+        "PATCH /api/v1/admin/virtual-tryon/garments/{id}/",
+        "POST /api/v1/admin/virtual-tryon/garments/",
+        "POST /api/v1/admin/virtual-tryon/garments/{id}/approve/",
+        "POST /api/v1/admin/virtual-tryon/garments/{id}/assets/",
+        "POST /api/v1/admin/virtual-tryon/garments/{id}/reject/",
+        "POST /api/v1/virtual-tryon/favorites/",
+        "POST /api/v1/virtual-tryon/sessions/",
+        "POST /api/v1/virtual-tryon/sessions/{id}/finish/"
+      ],
+      "removed": [],
+      "changed": {
+        "GET /api/v1/admins/": [
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/admins/{id}/": [
+          "schema_fingerprint"
+        ],
+        "PATCH /api/v1/admin/platform-policy/": [
+          "schema_fingerprint"
+        ],
+        "PATCH /api/v1/admins/{id}/": [
+          "schema_fingerprint"
+        ],
+        "POST /api/v1/admins/": [
+          "schema_fingerprint"
+        ]
+      },
+      "breaking": [],
+      "schema_changed": [
+        "GET /api/v1/admins/",
+        "GET /api/v1/admins/{id}/",
+        "PATCH /api/v1/admin/platform-policy/",
+        "PATCH /api/v1/admins/{id}/",
+        "POST /api/v1/admins/"
+      ]
+    },
+    {
+      "revision": 27,
+      "date": "2026-11-25",
+      "note": "Virtual kiyib ko'rish: LOWER_BODY (shim / yubka) AR qatlami qo'shildi — GarmentAssetKindEnum kengaydi, buzuvchi o'zgarish yo'q",
+      "added": [],
+      "removed": [],
+      "changed": {
+        "DELETE /api/v1/admin/virtual-tryon/garments/{id}/assets/{kind}/": [
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/admin/virtual-tryon/garments/": [
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/admin/virtual-tryon/garments/{id}/": [
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/virtual-tryon/garments/{id}/assets/": [
+          "schema_fingerprint"
+        ],
+        "PATCH /api/v1/admin/virtual-tryon/garments/{id}/": [
+          "schema_fingerprint"
+        ],
+        "POST /api/v1/admin/virtual-tryon/garments/": [
+          "schema_fingerprint"
+        ],
+        "POST /api/v1/admin/virtual-tryon/garments/{id}/approve/": [
+          "schema_fingerprint"
+        ],
+        "POST /api/v1/admin/virtual-tryon/garments/{id}/assets/": [
+          "schema_fingerprint"
+        ],
+        "POST /api/v1/admin/virtual-tryon/garments/{id}/reject/": [
+          "schema_fingerprint"
+        ]
+      },
+      "breaking": [],
+      "schema_changed": [
+        "DELETE /api/v1/admin/virtual-tryon/garments/{id}/assets/{kind}/",
+        "GET /api/v1/admin/virtual-tryon/garments/",
+        "GET /api/v1/admin/virtual-tryon/garments/{id}/",
+        "GET /api/v1/virtual-tryon/garments/{id}/assets/",
+        "PATCH /api/v1/admin/virtual-tryon/garments/{id}/",
+        "POST /api/v1/admin/virtual-tryon/garments/",
+        "POST /api/v1/admin/virtual-tryon/garments/{id}/approve/",
+        "POST /api/v1/admin/virtual-tryon/garments/{id}/assets/",
+        "POST /api/v1/admin/virtual-tryon/garments/{id}/reject/"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,484 @@
+"""MarosimGo backend settings.
+
+Every secret and environment-specific value comes from environment variables
+(or a local ``backend/.env`` file in development). See ``.env.example``.
+"""
+
+import warnings
+from datetime import timedelta
+from pathlib import Path
+
+import environ
+from django.core.exceptions import ImproperlyConfigured
+
+from config import secret_guard
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+env = environ.Env()
+environ.Env.read_env(BASE_DIR / ".env", overwrite=False)
+
+# --------------------------------------------------------------------------- core
+SECRET_KEY = env("DJANGO_SECRET_KEY")
+DEBUG = env.bool("DJANGO_DEBUG", default=False)
+ALLOWED_HOSTS = env.list("DJANGO_ALLOWED_HOSTS", default=["localhost", "127.0.0.1"])
+
+INSTALLED_APPS = [
+    "django.contrib.auth",
+    "django.contrib.contenttypes",
+    "django.contrib.staticfiles",
+    # third-party
+    "rest_framework",
+    "rest_framework_simplejwt.token_blacklist",
+    "django_filters",
+    "corsheaders",
+    "drf_spectacular",
+    # local
+    "apps.core",
+    "apps.audit",
+    "apps.accounts",
+    "apps.studios",
+    "apps.dashboard",
+    "apps.monitoring",
+    "apps.storage",
+    "apps.ceremonies",
+    "apps.media",
+    "apps.venues",
+    "apps.reviews",
+    "apps.subscriptions",
+    "apps.devcenter",
+    "apps.support",
+    "apps.virtual_tryon",
+]
+
+MIDDLEWARE = [
+    # Outermost, so request timing covers the whole stack.
+    "apps.monitoring.middleware.RequestMetricsMiddleware",
+    "django.middleware.security.SecurityMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
+    "django.middleware.common.CommonMiddleware",
+    "django.middleware.csrf.CsrfViewMiddleware",
+    "django.middleware.clickjacking.XFrameOptionsMiddleware",
+    "apps.core.middleware.ApiSecurityHeadersMiddleware",
+]
+
+ROOT_URLCONF = "config.urls"
+WSGI_APPLICATION = "config.wsgi.application"
+ASGI_APPLICATION = "config.asgi.application"
+
+TEMPLATES = [
+    {
+        "BACKEND": "django.template.backends.django.DjangoTemplates",
+        "DIRS": [],
+        "APP_DIRS": True,
+        "OPTIONS": {"context_processors": ["django.template.context_processors.request"]},
+    }
+]
+
+# ----------------------------------------------------------------------- database
+# SQLite by default; switch to PostgreSQL by setting e.g.
+# DATABASE_URL=postgres://marosimgo:password@localhost:5432/marosimgo
+DATABASES = {"default": env.db("DATABASE_URL", default=f"sqlite:///{BASE_DIR / 'db.sqlite3'}")}
+if DATABASES["default"]["ENGINE"] == "django.db.backends.sqlite3":
+    # Many concurrent users on SQLite: WAL lets readers run during a write, writers queue up to
+    # 20 s instead of failing with "database is locked", and IMMEDIATE transactions take the write
+    # lock up front (no deadlock when two requests upgrade a read to a write).
+    DATABASES["default"].setdefault("OPTIONS", {}).update(
+        {
+            "timeout": 20,
+            "transaction_mode": "IMMEDIATE",
+            "init_command": "PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL; PRAGMA busy_timeout=20000;",
+        }
+    )
+else:
+    # PostgreSQL / MySQL: reuse connections between requests instead of reconnecting every time.
+    DATABASES["default"].setdefault("CONN_MAX_AGE", env.int("DB_CONN_MAX_AGE", default=60))
+    DATABASES["default"].setdefault("CONN_HEALTH_CHECKS", True)
+# No ATOMIC_REQUESTS: audit/security records must survive a failed request.
+# Write paths use explicit transaction.atomic blocks instead.
+DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# Login lockout, throttling and the readiness probe need ONE cache shared by every worker process.
+# Production default: a table in the main database (created by `migrate`); set CACHE_URL=redis://...
+# when Redis is available. Development keeps the in-process cache.
+CACHES = {
+    "default": env.cache("CACHE_URL", default="locmemcache://marosimgo" if DEBUG else "dbcache://marosimgo_cache")
+}
+
+# --------------------------------------------------------------------------- auth
+AUTH_USER_MODEL = "accounts.User"
+
+PASSWORD_HASHERS = [
+    "django.contrib.auth.hashers.Argon2PasswordHasher",
+    "django.contrib.auth.hashers.PBKDF2PasswordHasher",
+]
+AUTH_PASSWORD_VALIDATORS = [
+    {
+        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator",
+        "OPTIONS": {"user_attributes": ("phone_number", "first_name", "last_name", "email")},
+    },
+    {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator", "OPTIONS": {"min_length": 10}},
+    {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
+    {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
+]
+
+# Number of reverse proxies in front of Django (Next.js rewrite proxy = 1).
+# Used for client IP detection (throttling, audit). Never trust X-Forwarded-For otherwise.
+NUM_PROXIES = env.int("NUM_PROXIES", default=0)
+
+REST_FRAMEWORK = {
+    "DEFAULT_AUTHENTICATION_CLASSES": ["apps.accounts.authentication.CookieJWTAuthentication"],
+    "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
+    "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"],
+    "DEFAULT_PARSER_CLASSES": [
+        "rest_framework.parsers.JSONParser",
+        "rest_framework.parsers.MultiPartParser",
+        "rest_framework.parsers.FormParser",
+    ],
+    "DEFAULT_PAGINATION_CLASS": "apps.core.pagination.StandardPagination",
+    "DEFAULT_FILTER_BACKENDS": [
+        "django_filters.rest_framework.DjangoFilterBackend",
+        "rest_framework.filters.SearchFilter",
+        "rest_framework.filters.OrderingFilter",
+    ],
+    "DEFAULT_THROTTLE_CLASSES": [
+        "rest_framework.throttling.AnonRateThrottle",
+        "rest_framework.throttling.UserRateThrottle",
+    ],
+    "DEFAULT_THROTTLE_RATES": {
+        "anon": env.str("THROTTLE_ANON", default="60/min"),
+        "user": env.str("THROTTLE_USER", default="600/min"),
+        "login": env.str("THROTTLE_LOGIN", default="5/min"),
+        "register": env.str("THROTTLE_REGISTER", default="10/hour"),
+        "ceremony_invite": env.str("THROTTLE_CEREMONY_INVITE", default="60/hour"),
+        "invitation_respond": env.str("THROTTLE_INVITATION_RESPOND", default="30/hour"),
+        "media_upload": env.str("THROTTLE_MEDIA_UPLOAD", default="600/hour"),
+        "venue_member_add": env.str("THROTTLE_VENUE_MEMBER_ADD", default="30/hour"),
+        "storage_connect": env.str("THROTTLE_STORAGE_CONNECT", default="20/hour"),
+        "storage_callback": env.str("THROTTLE_STORAGE_CALLBACK", default="30/hour"),
+        "token_refresh": env.str("THROTTLE_REFRESH", default="30/min"),
+        "pinfl_reveal": env.str("THROTTLE_PINFL_REVEAL", default="20/hour"),
+        "support_write": env.str("THROTTLE_SUPPORT_WRITE", default="60/hour"),
+        "partner_apply": env.str("THROTTLE_PARTNER_APPLY", default="5/hour"),
+        "partner_challenge": env.str("THROTTLE_PARTNER_CHALLENGE", default="60/hour"),
+    },
+    "NUM_PROXIES": NUM_PROXIES or None,
+    "EXCEPTION_HANDLER": "apps.core.exceptions.api_exception_handler",
+    "DEFAULT_SCHEMA_CLASS": "apps.core.schema.MarosimAutoSchema",
+    "TEST_REQUEST_DEFAULT_FORMAT": "json",
+}
+if DEBUG:
+    REST_FRAMEWORK["DEFAULT_RENDERER_CLASSES"].append("rest_framework.renderers.BrowsableAPIRenderer")
+
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=env.int("JWT_ACCESS_MINUTES", default=10)),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=env.int("JWT_REFRESH_DAYS", default=7)),
+    "ROTATE_REFRESH_TOKENS": True,
+    "BLACKLIST_AFTER_ROTATION": True,
+    "UPDATE_LAST_LOGIN": False,
+    "ALGORITHM": "HS256",
+    "SIGNING_KEY": env("JWT_SIGNING_KEY"),
+    "ISSUER": "marosimgo",
+    "AUDIENCE": "marosimgo-api",
+    "USER_ID_FIELD": "id",
+    "USER_ID_CLAIM": "user_id",
+    "AUTH_HEADER_TYPES": ("Bearer",),
+    "LEEWAY": 5,
+}
+
+# HttpOnly auth cookies for the web panel (mobile clients use the Authorization header).
+AUTH_COOKIES = {
+    "ACCESS": "mg_access",
+    "REFRESH": "mg_refresh",
+    # Non-secret marker ("1") so the Next.js proxy can tell a session probably exists.
+    "SESSION_HINT": "mg_session",
+    "REFRESH_PATH": "/api/v1/auth/",
+    "SECURE": env.bool("AUTH_COOKIE_SECURE", default=not DEBUG),
+    "DOMAIN": env.str("AUTH_COOKIE_DOMAIN", default=None),
+}
+
+# Login identifier: E.164 phone numbers from these regions (ISO 3166-1 alpha-2, first = default).
+PHONE_ALLOWED_REGIONS = tuple(env.list("PHONE_ALLOWED_REGIONS", default=["UZ"]))
+
+# Optional challenge verifier for public sign-up: dotted path to ``guard(request) -> bool``.
+BOT_PROTECTION = {"GUARD": env.str("BOT_PROTECTION_GUARD", default="") or None}
+
+# Brute-force protection (per phone number), on top of IP-based throttling.
+LOGIN_LOCKOUT = {
+    "MAX_FAILURES": env.int("LOGIN_MAX_FAILURES", default=5),
+    "WINDOW_SECONDS": env.int("LOGIN_FAILURE_WINDOW", default=15 * 60),
+    "LOCK_SECONDS": env.int("LOGIN_LOCK_SECONDS", default=15 * 60),
+}
+
+# --------------------------------------------------------------- PINFL protection
+# Comma separated Fernet keys; the first one encrypts, all of them decrypt (rotation).
+PINFL_ENCRYPTION_KEYS = env.list("PINFL_ENCRYPTION_KEYS")
+# Separate secret for the deterministic HMAC used for uniqueness / exact search.
+PINFL_HASH_KEY = env("PINFL_HASH_KEY")
+
+# Never boot production with empty or publicly known secrets (values copied from .env.example).
+_secret_problems = secret_guard.problems(
+    secret_key=SECRET_KEY,
+    jwt_signing_key=SIMPLE_JWT["SIGNING_KEY"],
+    pinfl_hash_key=PINFL_HASH_KEY,
+    pinfl_encryption_keys=PINFL_ENCRYPTION_KEYS,
+)
+if _secret_problems:
+    if not DEBUG:
+        raise ImproperlyConfigured("Insecure secret configuration: " + " ".join(_secret_problems))
+    warnings.warn(
+        "Insecure secret configuration (allowed only because DEBUG=true): " + " ".join(_secret_problems),
+        stacklevel=1,
+    )
+
+# ------------------------------------------------------------------- CORS & CSRF
+CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS", default=["http://localhost:3000"])
+CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_HEADERS = ["accept", "authorization", "content-type", "x-csrftoken", "x-client"]
+CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=["http://localhost:3000"])
+CSRF_COOKIE_NAME = "csrftoken"
+CSRF_COOKIE_HTTPONLY = False  # the SPA must read it to send X-CSRFToken (double submit)
+CSRF_COOKIE_SAMESITE = "Lax"
+CSRF_COOKIE_SECURE = AUTH_COOKIES["SECURE"]
+SESSION_COOKIE_SECURE = AUTH_COOKIES["SECURE"]
+
+# ------------------------------------------------------------- security headers
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_REFERRER_POLICY = "same-origin"
+SECURE_CROSS_ORIGIN_OPENER_POLICY = "same-origin"
+X_FRAME_OPTIONS = "DENY"
+SECURE_SSL_REDIRECT = env.bool("SECURE_SSL_REDIRECT", default=False)
+SECURE_HSTS_SECONDS = env.int("SECURE_HSTS_SECONDS", default=0)
+SECURE_HSTS_INCLUDE_SUBDOMAINS = SECURE_HSTS_SECONDS > 0
+# Behind the Next.js proxy: build absolute URLs (pagination, media) with the panel's host.
+USE_X_FORWARDED_HOST = env.bool("USE_X_FORWARDED_HOST", default=False)
+if env.bool("USE_X_FORWARDED_PROTO", default=False):
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+# ------------------------------------------------------------------ uploads/media
+MEDIA_URL = "/media/"
+MEDIA_ROOT = Path(env.str("MEDIA_ROOT", default=str(BASE_DIR / "media")))
+# Let Django serve uploads (development / small deployments). In production prefer nginx.
+SERVE_MEDIA = env.bool("SERVE_MEDIA", default=DEBUG)
+STATIC_URL = "/static/"
+STATIC_ROOT = BASE_DIR / "staticfiles"
+DATA_UPLOAD_MAX_MEMORY_SIZE = 6 * 1024 * 1024
+FILE_UPLOAD_MAX_MEMORY_SIZE = 6 * 1024 * 1024
+DATA_UPLOAD_MAX_NUMBER_FIELDS = 200
+IMAGE_UPLOAD = {
+    "MAX_BYTES": 5 * 1024 * 1024,
+    "MAX_PIXELS": 25_000_000,
+    "MAX_SIDE": 1024,
+    "ALLOWED_FORMATS": ("JPEG", "PNG", "WEBP"),
+}
+#: Studio portfolio reels (vertical videos); the panel proxies must allow the same body size.
+STUDIO_REEL_MAX_MB = env.int("STUDIO_REEL_MAX_MB", default=100)
+#: Where new portfolio files go: "auto" (Drive when connected), "drive" or "local".
+STUDIO_PORTFOLIO_STORAGE = env.str("STUDIO_PORTFOLIO_STORAGE", default="auto")
+
+# ------------------------------------------------------------------- i18n / time
+LANGUAGE_CODE = "uz"
+TIME_ZONE = "Asia/Tashkent"
+USE_I18N = True
+USE_TZ = True
+
+# ----------------------------------------------------------------------- OpenAPI
+SPECTACULAR_SETTINGS = {
+    "TITLE": "MarosimGo API",
+    "DESCRIPTION": (
+        "MarosimGo REST API (v1). Login identifikatori — telefon raqam (E.164).\n\n"
+        "* **Mobil:** `X-Client: mobile` + `Authorization: Bearer <access>`.\n"
+        "* **Web panel:** httpOnly cookie + `X-CSRFToken`.\n\n"
+        "Har bir operatsiyada `x-access` (rol/ruxsat) va standart xato javoblari avtomatik hujjatlashtiriladi."
+    ),
+    "VERSION": "2.0.0",
+    "SERVE_INCLUDE_SCHEMA": False,
+    "SCHEMA_PATH_PREFIX": r"/api/v1",
+    "COMPONENT_SPLIT_REQUEST": True,
+    "ENUM_NAME_OVERRIDES": {
+        "SubscriptionAudienceEnum": "apps.subscriptions.models.PlanAudience",
+        "RoleEnum": "apps.accounts.models.Role",
+        "ClientRoleEnum": ["USER", "STUDIO"],
+        "AdminRoleEnum": ["ADMIN"],
+        "CeremonyStatusEnum": "apps.ceremonies.models.CeremonyStatus",
+        "ParticipantAccessStatusEnum": "apps.ceremonies.models.AccessStatus",
+        "ParticipantTypeEnum": "apps.ceremonies.models.ParticipantType",
+        "CeremonyAccessRoleEnum": "apps.ceremonies.models.AccessRole",
+        "CeremonyOwnerTypeEnum": "apps.ceremonies.models.OwnerType",
+        "InvitationIdentifierTypeEnum": "apps.ceremonies.models.IdentifierType",
+        "InviterKindEnum": "apps.ceremonies.models.InviterKind",
+        "InvitationStatusEnum": "apps.ceremonies.models.InvitationStatus",
+        "OwnershipStatusEnum": "apps.ceremonies.models.OwnershipStatus",
+        "InvitationAcceptStatusEnum": ["ACCEPTED", "PENDING_APPROVAL"],
+        "MediaKindEnum": "apps.media.models.MediaKind",
+        "BookingStatusEnum": "apps.venues.models.BookingStatus",
+        "EventTypeEnum": "apps.ceremonies.models.EventType",
+        "BookingEventTypeEnum": "apps.venues.models.BookingEventType",
+        "BookingSourceEnum": "apps.venues.models.BookingSource",
+        "VenueEntryStatusEnum": ["CONFIRMED", "BLOCKED"],
+        "SubscriptionStatusEnum": "apps.subscriptions.models.SubscriptionStatus",
+        "SubscriptionStateEnum": ["PENDING", "ACTIVE", "SCHEDULED", "EXPIRED", "REJECTED", "CANCELLED"],
+        "PaymentMethodEnum": "apps.subscriptions.models.PaymentMethod",
+        "MediaStatusEnum": "apps.media.models.MediaStatus",
+        "MediaDeletionStatusEnum": "apps.media.models.DeletionRequestStatus",
+        "PortfolioKindEnum": "apps.studios.models.PortfolioKind",
+        "PortfolioReactionEnum": ["like", "dislike"],
+        "StudioDayStatusEnum": "apps.studios.models.StudioDayStatus.Status",
+        "PortfolioStorageEnum": "apps.studios.models.PortfolioStorage",
+        "SupportTicketStatusEnum": "apps.support.models.TicketStatus",
+        "SupportAudienceEnum": "apps.support.models.TicketAudience",
+        "PartnerApplicationStatusEnum": "apps.support.models.ApplicationStatus",
+        "PartnerApplicationKindEnum": "apps.support.models.ApplicationKind",
+        "StorageConnectionStatusEnum": "apps.storage.models.ConnectionStatus",
+        "VenueRegionEnum": "apps.venues.models.Region",
+        "VenueTypeEnum": "apps.venues.models.VenueType",
+        "VenuePublicationStatusEnum": "apps.venues.models.PublicationStatus",
+        "VenueMembershipRoleEnum": "apps.venues.models.MembershipRole",
+        "CurrencyEnum": "apps.venues.models.Currency",
+        "GarmentAssetKindEnum": "apps.virtual_tryon.models.AssetKind",
+        "GarmentApprovalStatusEnum": "apps.virtual_tryon.models.ApprovalStatus",
+        "GarmentAssetTypeEnum": "apps.virtual_tryon.models.GarmentAssetType",
+    },
+    "SERVE_PERMISSIONS": (
+        ["rest_framework.permissions.AllowAny"] if DEBUG else ["apps.accounts.permissions.IsSuperAdmin"]
+    ),
+}
+
+# -------------------------------------------------------------------- ceremonies
+# Accepting a ceremony invitation proves ownership of the invited phone number only if the
+# number is OTP-verified. Until an SMS provider exists this is relaxed in DEBUG only.
+CEREMONY_INVITE_REQUIRE_VERIFIED_PHONE = env.bool("CEREMONY_INVITE_REQUIRE_VERIFIED_PHONE", default=not DEBUG)
+# OWNER access is never granted on an unverified number — not even in DEBUG. Knowing a number
+# (or having registered it first) must not be enough to claim a ceremony.
+CEREMONY_OWNER_REQUIRE_VERIFIED_PHONE = env.bool("CEREMONY_OWNER_REQUIRE_VERIFIED_PHONE", default=True)
+CEREMONY_INVITATION_TTL_DAYS = env.int("CEREMONY_INVITATION_TTL_DAYS", default=14)
+# Abuse limits: open invitations per ceremony, renewals per invitation.
+CEREMONY_MAX_PENDING_INVITATIONS = env.int("CEREMONY_MAX_PENDING_INVITATIONS", default=50)
+#: How many people one ceremony owner may share the gallery with at a time (live access + pending invitations).
+CEREMONY_MAX_VIEWERS_PER_OWNER = env.int("CEREMONY_MAX_VIEWERS_PER_OWNER", default=5)
+#: Burn the MarosimGo logo into videos in a background thread of the web process (needs ffmpeg).
+#: Off: run `manage.py process_watermarks --loop` as a separate worker instead.
+MEDIA_WATERMARK_INLINE = env.bool("MEDIA_WATERMARK_INLINE", default=True)
+#: The logo copy is a preview: its shorter side is scaled down to this (0 = keep the original size).
+MEDIA_WATERMARK_MAX_HEIGHT = env.int("MEDIA_WATERMARK_MAX_HEIGHT", default=720)
+#: "auto" picks the first working GPU encoder (h264_nvenc / h264_qsv / h264_amf), else libx264.
+MEDIA_WATERMARK_ENCODER = env.str("MEDIA_WATERMARK_ENCODER", default="auto")
+#: ffmpeg reads the original straight from Drive while encoding (no full download first).
+MEDIA_WATERMARK_STREAM_SOURCE = env.bool("MEDIA_WATERMARK_STREAM_SOURCE", default=True)
+CEREMONY_MAX_INVITATION_SENDS = env.int("CEREMONY_MAX_INVITATION_SENDS", default=5)
+
+# Landing page partner applications: anti-bot proof-of-work (apps/support/challenge.py).
+PARTNER_APPLY = {
+    "POW_BITS": env.int("PARTNER_APPLY_POW_BITS", default=16),
+    "MIN_SECONDS": env.int("PARTNER_APPLY_MIN_SECONDS", default=3),
+    "MAX_AGE_SECONDS": 2 * 3600,
+}
+
+# Ceremony media (Phase D): client → Google Drive resumable sessions; nothing is public.
+MEDIA_UPLOAD = {
+    "PHOTO_MAX_BYTES": env.int("MEDIA_PHOTO_MAX_MB", default=50) * 1024 * 1024,
+    "VIDEO_MAX_BYTES": env.int("MEDIA_VIDEO_MAX_MB", default=20 * 1024) * 1024 * 1024,
+    "MAX_ACTIVE_PER_CEREMONY": env.int("MEDIA_MAX_ACTIVE_UPLOADS", default=50),
+    # Google keeps a resumable session for about a week; close ours a little earlier.
+    "SESSION_TTL_HOURS": env.int("MEDIA_SESSION_TTL_HOURS", default=144),
+    # Web apps that PUT bytes to Google directly (studio cabinet). The session is opened with this
+    # Origin so Google returns CORS headers on the final response; anything else is not forwarded.
+    "BROWSER_ORIGINS": env.list(
+        "MEDIA_UPLOAD_BROWSER_ORIGINS", default=["http://localhost:3001", "http://127.0.0.1:3001"]
+    ),
+}
+
+# ----------------------------------------------------------- Google Drive storage
+# OAuth "Web application" client. Read from the JSON downloaded from Google Cloud Console
+# (kept out of git in backend/credentials/); GOOGLE_OAUTH_CLIENT_ID / _SECRET / _REDIRECT_URI
+# environment variables override the file (useful for production secret managers).
+GOOGLE_OAUTH_CLIENT_FILE = Path(
+    env.str("GOOGLE_OAUTH_CLIENT_FILE", default=str(BASE_DIR / "credentials" / "google_oauth_client.json"))
+)
+GOOGLE_OAUTH_CLIENT_ID = env.str("GOOGLE_OAUTH_CLIENT_ID", default="")
+GOOGLE_OAUTH_CLIENT_SECRET = env.str("GOOGLE_OAUTH_CLIENT_SECRET", default="")
+GOOGLE_OAUTH_REDIRECT_URI = env.str(
+    "GOOGLE_OAUTH_REDIRECT_URI", default="http://localhost:8000/api/v1/admin/storage/google/callback/"
+)
+# Minimal scopes: drive.file = only files/folders this app creates or the owner picks (non-sensitive).
+GOOGLE_OAUTH_SCOPES = [
+    "openid",
+    "https://www.googleapis.com/auth/userinfo.email",
+    "https://www.googleapis.com/auth/drive.file",
+]
+GOOGLE_OAUTH_STATE_TTL_SECONDS = env.int("GOOGLE_OAUTH_STATE_TTL_SECONDS", default=600)
+# Refresh tokens are Fernet-encrypted with these keys (first encrypts, all decrypt — rotation).
+GOOGLE_TOKEN_ENCRYPTION_KEYS = env.list("GOOGLE_TOKEN_ENCRYPTION_KEY", default=[])
+# Optional default root folder (Phase B lets the Super Admin pick one instead).
+GOOGLE_DRIVE_ROOT_FOLDER_ID = env.str("GOOGLE_DRIVE_ROOT_FOLDER_ID", default="")
+# Where the OAuth callback sends the browser back to (the Super Admin panel).
+# Production: PANEL_URL=https://superadmin.marosimgo.uz (served by this same Django app)
+PANEL_URL = env.str("PANEL_URL", default="http://localhost:3000").rstrip("/")
+# The panels are static exports served by this same Django app on every path outside /api/,
+# /media/ and /static/ (see config/panel.py) — one cPanel deploy, no Node.js:
+#   superadmin.marosimgo.uz → backend/panel/         (frontend/: npm run build:panel)
+#   admin.marosimgo.uz      → backend/panel-admin/   (frontend/: npm run build:panel:admin)
+#   studio.marosimgo.uz     → backend/panel-studio/  (frontend-studio/: npm run build:panel)
+#   marosimgo.uz, www.      → backend/landing/       (the public landing page)
+#   api.marosimgo.uz        → API only
+SERVE_PANEL = env.bool("SERVE_PANEL", default=True)
+PANEL_SITES = {
+    "superadmin": BASE_DIR / "panel",
+    "admin": BASE_DIR / "panel-admin",
+    "studio": BASE_DIR / "panel-studio",
+    "userlogin": BASE_DIR / "panel-user",  # couples and guests (frontend-user)
+    "toyxona": BASE_DIR / "panel-toyxona",  # venue owners (frontend-toyxona)
+    "landing": BASE_DIR / "landing",  # hand-written page, no build step
+}
+# A host picks its site by its first DNS label (studio.marosimgo.uz → studio, studio.localhost → studio).
+# Explicit overrides (other domains, local development): PANEL_HOST_SITES=panel.example.com=superadmin,...
+PANEL_HOST_SITES = {
+    k.lower(): v
+    for k, v in env.dict(
+        "PANEL_HOST_SITES",
+        default={
+            "marosimgo.uz": "landing",
+            "www.marosimgo.uz": "landing",
+            "localhost": "superadmin",
+            "127.0.0.1": "landing",  # http://127.0.0.1:8000/ = the marosimgo.uz landing page
+        },
+    ).items()
+}
+# Hosts that match no site get this one; empty = API only (api.marosimgo.uz).
+PANEL_DEFAULT_SITE = env.str("PANEL_DEFAULT_SITE", default="")
+
+# -------------------------------------------------------------------- monitoring
+MONITORING = {
+    "ENABLED": env.bool("MONITORING_ENABLED", default=True),
+    # Write request metrics from a background thread (False = inline, used by tests).
+    "ASYNC": env.bool("MONITORING_ASYNC", default=True),
+    "BATCH_SIZE": 200,
+    "FLUSH_INTERVAL_SECONDS": 2.0,
+    "QUEUE_MAX": 10_000,
+    "RETENTION_DAYS": env.int("MONITORING_RETENTION_DAYS", default=14),
+    "MAX_ROWS": env.int("MONITORING_MAX_ROWS", default=2_000_000),
+    "PRUNE_INTERVAL_SECONDS": 3600,
+    "CATALOG_TTL_SECONDS": 300,
+    "INCLUDE_PREFIXES": ["/api/"],
+    # Probes, the monitoring UI itself and the docs would only add noise.
+    "EXCLUDE_PREFIXES": ["/api/v1/health/", "/api/v1/monitoring/", "/api/v1/schema/", "/api/v1/docs/"],
+}
+# Base URL shown in the API command examples of the monitoring catalog (documentation only).
+PUBLIC_API_BASE_URL = env.str("PUBLIC_API_BASE_URL", default="http://localhost:8000").rstrip("/")
+
+# ----------------------------------------------------------------------- logging
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "filters": {"redact": {"()": "apps.core.logging.SensitiveDataFilter"}},
+    "formatters": {"plain": {"format": "%(asctime)s %(levelname)s %(name)s: %(message)s"}},
+    "handlers": {
+        "console": {"class": "logging.StreamHandler", "formatter": "plain", "filters": ["redact"]},
+    },
+    "root": {"handlers": ["console"], "level": env.str("LOG_LEVEL", default="INFO")},
+    "loggers": {
+        "django.request": {"handlers": ["console"], "level": "WARNING", "propagate": False},
+        # runserver access log prints full URLs: redact OAuth ?code=&state= and tokens there too.
+        "django.server": {"handlers": ["console"], "level": "INFO", "propagate": False},
+    },
+}
