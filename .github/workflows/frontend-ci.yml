@@ -38,7 +38,7 @@ jobs:
       - name: Lint (after the build, so generated files are present and must be ignored)
         run: npm run lint
       - name: Unit tests
-        if: matrix.app == 'frontend-user'
+        if: matrix.app == 'frontend-user' || matrix.app == 'frontend'
         run: npm test
 
   api-client-contract:

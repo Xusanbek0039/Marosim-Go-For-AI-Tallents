@@ -471,6 +471,58 @@ OWNERSHIP_TESTS = {
         ],
         "ownership_saved_looks_are_private",
     ),
+    # AI event planner — tests live in tests/test_event_planner.py
+    **dict.fromkeys(
+        [
+            "ai_planner_conversations_list",
+            "ai_planner_conversations_create",
+            "ai_planner_conversations_retrieve",
+            "ai_planner_conversations_partial_update",
+            "ai_planner_conversations_destroy",
+            "ai_planner_conversations_archive_create",
+            "ai_planner_conversations_unarchive_create",
+            "ai_planner_conversations_confirm_plan_create",
+            "ai_planner_conversations_messages_list",
+            "ai_planner_conversations_messages_create",
+            "ai_planner_messages_feedback_create",
+            "ai_planner_messages_report_create",
+            "ai_planner_plans_list",
+            "ai_planner_plans_create",
+            "ai_planner_plans_retrieve",
+            "ai_planner_plans_partial_update",
+            "ai_planner_plans_destroy",
+            "ai_planner_plans_archive_create",
+            "ai_planner_plans_unarchive_create",
+            "ai_planner_plans_duplicate_create",
+            "ai_planner_plans_recommendations_retrieve",
+            "ai_planner_plans_summary_retrieve",
+            "ai_planner_plans_items_list",
+            "ai_planner_plans_items_create",
+            "ai_planner_plans_items_retrieve",
+            "ai_planner_plans_items_partial_update",
+            "ai_planner_plans_items_destroy",
+        ],
+        "ownership_planner_data_is_own",
+    ),
+    **dict.fromkeys(
+        [
+            "ai_planner_status_retrieve",
+            "ai_planner_usage_retrieve",
+            "ai_planner_export_retrieve",
+            "ai_planner_delete_data_create",
+        ],
+        "ownership_planner_own_account_data",
+    ),
+    **dict.fromkeys(
+        [
+            "admin_ai_planner_conversations_list",
+            "admin_ai_planner_conversations_retrieve",
+            "admin_ai_planner_reports_list",
+            "admin_ai_planner_reports_retrieve",
+            "admin_ai_planner_reports_partial_update",
+        ],
+        "ownership_planner_admin_masked_and_audited",
+    ),
 }
 
 from . import test_ceremonies as _ceremony_tests  # noqa: E402
@@ -566,6 +618,12 @@ ownership_ai_status_is_own_budget = _ai_tryon_tests.test_one_active_session_per_
 ownership_ai_sessions_are_own = _ai_tryon_tests.test_one_active_session_per_user
 ownership_ai_tokens_only_for_own_active_session = _ai_tryon_tests.test_token_only_for_own_active_unexpired_session
 ownership_saved_looks_are_private = _ai_tryon_tests.test_saved_looks_are_private_files
+
+from . import test_event_planner as _planner_tests  # noqa: E402
+
+ownership_planner_data_is_own = _planner_tests.test_planner_data_is_isolated_per_user
+ownership_planner_own_account_data = _planner_tests.test_feedback_report_export_and_delete
+ownership_planner_admin_masked_and_audited = _planner_tests.test_admin_rights_come_only_from_ai_codes
 
 
 @pytest.mark.parametrize(

@@ -16,10 +16,21 @@ FEATURE_LABELS = {
     "subscriptions": "Obuna / galichka sotib olish",
     "support": "Yordamga murojaat qilish",
     "tryon": "Kiyimlarni kamerada kiyib ko'rish",
+    "ai_planner": "AI marosim rejalashtiruvchisi",
 }
 ROLE_FEATURES = {
     "PUBLIC": ("registration",),
-    Role.USER: ("ceremonies", "sharing", "media", "bookings", "reviews", "subscriptions", "support", "tryon"),
+    Role.USER: (
+        "ceremonies",
+        "sharing",
+        "media",
+        "bookings",
+        "reviews",
+        "subscriptions",
+        "support",
+        "tryon",
+        "ai_planner",
+    ),
     Role.STUDIO: ("ceremonies", "media", "portfolio", "subscriptions", "support"),
     Role.VENUE_OWNER: ("venues", "subscriptions", "support"),
 }
@@ -58,6 +69,7 @@ def feature_of(view):
         "subscriptions": "subscriptions",
         "support": "support",
         "virtual_tryon": "tryon",
+        "event_planner": "ai_planner",
     }.get(module)
 
 

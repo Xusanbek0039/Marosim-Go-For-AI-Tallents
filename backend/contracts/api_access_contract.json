@@ -141,6 +141,48 @@
       "operation_id": "admins_destroy",
       "schema_fingerprint": "687f94926a661e2f"
     },
+    "DELETE /api/v1/ai-planner/conversations/{id}/": {
+      "allowed_roles": [
+        "USER"
+      ],
+      "auth_type": "JWT",
+      "required_permissions": [],
+      "role_requirements": {},
+      "ownership_scope": "Faqat o'z suhbatlari va xabarlari (boshqalarniki 404).",
+      "conditions": [],
+      "access_status": "DERIVED",
+      "deprecated": false,
+      "operation_id": "ai_planner_conversations_destroy",
+      "schema_fingerprint": "d9e54e66451e5551"
+    },
+    "DELETE /api/v1/ai-planner/plans/{id}/": {
+      "allowed_roles": [
+        "USER"
+      ],
+      "auth_type": "JWT",
+      "required_permissions": [],
+      "role_requirements": {},
+      "ownership_scope": "Faqat o'z rejalari (boshqalarniki 404).",
+      "conditions": [],
+      "access_status": "DERIVED",
+      "deprecated": false,
+      "operation_id": "ai_planner_plans_destroy",
+      "schema_fingerprint": "d9e54e66451e5551"
+    },
+    "DELETE /api/v1/ai-planner/plans/{plan_id}/items/{id}/": {
+      "allowed_roles": [
+        "USER"
+      ],
+      "auth_type": "JWT",
+      "required_permissions": [],
+      "role_requirements": {},
+      "ownership_scope": "Faqat o'z rejasining bandlari (boshqa reja / band id si 404).",
+      "conditions": [],
+      "access_status": "DERIVED",
+      "deprecated": false,
+      "operation_id": "ai_planner_plans_items_destroy",
+      "schema_fingerprint": "858513b55e3d917a"
+    },
     "DELETE /api/v1/ceremonies/{ceremony_id}/media/uploads/{media_id}/": {
       "allowed_roles": [
         "STUDIO",
@@ -410,6 +452,192 @@
       "deprecated": false,
       "operation_id": "virtual_tryon_looks_destroy",
       "schema_fingerprint": "d9e54e66451e5551"
+    },
+    "GET /api/v1/admin/ai-planner/audit/": {
+      "allowed_roles": [
+        "SUPER_ADMIN"
+      ],
+      "auth_type": "JWT",
+      "required_permissions": [],
+      "role_requirements": {},
+      "ownership_scope": null,
+      "conditions": [],
+      "access_status": "DERIVED",
+      "deprecated": false,
+      "operation_id": "admin_ai_planner_audit_list",
+      "schema_fingerprint": "433a00dcba6929dc"
+    },
+    "GET /api/v1/admin/ai-planner/config/": {
+      "allowed_roles": [
+        "SUPER_ADMIN"
+      ],
+      "auth_type": "JWT",
+      "required_permissions": [],
+      "role_requirements": {},
+      "ownership_scope": null,
+      "conditions": [],
+      "access_status": "DERIVED",
+      "deprecated": false,
+      "operation_id": "admin_ai_planner_config_retrieve",
+      "schema_fingerprint": "fa29ec19dc0a05c8"
+    },
+    "GET /api/v1/admin/ai-planner/conversations/": {
+      "allowed_roles": [
+        "ADMIN",
+        "SUPER_ADMIN"
+      ],
+      "auth_type": "JWT",
+      "required_permissions": [
+        "ai.conversations"
+      ],
+      "role_requirements": {
+        "ADMIN": [
+          "ai.conversations"
+        ]
+      },
+      "ownership_scope": "Barcha suhbatlar; telefon / email yashiriladi.",
+      "conditions": [
+        "Har bir ko'rish audit jurnaliga yoziladi (AI_CONVERSATION_VIEW)."
+      ],
+      "access_status": "DERIVED",
+      "deprecated": false,
+      "operation_id": "admin_ai_planner_conversations_list",
+      "schema_fingerprint": "f4b9a348a28454a1"
+    },
+    "GET /api/v1/admin/ai-planner/conversations/{id}/": {
+      "allowed_roles": [
+        "ADMIN",
+        "SUPER_ADMIN"
+      ],
+      "auth_type": "JWT",
+      "required_permissions": [
+        "ai.conversations"
+      ],
+      "role_requirements": {
+        "ADMIN": [
+          "ai.conversations"
+        ]
+      },
+      "ownership_scope": "Barcha suhbatlar; telefon / email yashiriladi.",
+      "conditions": [
+        "Har bir ko'rish audit jurnaliga yoziladi (AI_CONVERSATION_VIEW)."
+      ],
+      "access_status": "DERIVED",
+      "deprecated": false,
+      "operation_id": "admin_ai_planner_conversations_retrieve",
+      "schema_fingerprint": "9e6b260a256b1bca"
+    },
+    "GET /api/v1/admin/ai-planner/dashboard/": {
+      "allowed_roles": [
+        "ADMIN",
+        "SUPER_ADMIN"
+      ],
+      "auth_type": "JWT",
+      "required_permissions": [
+        "ai.view"
+      ],
+      "role_requirements": {
+        "ADMIN": [
+          "ai.view"
+        ]
+      },
+      "ownership_scope": null,
+      "conditions": [],
+      "access_status": "DERIVED",
+      "deprecated": false,
+      "operation_id": "admin_ai_planner_dashboard_retrieve",
+      "schema_fingerprint": "9b17c6705cd6c559"
+    },
+    "GET /api/v1/admin/ai-planner/prompts/": {
+      "allowed_roles": [
+        "SUPER_ADMIN"
+      ],
+      "auth_type": "JWT",
+      "required_permissions": [],
+      "role_requirements": {},
+      "ownership_scope": null,
+      "conditions": [],
+      "access_status": "DERIVED",
+      "deprecated": false,
+      "operation_id": "admin_ai_planner_prompts_list",
+      "schema_fingerprint": "4f3f0a7c65ae012c"
+    },
+    "GET /api/v1/admin/ai-planner/prompts/{id}/": {
+      "allowed_roles": [
+        "SUPER_ADMIN"
+      ],
+      "auth_type": "JWT",
+      "required_permissions": [],
+      "role_requirements": {},
+      "ownership_scope": null,
+      "conditions": [],
+      "access_status": "DERIVED",
+      "deprecated": false,
+      "operation_id": "admin_ai_planner_prompts_retrieve",
+      "schema_fingerprint": "f2dbabb4bf6d8ab7"
+    },
+    "GET /api/v1/admin/ai-planner/reports/": {
+      "allowed_roles": [
+        "ADMIN",
+        "SUPER_ADMIN"
+      ],
+      "auth_type": "JWT",
+      "required_permissions": [
+        "ai.reports"
+      ],
+      "role_requirements": {
+        "ADMIN": [
+          "ai.reports"
+        ]
+      },
+      "ownership_scope": "Barcha shikoyatlar; foydalanuvchi aloqa ma'lumotlari yashiriladi.",
+      "conditions": [],
+      "access_status": "DERIVED",
+      "deprecated": false,
+      "operation_id": "admin_ai_planner_reports_list",
+      "schema_fingerprint": "5c053bd68072b771"
+    },
+    "GET /api/v1/admin/ai-planner/reports/{id}/": {
+      "allowed_roles": [
+        "ADMIN",
+        "SUPER_ADMIN"
+      ],
+      "auth_type": "JWT",
+      "required_permissions": [
+        "ai.reports"
+      ],
+      "role_requirements": {
+        "ADMIN": [
+          "ai.reports"
+        ]
+      },
+      "ownership_scope": "Barcha shikoyatlar; foydalanuvchi aloqa ma'lumotlari yashiriladi.",
+      "conditions": [],
+      "access_status": "DERIVED",
+      "deprecated": false,
+      "operation_id": "admin_ai_planner_reports_retrieve",
+      "schema_fingerprint": "1a46c657530a7d88"
+    },
+    "GET /api/v1/admin/ai-planner/usage/": {
+      "allowed_roles": [
+        "ADMIN",
+        "SUPER_ADMIN"
+      ],
+      "auth_type": "JWT",
+      "required_permissions": [
+        "ai.view"
+      ],
+      "role_requirements": {
+        "ADMIN": [
+          "ai.view"
+        ]
+      },
+      "ownership_scope": null,
+      "conditions": [],
+      "access_status": "DERIVED",
+      "deprecated": false,
+      "operation_id": "admin_ai_planner_usage_list",
+      "schema_fingerprint": "c21b7f46ba68dd6b"
     },
     "GET /api/v1/admin/media-deletion-requests/": {
       "allowed_roles": [
@@ -994,7 +1222,7 @@
       "access_status": "DERIVED",
       "deprecated": false,
       "operation_id": "admins_list",
-      "schema_fingerprint": "50a8ecb3328d7171"
+      "schema_fingerprint": "58d81e78d459d623"
     },
     "GET /api/v1/admins/permissions/": {
       "allowed_roles": [
@@ -1022,7 +1250,7 @@
       "access_status": "DERIVED",
       "deprecated": false,
       "operation_id": "admins_retrieve",
-      "schema_fingerprint": "9a31d11fed52adbf"
+      "schema_fingerprint": "38102fd7d17b1286"
     },
     "GET /api/v1/admins/{id}/pinfl/": {
       "allowed_roles": [
@@ -1039,6 +1267,210 @@
       "deprecated": false,
       "operation_id": "admins_pinfl_retrieve",
       "schema_fingerprint": "6750d08521ad02a4"
+    },
+    "GET /api/v1/ai-planner/conversations/": {
+      "allowed_roles": [
+        "USER"
+      ],
+      "auth_type": "JWT",
+      "required_permissions": [],
+      "role_requirements": {},
+      "ownership_scope": "Faqat o'z suhbatlari va xabarlari (boshqalarniki 404).",
+      "conditions": [],
+      "access_status": "DERIVED",
+      "deprecated": false,
+      "operation_id": "ai_planner_conversations_list",
+      "schema_fingerprint": "01b3b9083db20670"
+    },
+    "GET /api/v1/ai-planner/conversations/{id}/": {
+      "allowed_roles": [
+        "USER"
+      ],
+      "auth_type": "JWT",
+      "required_permissions": [],
+      "role_requirements": {},
+      "ownership_scope": "Faqat o'z suhbatlari va xabarlari (boshqalarniki 404).",
+      "conditions": [],
+      "access_status": "DERIVED",
+      "deprecated": false,
+      "operation_id": "ai_planner_conversations_retrieve",
+      "schema_fingerprint": "0aee8c177d592d5e"
+    },
+    "GET /api/v1/ai-planner/conversations/{id}/messages/": {
+      "allowed_roles": [
+        "USER"
+      ],
+      "auth_type": "JWT",
+      "required_permissions": [],
+      "role_requirements": {},
+      "ownership_scope": "Faqat o'z suhbatlari va xabarlari (boshqalarniki 404).",
+      "conditions": [
+        "Bir xil client_request_id bilan qayta yuborish takror xabar yaratmaydi (retry).",
+        "AI o'chirilgan / sozlanmagan bo'lsa 503; kunlik limit 429.",
+        "Hech qachon bron yaratmaydi — bron faqat me/venue-bookings orqali, foydalanuvchi tasdig'i bilan."
+      ],
+      "access_status": "DERIVED",
+      "deprecated": false,
+      "operation_id": "ai_planner_conversations_messages_list",
+      "schema_fingerprint": "31f5df2f9a8e8377"
+    },
+    "GET /api/v1/ai-planner/export/": {
+      "allowed_roles": [
+        "USER"
+      ],
+      "auth_type": "JWT",
+      "required_permissions": [],
+      "role_requirements": {},
+      "ownership_scope": "Faqat o'z rejalari va suhbatlari.",
+      "conditions": [],
+      "access_status": "DERIVED",
+      "deprecated": false,
+      "operation_id": "ai_planner_export_retrieve",
+      "schema_fingerprint": "22e3eaee26765722"
+    },
+    "GET /api/v1/ai-planner/plans/": {
+      "allowed_roles": [
+        "USER"
+      ],
+      "auth_type": "JWT",
+      "required_permissions": [],
+      "role_requirements": {},
+      "ownership_scope": "Faqat o'z rejalari (boshqalarniki 404).",
+      "conditions": [],
+      "access_status": "DERIVED",
+      "deprecated": false,
+      "operation_id": "ai_planner_plans_list",
+      "schema_fingerprint": "2550b08cd339a416"
+    },
+    "GET /api/v1/ai-planner/plans/{id}/": {
+      "allowed_roles": [
+        "USER"
+      ],
+      "auth_type": "JWT",
+      "required_permissions": [],
+      "role_requirements": {},
+      "ownership_scope": "Faqat o'z rejalari (boshqalarniki 404).",
+      "conditions": [],
+      "access_status": "DERIVED",
+      "deprecated": false,
+      "operation_id": "ai_planner_plans_retrieve",
+      "schema_fingerprint": "9fb1bdb9c8f9f133"
+    },
+    "GET /api/v1/ai-planner/plans/{id}/recommendations/": {
+      "allowed_roles": [
+        "USER"
+      ],
+      "auth_type": "JWT",
+      "required_permissions": [],
+      "role_requirements": {},
+      "ownership_scope": "Faqat o'z rejalari (boshqalarniki 404).",
+      "conditions": [],
+      "access_status": "DERIVED",
+      "deprecated": false,
+      "operation_id": "ai_planner_plans_recommendations_retrieve",
+      "schema_fingerprint": "fb1a791b72360d83"
+    },
+    "GET /api/v1/ai-planner/plans/{id}/summary/": {
+      "allowed_roles": [
+        "USER"
+      ],
+      "auth_type": "JWT",
+      "required_permissions": [],
+      "role_requirements": {},
+      "ownership_scope": "Faqat o'z rejalari (boshqalarniki 404).",
+      "conditions": [],
+      "access_status": "DERIVED",
+      "deprecated": false,
+      "operation_id": "ai_planner_plans_summary_retrieve",
+      "schema_fingerprint": "9e6b260a256b1bca"
+    },
+    "GET /api/v1/ai-planner/plans/{plan_id}/items/": {
+      "allowed_roles": [
+        "USER"
+      ],
+      "auth_type": "JWT",
+      "required_permissions": [],
+      "role_requirements": {},
+      "ownership_scope": "Faqat o'z rejasining bandlari (boshqa reja / band id si 404).",
+      "conditions": [],
+      "access_status": "DERIVED",
+      "deprecated": false,
+      "operation_id": "ai_planner_plans_items_list",
+      "schema_fingerprint": "a585fdc033ad7ec2"
+    },
+    "GET /api/v1/ai-planner/plans/{plan_id}/items/{id}/": {
+      "allowed_roles": [
+        "USER"
+      ],
+      "auth_type": "JWT",
+      "required_permissions": [],
+      "role_requirements": {},
+      "ownership_scope": "Faqat o'z rejasining bandlari (boshqa reja / band id si 404).",
+      "conditions": [],
+      "access_status": "DERIVED",
+      "deprecated": false,
+      "operation_id": "ai_planner_plans_items_retrieve",
+      "schema_fingerprint": "f3ed6755a2f79e38"
+    },
+    "GET /api/v1/ai-planner/services/compare/": {
+      "allowed_roles": [
+        "USER"
+      ],
+      "auth_type": "JWT",
+      "required_permissions": [],
+      "role_requirements": {},
+      "ownership_scope": null,
+      "conditions": [
+        "Faqat ommaviy (tasdiqlangan, faol) to'yxona zallari va studiyalar; narx va bandlik serverdan."
+      ],
+      "access_status": "DERIVED",
+      "deprecated": false,
+      "operation_id": "ai_planner_services_compare_retrieve",
+      "schema_fingerprint": "8cbda46688d0ffcd"
+    },
+    "GET /api/v1/ai-planner/services/search/": {
+      "allowed_roles": [
+        "USER"
+      ],
+      "auth_type": "JWT",
+      "required_permissions": [],
+      "role_requirements": {},
+      "ownership_scope": null,
+      "conditions": [
+        "Faqat ommaviy (tasdiqlangan, faol) to'yxona zallari va studiyalar; narx va bandlik serverdan."
+      ],
+      "access_status": "DERIVED",
+      "deprecated": false,
+      "operation_id": "ai_planner_services_search_retrieve",
+      "schema_fingerprint": "f744918bad81a5de"
+    },
+    "GET /api/v1/ai-planner/status/": {
+      "allowed_roles": [
+        "USER"
+      ],
+      "auth_type": "JWT",
+      "required_permissions": [],
+      "role_requirements": {},
+      "ownership_scope": "Faqat o'z limitlari.",
+      "conditions": [],
+      "access_status": "DERIVED",
+      "deprecated": false,
+      "operation_id": "ai_planner_status_retrieve",
+      "schema_fingerprint": "22e3eaee26765722"
+    },
+    "GET /api/v1/ai-planner/usage/": {
+      "allowed_roles": [
+        "USER"
+      ],
+      "auth_type": "JWT",
+      "required_permissions": [],
+      "role_requirements": {},
+      "ownership_scope": "Faqat o'z AI sarfi.",
+      "conditions": [],
+      "access_status": "DERIVED",
+      "deprecated": false,
+      "operation_id": "ai_planner_usage_retrieve",
+      "schema_fingerprint": "22e3eaee26765722"
     },
     "GET /api/v1/auth/csrf/": {
       "allowed_roles": [
@@ -2410,6 +2842,61 @@
       "operation_id": "virtual_tryon_looks_image_retrieve",
       "schema_fingerprint": "86793bf4d8cd3ea6"
     },
+    "PATCH /api/v1/admin/ai-planner/config/": {
+      "allowed_roles": [
+        "SUPER_ADMIN"
+      ],
+      "auth_type": "JWT",
+      "required_permissions": [],
+      "role_requirements": {},
+      "ownership_scope": null,
+      "conditions": [
+        "expected_version majburiy (parallel tahrir 409).",
+        "Provayder/model/yoqish/texnik rejim/flaglar uchun confirm=true; har o'zgarish audit qilinadi.",
+        "Kalit faqat muhit o'zgaruvchisida (ANTHROPIC_API_KEY) — API uni hech qachon qaytarmaydi."
+      ],
+      "access_status": "DERIVED",
+      "deprecated": false,
+      "operation_id": "admin_ai_planner_config_partial_update",
+      "schema_fingerprint": "8aec47e4906e4ac9"
+    },
+    "PATCH /api/v1/admin/ai-planner/prompts/{id}/": {
+      "allowed_roles": [
+        "SUPER_ADMIN"
+      ],
+      "auth_type": "JWT",
+      "required_permissions": [],
+      "role_requirements": {},
+      "ownership_scope": null,
+      "conditions": [
+        "Faqat DRAFT tahrirlanadi (aks holda 409)."
+      ],
+      "access_status": "DERIVED",
+      "deprecated": false,
+      "operation_id": "admin_ai_planner_prompts_partial_update",
+      "schema_fingerprint": "4d0048c7c268e92a"
+    },
+    "PATCH /api/v1/admin/ai-planner/reports/{id}/": {
+      "allowed_roles": [
+        "ADMIN",
+        "SUPER_ADMIN"
+      ],
+      "auth_type": "JWT",
+      "required_permissions": [
+        "ai.reports"
+      ],
+      "role_requirements": {
+        "ADMIN": [
+          "ai.reports"
+        ]
+      },
+      "ownership_scope": "Barcha shikoyatlar; foydalanuvchi aloqa ma'lumotlari yashiriladi.",
+      "conditions": [],
+      "access_status": "DERIVED",
+      "deprecated": false,
+      "operation_id": "admin_ai_planner_reports_partial_update",
+      "schema_fingerprint": "a41696e85b0df36d"
+    },
     "PATCH /api/v1/admin/platform-policy/": {
       "allowed_roles": [
         "ADMIN",
@@ -2431,7 +2918,7 @@
       "access_status": "DERIVED",
       "deprecated": false,
       "operation_id": "admin_platform_policy_partial_update",
-      "schema_fingerprint": "0d466461f5b1179f"
+      "schema_fingerprint": "8c5dacd360d1958f"
     },
     "PATCH /api/v1/admin/reviews/{id}/": {
       "allowed_roles": [
@@ -2638,7 +3125,49 @@
       "access_status": "DERIVED",
       "deprecated": false,
       "operation_id": "admins_partial_update",
-      "schema_fingerprint": "ab3cb483345b3902"
+      "schema_fingerprint": "99c2680cda766e12"
+    },
+    "PATCH /api/v1/ai-planner/conversations/{id}/": {
+      "allowed_roles": [
+        "USER"
+      ],
+      "auth_type": "JWT",
+      "required_permissions": [],
+      "role_requirements": {},
+      "ownership_scope": "Faqat o'z suhbatlari va xabarlari (boshqalarniki 404).",
+      "conditions": [],
+      "access_status": "DERIVED",
+      "deprecated": false,
+      "operation_id": "ai_planner_conversations_partial_update",
+      "schema_fingerprint": "c2496ab8b4fc51f3"
+    },
+    "PATCH /api/v1/ai-planner/plans/{id}/": {
+      "allowed_roles": [
+        "USER"
+      ],
+      "auth_type": "JWT",
+      "required_permissions": [],
+      "role_requirements": {},
+      "ownership_scope": "Faqat o'z rejalari (boshqalarniki 404).",
+      "conditions": [],
+      "access_status": "DERIVED",
+      "deprecated": false,
+      "operation_id": "ai_planner_plans_partial_update",
+      "schema_fingerprint": "c94fddf19d6db2b6"
+    },
+    "PATCH /api/v1/ai-planner/plans/{plan_id}/items/{id}/": {
+      "allowed_roles": [
+        "USER"
+      ],
+      "auth_type": "JWT",
+      "required_permissions": [],
+      "role_requirements": {},
+      "ownership_scope": "Faqat o'z rejasining bandlari (boshqa reja / band id si 404).",
+      "conditions": [],
+      "access_status": "DERIVED",
+      "deprecated": false,
+      "operation_id": "ai_planner_plans_items_partial_update",
+      "schema_fingerprint": "baa646c09e4dab83"
     },
     "PATCH /api/v1/auth/me/": {
       "allowed_roles": [
@@ -2894,6 +3423,87 @@
       "deprecated": false,
       "operation_id": "venue_owner_venues_members_partial_update",
       "schema_fingerprint": "96bd0eb2154a254a"
+    },
+    "POST /api/v1/admin/ai-planner/config/validate/": {
+      "allowed_roles": [
+        "SUPER_ADMIN"
+      ],
+      "auth_type": "JWT",
+      "required_permissions": [],
+      "role_requirements": {},
+      "ownership_scope": null,
+      "conditions": [],
+      "access_status": "DERIVED",
+      "deprecated": false,
+      "operation_id": "admin_ai_planner_config_validate_create",
+      "schema_fingerprint": "130298daf130a434"
+    },
+    "POST /api/v1/admin/ai-planner/disable/": {
+      "allowed_roles": [
+        "ADMIN",
+        "SUPER_ADMIN"
+      ],
+      "auth_type": "JWT",
+      "required_permissions": [
+        "ai.disable"
+      ],
+      "role_requirements": {
+        "ADMIN": [
+          "ai.disable"
+        ]
+      },
+      "ownership_scope": null,
+      "conditions": [
+        "Faqat o'chiradi (yoqish — Super Admin); confirm=true va sabab majburiy."
+      ],
+      "access_status": "DERIVED",
+      "deprecated": false,
+      "operation_id": "admin_ai_planner_disable_create",
+      "schema_fingerprint": "c74358034ca73884"
+    },
+    "POST /api/v1/admin/ai-planner/prompts/": {
+      "allowed_roles": [
+        "SUPER_ADMIN"
+      ],
+      "auth_type": "JWT",
+      "required_permissions": [],
+      "role_requirements": {},
+      "ownership_scope": null,
+      "conditions": [],
+      "access_status": "DERIVED",
+      "deprecated": false,
+      "operation_id": "admin_ai_planner_prompts_create",
+      "schema_fingerprint": "2c38a8a7f6d24ba9"
+    },
+    "POST /api/v1/admin/ai-planner/prompts/{id}/activate/": {
+      "allowed_roles": [
+        "SUPER_ADMIN"
+      ],
+      "auth_type": "JWT",
+      "required_permissions": [],
+      "role_requirements": {},
+      "ownership_scope": null,
+      "conditions": [
+        "Faqat sinovdan o'tgan (TESTED) yoki avval faol bo'lgan (ARCHIVED) versiya; confirm=true."
+      ],
+      "access_status": "DERIVED",
+      "deprecated": false,
+      "operation_id": "admin_ai_planner_prompts_activate_create",
+      "schema_fingerprint": "563ec5e18e686e22"
+    },
+    "POST /api/v1/admin/ai-planner/prompts/{id}/test/": {
+      "allowed_roles": [
+        "SUPER_ADMIN"
+      ],
+      "auth_type": "JWT",
+      "required_permissions": [],
+      "role_requirements": {},
+      "ownership_scope": null,
+      "conditions": [],
+      "access_status": "DERIVED",
+      "deprecated": false,
+      "operation_id": "admin_ai_planner_prompts_test_create",
+      "schema_fingerprint": "985f2ecded374ce0"
     },
     "POST /api/v1/admin/media-deletion-requests/{id}/approve/": {
       "allowed_roles": [
@@ -3401,7 +4011,7 @@
       "access_status": "DERIVED",
       "deprecated": false,
       "operation_id": "admins_create",
-      "schema_fingerprint": "5b1fd3e7673eb820"
+      "schema_fingerprint": "50e8fc81fd2be11a"
     },
     "POST /api/v1/admins/{id}/verify-phone/": {
       "allowed_roles": [
@@ -3416,6 +4026,201 @@
       "deprecated": false,
       "operation_id": "admins_verify_phone_create",
       "schema_fingerprint": "82e11fc922f5d2e1"
+    },
+    "POST /api/v1/ai-planner/conversations/": {
+      "allowed_roles": [
+        "USER"
+      ],
+      "auth_type": "JWT",
+      "required_permissions": [],
+      "role_requirements": {},
+      "ownership_scope": "Faqat o'z suhbatlari va xabarlari (boshqalarniki 404).",
+      "conditions": [],
+      "access_status": "DERIVED",
+      "deprecated": false,
+      "operation_id": "ai_planner_conversations_create",
+      "schema_fingerprint": "ecc8300e538aae92"
+    },
+    "POST /api/v1/ai-planner/conversations/{id}/archive/": {
+      "allowed_roles": [
+        "USER"
+      ],
+      "auth_type": "JWT",
+      "required_permissions": [],
+      "role_requirements": {},
+      "ownership_scope": "Faqat o'z suhbatlari va xabarlari (boshqalarniki 404).",
+      "conditions": [],
+      "access_status": "DERIVED",
+      "deprecated": false,
+      "operation_id": "ai_planner_conversations_archive_create",
+      "schema_fingerprint": "84c62c6455d3f57a"
+    },
+    "POST /api/v1/ai-planner/conversations/{id}/confirm-plan/": {
+      "allowed_roles": [
+        "USER"
+      ],
+      "auth_type": "JWT",
+      "required_permissions": [],
+      "role_requirements": {},
+      "ownership_scope": "Faqat o'z suhbatlari va xabarlari (boshqalarniki 404).",
+      "conditions": [
+        "Faqat o'z suhbatidagi AI javobi; qayta tasdiqlash o'sha rejani qaytaradi.",
+        "Hech qachon bron yaratmaydi — bron faqat me/venue-bookings orqali, foydalanuvchi tasdig'i bilan."
+      ],
+      "access_status": "DERIVED",
+      "deprecated": false,
+      "operation_id": "ai_planner_conversations_confirm_plan_create",
+      "schema_fingerprint": "2a025d36ee1570f8"
+    },
+    "POST /api/v1/ai-planner/conversations/{id}/messages/": {
+      "allowed_roles": [
+        "USER"
+      ],
+      "auth_type": "JWT",
+      "required_permissions": [],
+      "role_requirements": {},
+      "ownership_scope": "Faqat o'z suhbatlari va xabarlari (boshqalarniki 404).",
+      "conditions": [
+        "Bir xil client_request_id bilan qayta yuborish takror xabar yaratmaydi (retry).",
+        "AI o'chirilgan / sozlanmagan bo'lsa 503; kunlik limit 429.",
+        "Hech qachon bron yaratmaydi — bron faqat me/venue-bookings orqali, foydalanuvchi tasdig'i bilan."
+      ],
+      "access_status": "DERIVED",
+      "deprecated": false,
+      "operation_id": "ai_planner_conversations_messages_create",
+      "schema_fingerprint": "2fe15ef92b356149"
+    },
+    "POST /api/v1/ai-planner/conversations/{id}/unarchive/": {
+      "allowed_roles": [
+        "USER"
+      ],
+      "auth_type": "JWT",
+      "required_permissions": [],
+      "role_requirements": {},
+      "ownership_scope": "Faqat o'z suhbatlari va xabarlari (boshqalarniki 404).",
+      "conditions": [],
+      "access_status": "DERIVED",
+      "deprecated": false,
+      "operation_id": "ai_planner_conversations_unarchive_create",
+      "schema_fingerprint": "84c62c6455d3f57a"
+    },
+    "POST /api/v1/ai-planner/delete-data/": {
+      "allowed_roles": [
+        "USER"
+      ],
+      "auth_type": "JWT",
+      "required_permissions": [],
+      "role_requirements": {},
+      "ownership_scope": "Faqat o'z ma'lumotlari.",
+      "conditions": [
+        "confirm=\"DELETE\" majburiy; bronlar va to'lovlarga tegmaydi."
+      ],
+      "access_status": "DERIVED",
+      "deprecated": false,
+      "operation_id": "ai_planner_delete_data_create",
+      "schema_fingerprint": "363650b5d8803557"
+    },
+    "POST /api/v1/ai-planner/messages/{id}/feedback/": {
+      "allowed_roles": [
+        "USER"
+      ],
+      "auth_type": "JWT",
+      "required_permissions": [],
+      "role_requirements": {},
+      "ownership_scope": "Faqat o'z suhbatidagi AI javoblari (boshqalarniki 404).",
+      "conditions": [],
+      "access_status": "DERIVED",
+      "deprecated": false,
+      "operation_id": "ai_planner_messages_feedback_create",
+      "schema_fingerprint": "735ee4d5e48ba9f8"
+    },
+    "POST /api/v1/ai-planner/messages/{id}/report/": {
+      "allowed_roles": [
+        "USER"
+      ],
+      "auth_type": "JWT",
+      "required_permissions": [],
+      "role_requirements": {},
+      "ownership_scope": "Faqat o'z suhbatidagi AI javoblari (boshqalarniki 404).",
+      "conditions": [],
+      "access_status": "DERIVED",
+      "deprecated": false,
+      "operation_id": "ai_planner_messages_report_create",
+      "schema_fingerprint": "22bb6913dfd782aa"
+    },
+    "POST /api/v1/ai-planner/plans/": {
+      "allowed_roles": [
+        "USER"
+      ],
+      "auth_type": "JWT",
+      "required_permissions": [],
+      "role_requirements": {},
+      "ownership_scope": "Faqat o'z rejalari (boshqalarniki 404).",
+      "conditions": [],
+      "access_status": "DERIVED",
+      "deprecated": false,
+      "operation_id": "ai_planner_plans_create",
+      "schema_fingerprint": "5ee1e90f58f74536"
+    },
+    "POST /api/v1/ai-planner/plans/{id}/archive/": {
+      "allowed_roles": [
+        "USER"
+      ],
+      "auth_type": "JWT",
+      "required_permissions": [],
+      "role_requirements": {},
+      "ownership_scope": "Faqat o'z rejalari (boshqalarniki 404).",
+      "conditions": [],
+      "access_status": "DERIVED",
+      "deprecated": false,
+      "operation_id": "ai_planner_plans_archive_create",
+      "schema_fingerprint": "cc521fe90a5a62ca"
+    },
+    "POST /api/v1/ai-planner/plans/{id}/duplicate/": {
+      "allowed_roles": [
+        "USER"
+      ],
+      "auth_type": "JWT",
+      "required_permissions": [],
+      "role_requirements": {},
+      "ownership_scope": "Faqat o'z rejalari (boshqalarniki 404).",
+      "conditions": [],
+      "access_status": "DERIVED",
+      "deprecated": false,
+      "operation_id": "ai_planner_plans_duplicate_create",
+      "schema_fingerprint": "2459f1a78bc3185a"
+    },
+    "POST /api/v1/ai-planner/plans/{id}/unarchive/": {
+      "allowed_roles": [
+        "USER"
+      ],
+      "auth_type": "JWT",
+      "required_permissions": [],
+      "role_requirements": {},
+      "ownership_scope": "Faqat o'z rejalari (boshqalarniki 404).",
+      "conditions": [],
+      "access_status": "DERIVED",
+      "deprecated": false,
+      "operation_id": "ai_planner_plans_unarchive_create",
+      "schema_fingerprint": "cc521fe90a5a62ca"
+    },
+    "POST /api/v1/ai-planner/plans/{plan_id}/items/": {
+      "allowed_roles": [
+        "USER"
+      ],
+      "auth_type": "JWT",
+      "required_permissions": [],
+      "role_requirements": {},
+      "ownership_scope": "Faqat o'z rejasining bandlari (boshqa reja / band id si 404).",
+      "conditions": [
+        "Platforma zali narxi bazadan olinadi (VERIFIED); mijoz VERIFIED belgilay olmaydi.",
+        "To'yxona paketiga kirgan toifa qayta qo'shilmaydi (400 included_in_package).",
+        "Bitta xizmat rejada bir marta (409 duplicate_service)."
+      ],
+      "access_status": "DERIVED",
+      "deprecated": false,
+      "operation_id": "ai_planner_plans_items_create",
+      "schema_fingerprint": "d0c77d9cf497369a"
     },
     "POST /api/v1/auth/login/": {
       "allowed_roles": [

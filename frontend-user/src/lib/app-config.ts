@@ -7,6 +7,7 @@ export const APP = {
   home: "/",
   nav: [
     { href: "/", label: "Mening marosimlarim" },
+    { href: "/ai-reja", label: "AI reja" },
     { href: "/toyxonalar", label: "To'yxonalar" },
     { href: "/studiyalar", label: "Studiyalar" },
     { href: "/kiyib-korish", label: "Kiyib ko'rish" },

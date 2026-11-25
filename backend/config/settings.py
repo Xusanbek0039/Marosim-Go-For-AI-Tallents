@@ -49,6 +49,7 @@ INSTALLED_APPS = [
     "apps.devcenter",
     "apps.support",
     "apps.virtual_tryon",
+    "apps.event_planner",
 ]
 
 MIDDLEWARE = [
@@ -164,6 +165,9 @@ REST_FRAMEWORK = {
         "ai_tryon_session": env.str("THROTTLE_AI_TRYON_SESSION", default="20/hour"),
         "ai_tryon_token": env.str("THROTTLE_AI_TRYON_TOKEN", default="60/hour"),
         "tryon_look": env.str("THROTTLE_TRYON_LOOK", default="60/hour"),
+        "ai_planner_message": env.str("THROTTLE_AI_PLANNER_MESSAGE", default="30/min"),
+        "ai_planner_write": env.str("THROTTLE_AI_PLANNER_WRITE", default="600/hour"),
+        "ai_planner_admin_write": env.str("THROTTLE_AI_PLANNER_ADMIN_WRITE", default="120/hour"),
     },
     "NUM_PROXIES": NUM_PROXIES or None,
     "EXCEPTION_HANDLER": "apps.core.exceptions.api_exception_handler",
@@ -329,6 +333,31 @@ SPECTACULAR_SETTINGS = {
         "GarmentAudienceEnum": "apps.virtual_tryon.models.Audience",
         "AiTryOnEndReasonEnum": "apps.virtual_tryon.models.AiEndReason",
         "AiTryOnSessionStatusEnum": "apps.virtual_tryon.models.AiSessionStatus",
+        "PlannerEventTypeEnum": "apps.event_planner.models.EventType",
+        "PlannerStyleEnum": "apps.event_planner.models.PlanStyle",
+        "PlannerBudgetFlexibilityEnum": "apps.event_planner.models.BudgetFlexibility",
+        "PlannerPlanStatusEnum": "apps.event_planner.models.PlanStatus",
+        "PlannerPlanSourceEnum": "apps.event_planner.models.PlanSource",
+        "PlannerBudgetCategoryEnum": "apps.event_planner.models.BudgetCategory",
+        "PlannerItemCategoryEnum": "apps.event_planner.models.ITEM_CATEGORIES",
+        "PlannerPackageCategoryEnum": "apps.event_planner.models.PACKAGE_CATEGORIES",
+        "PlannerBudgetUnitEnum": "apps.event_planner.models.BudgetUnit",
+        "PlannerSourceTypeEnum": "apps.event_planner.models.SourceType",
+        "PlannerClientSourceTypeEnum": "apps.event_planner.models.CLIENT_SOURCE_TYPES",
+        "PlannerSourceKindEnum": "apps.event_planner.models.SourceKind",
+        "PlannerPriceStatusEnum": "apps.event_planner.models.PriceStatus",
+        "PlannerClientPriceStatusEnum": "apps.event_planner.models.CLIENT_PRICE_STATUSES",
+        "AiConversationStatusEnum": "apps.event_planner.models.ConversationStatus",
+        "AiMessageRoleEnum": "apps.event_planner.models.MessageRole",
+        "AiMessageStatusEnum": "apps.event_planner.models.MessageStatus",
+        "AiFeedbackEnum": "apps.event_planner.models.Feedback",
+        "AiUsageStatusEnum": "apps.event_planner.models.UsageStatus",
+        "AiProviderEnum": "apps.event_planner.models.ProviderName",
+        "AiEffortEnum": "apps.event_planner.models.Effort",
+        "AiPromptStatusEnum": "apps.event_planner.models.PromptStatus",
+        "AiReportReasonEnum": "apps.event_planner.models.ReportReason",
+        "AiReportStatusEnum": "apps.event_planner.models.ReportStatus",
+        "AiDisableScopeEnum": "apps.event_planner.models.DISABLE_SCOPES",
     },
     "SERVE_PERMISSIONS": (
         ["rest_framework.permissions.AllowAny"] if DEBUG else ["apps.accounts.permissions.IsSuperAdmin"]
@@ -403,6 +432,25 @@ AI_TRYON = {
     "PRICE_PER_SECOND_USD": env.float("AI_TRYON_PRICE_PER_SECOND_USD", default=0.02),
     "MAX_SAVED_LOOKS_PER_USER": env.int("AI_TRYON_MAX_SAVED_LOOKS", default=50),
 }
+# ------------------------------------------------- AI event planner (Claude, Anthropic)
+# The key is read from the environment only (never stored in the DB or shown in the panel; the panel only
+# shows "configured / missing"). Empty key = the AI chat shows "temporarily unavailable"; plans, the budget
+# calculator and bookings keep working. Model, limits and switches are managed by the Super Admin.
+AI_PLANNER = {
+    "ANTHROPIC_API_KEY": env.str("ANTHROPIC_API_KEY", default=""),
+    #: Per attempt; the SDK retries connection errors, 408/409/429 and 5xx with backoff.
+    "TIMEOUT_SECONDS": env.float("AI_PLANNER_TIMEOUT_SECONDS", default=45.0),
+    "MAX_RETRIES": env.int("AI_PLANNER_MAX_RETRIES", default=2),
+    #: Server-side refusal fallback (Anthropic beta ``server-side-fallback-2026-07-01``).
+    "REFUSAL_FALLBACK": env.bool("AI_PLANNER_REFUSAL_FALLBACK", default=True),
+    #: USD per million (input, output) tokens — only for the admin cost estimate when usage is reported.
+    "PRICES_USD_PER_MTOK": {
+        "claude-opus-5-5": (4.0, 20.0),
+        "claude-sonnet-5-5": (2.0, 10.0),
+        "claude-haiku-5-5": (0.10, 0.50),
+    },
+}
+
 #: Files only their owner may download (served by permission-checked views, never under /media/).
 PRIVATE_MEDIA_ROOT = Path(env.str("PRIVATE_MEDIA_ROOT", default=str(BASE_DIR / "private-media")))
 

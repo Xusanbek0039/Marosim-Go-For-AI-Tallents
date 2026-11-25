@@ -1,6 +1,7 @@
 import {
   ActivityIcon,
   BookOpenIcon,
+  BotIcon,
   Building2Icon,
   CastleIcon,
   CrownIcon,
@@ -30,8 +31,8 @@ export interface NavItem {
   href: string;
   label: string;
   icon: LucideIcon;
-  /** Needed permission; `"super"` = SUPER_ADMIN only; undefined = every panel user. */
-  requires?: PermissionCode | "super";
+  /** Needed permission; `"super"` = SUPER_ADMIN only; a list = any one of the codes; undefined = every panel user. */
+  requires?: PermissionCode | PermissionCode[] | "super";
   /** Active only on this exact path (for section index pages). */
   exact?: boolean;
   /** Live counter shown next to the label (e.g. pending requests). */
@@ -48,6 +49,12 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/reviews", label: "Sharhlar", icon: MessageSquareTextIcon, requires: "reviews.view" },
   { href: "/subscriptions", label: "Obunalar", icon: GemIcon, requires: "subscriptions.view" },
   { href: "/requests", label: "So'rovlar", icon: InboxIcon, requires: "requests.view", badge: "requests" },
+  {
+    href: "/ai-planner",
+    label: "AI maslahatchi",
+    icon: BotIcon,
+    requires: ["ai.view", "ai.reports", "ai.conversations", "ai.disable"],
+  },
   { href: "/storage", label: "Google Drive", icon: HardDriveIcon, requires: "super" },
   { href: "/support", label: "Yordam", icon: LifeBuoyIcon, badge: "support" },
   { href: "/settings", label: "Sozlamalar", icon: Settings2Icon },
@@ -80,6 +87,7 @@ export function canSee(me: Me | undefined, item: Pick<NavItem, "requires">) {
   if (!me) return false;
   if (!item.requires) return true;
   if (item.requires === "super") return me.role === "SUPER_ADMIN";
+  if (Array.isArray(item.requires)) return item.requires.some((code) => me.permissions.includes(code));
   return me.permissions.includes(item.requires);
 }
 

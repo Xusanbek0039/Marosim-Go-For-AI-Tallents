@@ -44,6 +44,16 @@ class AuditAction(models.TextChoices):
     STORAGE_CONNECT = "STORAGE_CONNECT", "Google Drive ulandi"
     STORAGE_CONNECT_FAILED = "STORAGE_CONNECT_FAILED", "Google Drive ulanmadi"
     STORAGE_DISCONNECT = "STORAGE_DISCONNECT", "Google Drive uzildi"
+    AI_CONFIG_UPDATE = "AI_CONFIG_UPDATE", "AI sozlamalari o'zgartirildi"
+    AI_EMERGENCY_DISABLE = "AI_EMERGENCY_DISABLE", "AI favqulodda o'chirildi"
+    AI_PROMPT_CREATE = "AI_PROMPT_CREATE", "AI prompt versiyasi yaratildi"
+    AI_PROMPT_UPDATE = "AI_PROMPT_UPDATE", "AI prompt qoralamasi tahrirlandi"
+    AI_PROMPT_TEST = "AI_PROMPT_TEST", "AI prompt sinovdan o'tkazildi"
+    AI_PROMPT_ACTIVATE = "AI_PROMPT_ACTIVATE", "AI prompt faollashtirildi / orqaga qaytarildi"
+    AI_CONVERSATION_VIEW = "AI_CONVERSATION_VIEW", "AI suhbati admin tomonidan ko'rildi"
+    AI_REPORT_UPDATE = "AI_REPORT_UPDATE", "AI shikoyati ko'rib chiqildi"
+    AI_PLAN_CONFIRM = "AI_PLAN_CONFIRM", "AI taklifi reja sifatida saqlandi"
+    AI_DATA_DELETE = "AI_DATA_DELETE", "AI rejalashtiruvchi ma'lumotlari o'chirildi"
 
 
 class AuditLog(models.Model):

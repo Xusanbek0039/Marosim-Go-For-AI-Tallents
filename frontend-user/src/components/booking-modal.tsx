@@ -21,20 +21,35 @@ export interface BookingTarget {
   date: string;
 }
 
+export interface BookingDefaults {
+  eventType?: BookingEventType;
+  guests?: number | null;
+  note?: string;
+}
+
 /** "So'rov yuborish" dialog: the slot is only taken once the venue confirms. */
-export function BookingModal({ target, onClose }: { target: BookingTarget | null; onClose: () => void }) {
+export function BookingModal({
+  target,
+  onClose,
+  defaults,
+}: {
+  target: BookingTarget | null;
+  onClose: () => void;
+  /** Prefill only (e.g. from an AI plan); the user still reviews and submits the form. */
+  defaults?: BookingDefaults;
+}) {
   return (
     <Modal open={Boolean(target)} onClose={onClose} title="Bron so'rovi">
-      {target && <BookingForm key={`${target.session.id}-${target.date}`} target={target} onDone={onClose} />}
+      {target && <BookingForm key={`${target.session.id}-${target.date}`} target={target} onDone={onClose} defaults={defaults} />}
     </Modal>
   );
 }
 
-function BookingForm({ target, onDone }: { target: BookingTarget; onDone: () => void }) {
+function BookingForm({ target, onDone, defaults }: { target: BookingTarget; onDone: () => void; defaults?: BookingDefaults }) {
   const request = useRequestBooking();
-  const [eventType, setEventType] = useState<BookingEventType>("WEDDING");
-  const [guests, setGuests] = useState("");
-  const [note, setNote] = useState("");
+  const [eventType, setEventType] = useState<BookingEventType>(defaults?.eventType ?? "WEDDING");
+  const [guests, setGuests] = useState(defaults?.guests ? String(Math.min(defaults.guests, target.capacity)) : "");
+  const [note, setNote] = useState(defaults?.note ?? "");
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [sent, setSent] = useState(false);
 

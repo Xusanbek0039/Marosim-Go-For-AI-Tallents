@@ -54,6 +54,14 @@ ADMIN_PERMISSIONS: tuple[PermissionDef, ...] = (
     PermissionDef(
         "support.monitor", "support", "Barcha yordam xatlarini kuzatish (adminlar xatlari ham, faqat o'qish)"
     ),
+    PermissionDef("ai.view", "ai", "AI maslahatchi statistikasi, sarfi va xatolarini ko'rish"),
+    PermissionDef("ai.reports", "ai", "AI javoblari bo'yicha shikoyatlarni ko'rib chiqish"),
+    PermissionDef(
+        "ai.conversations",
+        "ai",
+        "Foydalanuvchilarning AI suhbatlarini o'qish (yashirilgan, har bir ko'rish qayd etiladi)",
+    ),
+    PermissionDef("ai.disable", "ai", "AI maslahatchini yoki uning qismini favqulodda o'chirish"),
 )
 
 ALL_CODES: tuple[str, ...] = tuple(p.code for p in ADMIN_PERMISSIONS)
@@ -70,6 +78,7 @@ MODULE_LABELS = {
     "requests": "So'rovlar",
     "support": "Yordam",
     "tryon": "Virtual kiyib ko'rish",
+    "ai": "AI maslahatchi",
 }
 
 

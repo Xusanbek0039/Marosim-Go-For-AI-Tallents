@@ -14,6 +14,14 @@ All notable changes in this repository. The format follows
 
 ### Added
 
+- **AI marosim rejalashtiruvchisi ("Marosim GO AI Maslahatchisi"):** new `apps/event_planner` app —
+  saved event plans and budget items, a deterministic `Decimal` budget calculator (UZS, ranges, per-guest
+  lines, venue-package double-count guard, contingency reserve, overrun report and offered cuts), a Claude
+  chat (official `anthropic` SDK, structured output validated server-side, safe fallback, recommendations
+  limited to real platform venues/studios), confirmation-only plan saving, hand-off to the existing
+  venue booking form, user export/delete, admin dashboard/usage/reports/masked audited conversations,
+  emergency disable, and Super Admin config, limits, feature flags and versioned prompts with rollback.
+  Screens: frontend-user `/ai-reja`, admin panel `/ai-planner`. See `docs/AI_EVENT_PLANNER.md`.
 - **Secret guard:** with `DJANGO_DEBUG=false` the backend refuses to start if
   `DJANGO_SECRET_KEY`, `JWT_SIGNING_KEY`, `PINFL_HASH_KEY` or `PINFL_ENCRYPTION_KEYS` is empty,
   a public `.env.example` placeholder or an invalid Fernet key, or if the JWT key equals the

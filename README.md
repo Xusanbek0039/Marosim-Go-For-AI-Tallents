@@ -68,6 +68,7 @@ Full instructions, every environment variable and the PostgreSQL/Google Drive se
 | [API_DOCUMENTATION.md](API_DOCUMENTATION.md) | API conventions, auth, errors, where the full reference lives |
 | [CHANGELOG.md](CHANGELOG.md) | what changed in this repository |
 | [docs/SECURITY_INCIDENT_RESPONSE.md](docs/SECURITY_INCIDENT_RESPONSE.md) | secret rotation and incident runbook |
+| [docs/AI_EVENT_PLANNER.md](docs/AI_EVENT_PLANNER.md) | AI event planner: setup, env vars, API, roles, budget rules, limits |
 | [docs/](docs/) | detailed design documents from the original project (Uzbek) |
 
 ## Testing
@@ -75,7 +76,8 @@ Full instructions, every environment variable and the PostgreSQL/Google Drive se
 ```bash
 cd backend && pytest                                   # 2897 tests
 cd backend && ruff check . && ruff format --check .
-cd frontend-user && npm test                           # 17 tests
+cd frontend-user && npm test                           # node --test unit tests
+cd frontend && npm test                                # AI planner panel access rules
 cd <any frontend> && npx tsc --noEmit && npm run lint && npm run build
 ```
 

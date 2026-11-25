@@ -28,7 +28,11 @@ export type PermissionCode =
   | "requests.view"
   | "requests.media_delete"
   | "support.view"
-  | "support.monitor";
+  | "support.monitor"
+  | "ai.view"
+  | "ai.reports"
+  | "ai.conversations"
+  | "ai.disable";
 
 export interface Me {
   is_verified: boolean;

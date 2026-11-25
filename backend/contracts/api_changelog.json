@@ -1451,6 +1451,114 @@
         "POST /api/v1/admin/virtual-tryon/garments/{id}/reject/",
         "POST /api/v1/virtual-tryon/favorites/"
       ]
+    },
+    {
+      "revision": 29,
+      "date": "2026-11-25",
+      "note": "AI marosim rejalashtiruvchisi: ai-planner (USER) va admin/ai-planner (ADMIN ai.* / SUPER_ADMIN) endpointlari",
+      "added": [
+        "DELETE /api/v1/ai-planner/conversations/{id}/",
+        "DELETE /api/v1/ai-planner/plans/{id}/",
+        "DELETE /api/v1/ai-planner/plans/{plan_id}/items/{id}/",
+        "GET /api/v1/admin/ai-planner/audit/",
+        "GET /api/v1/admin/ai-planner/config/",
+        "GET /api/v1/admin/ai-planner/conversations/",
+        "GET /api/v1/admin/ai-planner/conversations/{id}/",
+        "GET /api/v1/admin/ai-planner/dashboard/",
+        "GET /api/v1/admin/ai-planner/prompts/",
+        "GET /api/v1/admin/ai-planner/prompts/{id}/",
+        "GET /api/v1/admin/ai-planner/reports/",
+        "GET /api/v1/admin/ai-planner/reports/{id}/",
+        "GET /api/v1/admin/ai-planner/usage/",
+        "GET /api/v1/ai-planner/conversations/",
+        "GET /api/v1/ai-planner/conversations/{id}/",
+        "GET /api/v1/ai-planner/conversations/{id}/messages/",
+        "GET /api/v1/ai-planner/export/",
+        "GET /api/v1/ai-planner/plans/",
+        "GET /api/v1/ai-planner/plans/{id}/",
+        "GET /api/v1/ai-planner/plans/{id}/recommendations/",
+        "GET /api/v1/ai-planner/plans/{id}/summary/",
+        "GET /api/v1/ai-planner/plans/{plan_id}/items/",
+        "GET /api/v1/ai-planner/plans/{plan_id}/items/{id}/",
+        "GET /api/v1/ai-planner/services/compare/",
+        "GET /api/v1/ai-planner/services/search/",
+        "GET /api/v1/ai-planner/status/",
+        "GET /api/v1/ai-planner/usage/",
+        "PATCH /api/v1/admin/ai-planner/config/",
+        "PATCH /api/v1/admin/ai-planner/prompts/{id}/",
+        "PATCH /api/v1/admin/ai-planner/reports/{id}/",
+        "PATCH /api/v1/ai-planner/conversations/{id}/",
+        "PATCH /api/v1/ai-planner/plans/{id}/",
+        "PATCH /api/v1/ai-planner/plans/{plan_id}/items/{id}/",
+        "POST /api/v1/admin/ai-planner/config/validate/",
+        "POST /api/v1/admin/ai-planner/disable/",
+        "POST /api/v1/admin/ai-planner/prompts/",
+        "POST /api/v1/admin/ai-planner/prompts/{id}/activate/",
+        "POST /api/v1/admin/ai-planner/prompts/{id}/test/",
+        "POST /api/v1/ai-planner/conversations/",
+        "POST /api/v1/ai-planner/conversations/{id}/archive/",
+        "POST /api/v1/ai-planner/conversations/{id}/confirm-plan/",
+        "POST /api/v1/ai-planner/conversations/{id}/messages/",
+        "POST /api/v1/ai-planner/conversations/{id}/unarchive/",
+        "POST /api/v1/ai-planner/delete-data/",
+        "POST /api/v1/ai-planner/messages/{id}/feedback/",
+        "POST /api/v1/ai-planner/messages/{id}/report/",
+        "POST /api/v1/ai-planner/plans/",
+        "POST /api/v1/ai-planner/plans/{id}/archive/",
+        "POST /api/v1/ai-planner/plans/{id}/duplicate/",
+        "POST /api/v1/ai-planner/plans/{id}/unarchive/",
+        "POST /api/v1/ai-planner/plans/{plan_id}/items/"
+      ],
+      "removed": [],
+      "changed": {
+        "GET /api/v1/admins/": [
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/admins/{id}/": [
+          "schema_fingerprint"
+        ],
+        "PATCH /api/v1/admin/platform-policy/": [
+          "schema_fingerprint"
+        ],
+        "PATCH /api/v1/admins/{id}/": [
+          "schema_fingerprint"
+        ],
+        "POST /api/v1/admins/": [
+          "schema_fingerprint"
+        ]
+      },
+      "breaking": [],
+      "schema_changed": [
+        "GET /api/v1/admins/",
+        "GET /api/v1/admins/{id}/",
+        "PATCH /api/v1/admin/platform-policy/",
+        "PATCH /api/v1/admins/{id}/",
+        "POST /api/v1/admins/"
+      ]
+    },
+    {
+      "revision": 30,
+      "date": "2026-11-25",
+      "note": "",
+      "added": [],
+      "removed": [],
+      "changed": {
+        "GET /api/v1/ai-planner/conversations/{id}/messages/": [
+          "schema_fingerprint"
+        ],
+        "POST /api/v1/ai-planner/conversations/{id}/messages/": [
+          "schema_fingerprint"
+        ],
+        "POST /api/v1/ai-planner/messages/{id}/feedback/": [
+          "schema_fingerprint"
+        ]
+      },
+      "breaking": [],
+      "schema_changed": [
+        "GET /api/v1/ai-planner/conversations/{id}/messages/",
+        "POST /api/v1/ai-planner/conversations/{id}/messages/",
+        "POST /api/v1/ai-planner/messages/{id}/feedback/"
+      ]
     }
   ]
 }

@@ -12,6 +12,8 @@ from apps.ceremonies.views import (
     StudioMeCeremoniesView,
     StudioMeView,
 )
+from apps.event_planner import admin_views as planner_admin
+from apps.event_planner import views as planner_views
 from apps.media.admin_views import AdminDeletionRequestViewSet
 from apps.monitoring.health import LiveView, ReadyView
 from apps.reviews.models import TargetKind
@@ -64,6 +66,20 @@ router.register("virtual-tryon/favorites", tryon_views.FavoriteViewSet, basename
 router.register("admin/virtual-tryon/garments", AdminGarmentViewSet, basename="admin-tryon-garment")
 router.register("virtual-tryon/ai-sessions", tryon_views.AiSessionViewSet, basename="tryon-ai-session")
 router.register("virtual-tryon/looks", tryon_views.SavedLookViewSet, basename="tryon-look")
+router.register("ai-planner/plans", planner_views.PlanViewSet, basename="ai-plan")
+router.register(
+    r"ai-planner/plans/(?P<plan_id>[0-9a-fA-F-]{36})/items", planner_views.PlanItemViewSet, basename="ai-plan-item"
+)
+router.register("ai-planner/conversations", planner_views.ConversationViewSet, basename="ai-conversation")
+router.register("ai-planner/messages", planner_views.MessageViewSet, basename="ai-message")
+router.register("ai-planner/services", planner_views.ServiceViewSet, basename="ai-service")
+router.register("admin/ai-planner/usage", planner_admin.UsageLogViewSet, basename="admin-ai-usage")
+router.register("admin/ai-planner/reports", planner_admin.AdminReportViewSet, basename="admin-ai-report")
+router.register(
+    "admin/ai-planner/conversations", planner_admin.AdminConversationViewSet, basename="admin-ai-conversation"
+)
+router.register("admin/ai-planner/prompts", planner_admin.PromptViewSet, basename="admin-ai-prompt")
+router.register("admin/ai-planner/audit", planner_admin.AuditLogViewSet, basename="admin-ai-audit")
 
 urlpatterns = [
     path(
@@ -80,6 +96,17 @@ urlpatterns = [
     path("virtual-tryon/ai/status/", tryon_views.AiStatusView.as_view(), name="tryon-ai-status"),
     path("admin/virtual-tryon/ai-usage/", AiUsageView.as_view(), name="admin-tryon-ai-usage"),
     path("health/ready/", ReadyView.as_view(), name="health-ready"),
+    # AI event planner (apps.event_planner)
+    path("ai-planner/status/", planner_views.PlannerStatusView.as_view(), name="ai-planner-status"),
+    path("ai-planner/usage/", planner_views.MyUsageView.as_view(), name="ai-planner-usage"),
+    path("ai-planner/export/", planner_views.ExportView.as_view(), name="ai-planner-export"),
+    path("ai-planner/delete-data/", planner_views.DeleteDataView.as_view(), name="ai-planner-delete-data"),
+    path("admin/ai-planner/dashboard/", planner_admin.DashboardView.as_view(), name="admin-ai-dashboard"),
+    path("admin/ai-planner/disable/", planner_admin.DisableView.as_view(), name="admin-ai-disable"),
+    path("admin/ai-planner/config/", planner_admin.ConfigView.as_view(), name="admin-ai-config"),
+    path(
+        "admin/ai-planner/config/validate/", planner_admin.ConfigValidateView.as_view(), name="admin-ai-config-validate"
+    ),
     # Before the router: "studios/me/" must not be captured by "studios/{id}/".
     path("studios/me/", StudioMeView.as_view(), name="studio-me"),
     path("studios/me/ceremonies/", StudioMeCeremoniesView.as_view(), name="studio-me-ceremonies"),
