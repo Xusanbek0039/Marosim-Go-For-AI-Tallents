@@ -70,7 +70,9 @@ class GarmentSerializer(serializers.ModelSerializer):
     colors = ColorSerializer(many=True, read_only=True)
     sizes = serializers.ListField(child=serializers.CharField(), read_only=True)
     ai_ready = serializers.SerializerMethodField(help_text="AI (Decart) bilan jonli kiyib ko'rish mumkin.")
-    ai_reference_image = serializers.SerializerMethodField(help_text="AI'ga yuboriladigan kiyim rasmi (fonsiz, odamsiz).")
+    ai_reference_image = serializers.SerializerMethodField(
+        help_text="AI'ga yuboriladigan kiyim rasmi (fonsiz, odamsiz)."
+    )
 
     class Meta:
         model = Garment

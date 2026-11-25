@@ -32,7 +32,7 @@ from apps.venues.admin_views import AdminVenueViewSet
 from apps.venues.public_views import MyVenueBookingViewSet, PublicVenueViewSet
 from apps.venues.views import VenueOwnerVenueViewSet
 from apps.virtual_tryon import views as tryon_views
-from apps.virtual_tryon.admin_views import AdminGarmentViewSet
+from apps.virtual_tryon.admin_views import AdminGarmentViewSet, AiUsageView
 
 router = DefaultRouter()
 router.include_root_view = False
@@ -62,6 +62,8 @@ router.register("virtual-tryon/garments", tryon_views.GarmentViewSet, basename="
 router.register("virtual-tryon/sessions", tryon_views.SessionViewSet, basename="tryon-session")
 router.register("virtual-tryon/favorites", tryon_views.FavoriteViewSet, basename="tryon-favorite")
 router.register("admin/virtual-tryon/garments", AdminGarmentViewSet, basename="admin-tryon-garment")
+router.register("virtual-tryon/ai-sessions", tryon_views.AiSessionViewSet, basename="tryon-ai-session")
+router.register("virtual-tryon/looks", tryon_views.SavedLookViewSet, basename="tryon-look")
 
 urlpatterns = [
     path(
@@ -75,6 +77,8 @@ urlpatterns = [
     path("devcenter/", include("apps.devcenter.urls")),
     path("admin/storage/", include("apps.storage.urls")),
     path("health/live/", LiveView.as_view(), name="health-live"),
+    path("virtual-tryon/ai/status/", tryon_views.AiStatusView.as_view(), name="tryon-ai-status"),
+    path("admin/virtual-tryon/ai-usage/", AiUsageView.as_view(), name="admin-tryon-ai-usage"),
     path("health/ready/", ReadyView.as_view(), name="health-ready"),
     # Before the router: "studios/me/" must not be captured by "studios/{id}/".
     path("studios/me/", StudioMeView.as_view(), name="studio-me"),

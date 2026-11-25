@@ -326,6 +326,9 @@ SPECTACULAR_SETTINGS = {
         "GarmentAssetKindEnum": "apps.virtual_tryon.models.AssetKind",
         "GarmentApprovalStatusEnum": "apps.virtual_tryon.models.ApprovalStatus",
         "GarmentAssetTypeEnum": "apps.virtual_tryon.models.GarmentAssetType",
+        "GarmentAudienceEnum": "apps.virtual_tryon.models.Audience",
+        "AiTryOnEndReasonEnum": "apps.virtual_tryon.models.AiEndReason",
+        "AiTryOnSessionStatusEnum": "apps.virtual_tryon.models.AiSessionStatus",
     },
     "SERVE_PERMISSIONS": (
         ["rest_framework.permissions.AllowAny"] if DEBUG else ["apps.accounts.permissions.IsSuperAdmin"]

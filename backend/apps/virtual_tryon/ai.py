@@ -121,7 +121,9 @@ def start_session(user) -> AiTryOnSession:
         )
     left = budget(user, now)
     if left.sessions_left_today <= 0:
-        raise AiTryOnError("ai_daily_session_limit", "Bugungi AI seanslari soni tugadi.", status.HTTP_429_TOO_MANY_REQUESTS)
+        raise AiTryOnError(
+            "ai_daily_session_limit", "Bugungi AI seanslari soni tugadi.", status.HTTP_429_TOO_MANY_REQUESTS
+        )
     seconds = min(_cfg()["MAX_SESSION_SECONDS"], left.seconds_left_today)
     if left.global_seconds_left is not None:
         seconds = min(seconds, left.global_seconds_left)

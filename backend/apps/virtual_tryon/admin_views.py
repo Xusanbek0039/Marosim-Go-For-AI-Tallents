@@ -13,6 +13,7 @@ from rest_framework import mixins, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound, ValidationError
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from apps.accounts.permissions import HasAdminPermission
 from apps.audit.models import AuditAction
@@ -20,7 +21,7 @@ from apps.audit.services import record
 
 from .assets import IMAGE_KINDS
 from .models import ApprovalStatus, AssetKind, Garment, GarmentAsset
-from .serializers import AdminGarmentSerializer, AssetUploadSerializer, RejectSerializer
+from .serializers import AdminGarmentSerializer, AiReferenceUploadSerializer, AssetUploadSerializer, RejectSerializer
 
 UUID_RE = "[0-9a-fA-F-]{36}"
 
@@ -57,6 +58,8 @@ class AdminGarmentViewSet(
         "delete_asset": "tryon.update",
         "approve": "tryon.approve",
         "reject": "tryon.approve",
+        "upload_ai_reference": "tryon.update",
+        "delete_ai_reference": "tryon.update",
     }
     serializer_class = AdminGarmentSerializer
     filterset_class = GarmentFilter
@@ -137,6 +140,49 @@ class AdminGarmentViewSet(
         return self._detail(garment)
 
     @extend_schema(
+        summary="AI kiyib ko'rish rasmi (odamsiz, oddiy fonda, ≥512 px) — tekshiriladi va almashtiriladi",
+        description=(
+            "Format, o'lcham, nisbat va fon avtomatik tekshiriladi. Rasmda odam yo'qligini xodim "
+            "tasdiqlashdan oldin o'zi tekshiradi. `prompt` — kiyim tavsifi (ixtiyoriy)."
+        ),
+        tags=["admin-virtual-tryon"],
+        request={"multipart/form-data": AiReferenceUploadSerializer},
+        responses={200: AdminGarmentSerializer},
+    )
+    @action(detail=True, methods=["post"], url_path="ai-reference")
+    def upload_ai_reference(self, request, pk=None):
+        garment = self.get_object()
+        body = AiReferenceUploadSerializer(data=request.data)
+        body.is_valid(raise_exception=True)
+        data = body.validated_data
+        with transaction.atomic():
+            if garment.ai_reference_image:
+                garment.ai_reference_image.delete(save=False)
+            garment.ai_reference_image.save("reference.jpg", data["image"], save=False)
+            fields = ["ai_reference_image", "updated_at"]
+            if "prompt" in data:
+                garment.ai_prompt = " ".join(data["prompt"].split())
+                fields.append("ai_prompt")
+            if garment.approval_status == ApprovalStatus.APPROVED:
+                garment.approval_status = ApprovalStatus.PENDING
+                fields.append("approval_status")
+            garment.save(update_fields=fields)
+        record(request, AuditAction.UPDATE, garment, changes={"ai_reference_image": "uploaded"})
+        return self._detail(garment)
+
+    @extend_schema(
+        summary="AI kiyib ko'rish rasmini o'chirish", tags=["admin-virtual-tryon"], responses=AdminGarmentSerializer
+    )
+    @upload_ai_reference.mapping.delete
+    def delete_ai_reference(self, request, pk=None):
+        garment = self.get_object()
+        if garment.ai_reference_image:
+            garment.ai_reference_image.delete(save=False)
+            garment.save(update_fields=["ai_reference_image", "updated_at"])
+            record(request, AuditAction.UPDATE, garment, changes={"ai_reference_image": "deleted"})
+        return self._detail(garment)
+
+    @extend_schema(
         summary="Kiyimni tasdiqlash (foydalanuvchilarga ko'rinadi)",
         tags=["admin-virtual-tryon"],
         request=None,
@@ -146,7 +192,8 @@ class AdminGarmentViewSet(
     def approve(self, request, pk=None):
         garment = self.get_object()
         kinds = set(garment.assets.values_list("kind", flat=True))
-        if garment.is_tryon_enabled and AssetKind.BODY_FRONT not in kinds:
+        # AR needs the BODY_FRONT layer; an AI-only garment (reference image) may skip the AR layers.
+        if garment.is_tryon_enabled and AssetKind.BODY_FRONT not in kinds and not garment.ai_reference_image:
             raise ValidationError({"assets": ["Kiyib ko'rish uchun BODY_FRONT qatlami yuklanmagan."]})
         if not garment.cover_image and not kinds & set(IMAGE_KINDS):
             raise ValidationError({"cover_image": ["Muqova rasmi yuklanmagan."]})
@@ -171,3 +218,77 @@ class AdminGarmentViewSet(
         garment.save(update_fields=["approval_status", "rejection_reason", "updated_at"])
         record(request, AuditAction.UPDATE, garment, changes={"approval_status": ApprovalStatus.REJECTED})
         return self._detail(garment)
+
+
+class AiUsageView(APIView):
+    """Cost-control dashboard for AI try-on: sessions, seconds, estimated cost, measured quality."""
+
+    permission_classes = [HasAdminPermission]
+    required_permission = "tryon.view"
+
+    @extend_schema(
+        summary="AI kiyib ko'rish sarfi (seanslar, soniyalar, taxminiy narx, o'lchovlar)",
+        tags=["admin-virtual-tryon"],
+        parameters=[OpenApiParameter("days", OpenApiTypes.INT, description="Oxirgi necha kun (1-90, standart 7)")],
+        responses=OpenApiTypes.OBJECT,
+    )
+    def get(self, request):
+        from datetime import timedelta
+        from statistics import mean
+
+        from django.conf import settings
+        from django.utils import timezone
+
+        from . import ai, decart
+        from .models import AiTryOnSession
+
+        try:
+            days = min(90, max(1, int(request.query_params.get("days", 7))))
+        except ValueError:
+            days = 7
+        ai.close_expired()
+        now = timezone.now()
+        since = ai._day_start(now) - timedelta(days=days - 1)
+        rows = list(AiTryOnSession.objects.filter(started_at__gte=since).order_by("started_at"))
+        per_day: dict = {}
+        reasons: dict = {}
+        for s in rows:
+            day = timezone.localtime(s.started_at).date().isoformat()
+            bucket = per_day.setdefault(day, {"date": day, "sessions": 0, "seconds": 0})
+            bucket["sessions"] += 1
+            bucket["seconds"] += ai.used_seconds(s, now)
+            if s.end_reason:
+                reasons[s.end_reason] = reasons.get(s.end_reason, 0) + 1
+
+        def avg(key):
+            values = [s.metrics[key] for s in rows if isinstance(s.metrics.get(key), (int, float))]
+            return round(mean(values), 1) if values else None
+
+        seconds = sum(b["seconds"] for b in per_day.values())
+        price = settings.AI_TRYON["PRICE_PER_SECOND_USD"]
+        return Response(
+            {
+                "enabled": decart.is_configured(),
+                "model": settings.AI_TRYON["MODEL"],
+                "days": days,
+                "sessions": len(rows),
+                "users": len({s.user_id for s in rows}),
+                "active_now": sum(1 for s in rows if s.status == "ACTIVE"),
+                "seconds": seconds,
+                "estimated_cost_usd": round(seconds * price, 2),
+                "price_per_second_usd": price,
+                "per_day": list(per_day.values()),
+                "end_reasons": reasons,
+                "measured": {
+                    "connect_ms_avg": avg("connect_ms"),
+                    "first_frame_ms_avg": avg("first_frame_ms"),
+                    "glass_to_glass_ms_avg": avg("glass_to_glass_ms"),
+                    "fps_avg": avg("fps"),
+                    "interruptions_avg": avg("interruptions"),
+                    "sessions_with_metrics": sum(1 for s in rows if s.metrics),
+                },
+                "note": (
+                    "Soniyalar seansning devor-soati vaqti (Decart hisoblaydigan generatsiya vaqtidan katta yoki teng)."
+                ),
+            }
+        )
