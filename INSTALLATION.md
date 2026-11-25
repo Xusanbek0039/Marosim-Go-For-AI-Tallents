@@ -97,6 +97,20 @@ media upload answers `503 storage_unavailable`.
 4. `python manage.py google_oauth_check`, then Super Admin panel → Storage → Connect.
 5. Live test: `python manage.py storage_selftest`.
 
+**What is verified, and how.** The test suite never talks to Google. Drive behaviour is tested
+against fakes (`FakeGoogle` / `FakeDrive` gateways, mocked HTTP session):
+
+| Area | Covered by | Real Google? |
+|---|---|---|
+| OAuth: single-use state, PKCE, browser binding, expiry, denied consent, no code/state in logs | `test_storage_oauth.py` (29) | no, fake gateway |
+| Refresh-token encryption, key rotation, revoked/expired token → reconnect | `test_storage_oauth.py`, `test_rotate_encryption_keys.py` | no |
+| Upload: roles, MIME and size limits, browser-origin allowlist, completion check (size, type, MD5, tamper) | `test_media_upload.py` (16) | no, `FakeDrive` |
+| Resumable-session HTTP calls and Drive error mapping | `test_drive_gateway_upload.py` (4) | no, mocked `requests` |
+| Download/stream: owner-only download with audit, range streaming, thumbnails, 404 for strangers | `test_media_sharing.py` (12) | no |
+| Deletion requests, Drive trash, already-deleted files | `test_media_deletion.py` (8) | no |
+| End to end without credentials | `tools/smoke-workflows.mjs` | upload answers `503 storage_unavailable` |
+| **Against the real Drive API** | `manage.py storage_selftest`, needs real credentials | **yes, not run in this repository** |
+
 ## 4. Production
 
 See [docs/DEPLOY.md](docs/DEPLOY.md) (cPanel/Passenger, one app for all domains) and
@@ -123,7 +137,7 @@ Secret rotation: [docs/SECURITY_INCIDENT_RESPONSE.md](docs/SECURITY_INCIDENT_RES
 ```bash
 # backend (settings: config.settings_test, in-memory SQLite, throwaway secrets)
 cd backend
-pytest                                    # 2882 tests
+pytest                                    # 2897 tests
 ruff check . && ruff format --check .
 python manage.py makemigrations --check --dry-run
 python manage.py spectacular --validate --fail-on-warn --file /tmp/openapi.yaml

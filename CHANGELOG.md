@@ -33,6 +33,21 @@ All notable changes in this repository. The format follows
 - English `README.md`, `INSTALLATION.md`, `ARCHITECTURE.md`, `API_DOCUMENTATION.md`, this
   changelog. The original Uzbek README moved to `docs/README.uz.md`.
 
+- **Secret guard, stricter:** also refuses secrets shorter than 32 characters, an invalid
+  `GOOGLE_TOKEN_ENCRYPTION_KEY`, and **known-compromised values** (SHA-256 fingerprints of the
+  secrets leaked upstream; a compromised key may stay as a secondary decryption key with a
+  warning, so rotation can run). The Google OAuth client loader refuses a compromised client
+  secret from env or JSON (11 tests).
+- `tools/generate_secrets.py`: writes a new secret set to a 0600 file, never prints values.
+- `THIRD_PARTY_NOTICES.md` and `licenses/PlusJakartaSans-OFL.txt` (the font's OFL licence was missing).
+- Regression tests for query counts of list endpoints (`tests/test_list_query_counts.py`).
+
+### Performance
+
+- Removed N+1 queries from `/studios/me/ceremonies/` (3 per ceremony), `/ceremonies/` (2 per
+  ceremony), `/venue-owner/venues/` (2 per venue) and `/studios/` (1 per studio). Found by
+  measuring all 51 parameterless list endpoints with 1 vs 6 rows; now none grows with data.
+
 ### Fixed
 
 - Backend lint gate: `ruff check` failed with 15 errors and `ruff format --check` with 6 files,
@@ -41,6 +56,13 @@ All notable changes in this repository. The format follows
   generated MediaPipe wasm runtime was not ignored by ESLint.
 - `docs/openapi.yaml` and `docs/API_ENDPOINTS.md` were stale (196 of 239 operations); regenerated
   from the code.
+- `tools/check-no-secrets.sh` missed a dot-less `env` file (upstream leaked `backend/env`) and
+  secrets in innocently named files; both are caught now.
+- The history-cleanup command in the runbook would have deleted most of the upstream code
+  (filter-repo pruning around merges, found in a dry run); replaced with a verified procedure.
+- Tests no longer read Google credentials from a developer's `backend/.env`.
+- `.gitignore`: `backend/staticfiles/` and `coverage.xml`; `c04df84d`'s 118,505 generated files untracked.
+- Removed the unused `server-only` dependency (admin panel) and the unused `describe_access()`.
 - Documentation no longer claims per-app cookie prefixes. All apps share the `mg_*` cookie names,
   and sessions are separated by subdomain.
 

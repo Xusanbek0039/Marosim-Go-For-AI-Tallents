@@ -73,7 +73,7 @@ Full instructions, every environment variable and the PostgreSQL/Google Drive se
 ## Testing
 
 ```bash
-cd backend && pytest                                   # 2882 tests
+cd backend && pytest                                   # 2897 tests
 cd backend && ruff check . && ruff format --check .
 cd frontend-user && npm test                           # 17 tests
 cd <any frontend> && npx tsc --noEmit && npm run lint && npm run build
@@ -107,6 +107,9 @@ the original docs.
 | Docs | OpenAPI schema and endpoint list regenerated: 196 → 239 operations (43 were undocumented) |
 | Tests | End-to-end write-workflow smoke through the real Next.js proxies (`tools/smoke-workflows.mjs`) |
 | Docs | This README, INSTALLATION, ARCHITECTURE, API_DOCUMENTATION, CHANGELOG (English) |
+| Security | Stricter guard: minimum length, Google keys, known-compromised fingerprints; `tools/generate_secrets.py` |
+| Performance | N+1 queries removed from 4 list endpoints, with query-count regression tests |
+| Licensing | `THIRD_PARTY_NOTICES.md`, Plus Jakarta Sans OFL text |
 
 ## License
 

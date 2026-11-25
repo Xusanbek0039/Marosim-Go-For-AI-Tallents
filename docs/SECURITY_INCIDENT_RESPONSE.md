@@ -60,6 +60,10 @@ python -c "from cryptography.fernet import Fernet;print(Fernet.generate_key().de
 python -c "import secrets;print(secrets.token_urlsafe(50))"
 ```
 
+Generate the new values on the server without displaying them:
+`python tools/generate_secrets.py backend/.env.new-secrets` (mode 600, never overwrites, prints only
+the variable names). Copy the lines from that file, then delete it.
+
 1. **Back up the database first** (§6). Stop the web workers (cPanel: *Stop App*), because PINFL
    and invitation lookups do not match while indexes are being rebuilt.
 2. Edit `backend/.env`:
@@ -77,6 +81,10 @@ python -c "import secrets;print(secrets.token_urlsafe(50))"
    ```
 5. Remove the old keys from `.env` (`PINFL_ENCRYPTION_KEYS=<new>`, `GOOGLE_TOKEN_ENCRYPTION_KEY=<new>`)
    and run the dry run once more. It must succeed with only the new keys.
+
+   While a key from the known-compromised list (`config/secret_guard.py`, SHA-256 fingerprints only)
+   is still listed **second**, the app starts with a warning, so the rotation can run. Listed
+   **first**, it refuses to start in production.
 6. Start the app. Spot-check: search a user by PINFL in the admin panel, and accept a pending
    ceremony invitation.
 
@@ -86,9 +94,9 @@ python -c "import secrets;print(secrets.token_urlsafe(50))"
 python -c "import secrets;print(secrets.token_urlsafe(50))"   # once for each key
 ```
 
-- `DJANGO_SECRET_KEY` and `JWT_SIGNING_KEY` must be **different** values. Since this branch,
-  production refuses to start if they are equal, empty, or still the `.env.example` placeholders
-  (`config/secret_guard.py`).
+- `DJANGO_SECRET_KEY` and `JWT_SIGNING_KEY` must be **different** values. Production refuses to
+  start if they (or `PINFL_HASH_KEY`) are equal, empty, shorter than 32 characters, an
+  `.env.example` placeholder, or a known-compromised value (`config/secret_guard.py`).
 - Do **not** put the leaked key into `SECRET_KEY_FALLBACKS`: a fallback keeps accepting
   signatures made with it.
 - Effect: users sign in again; open CSRF tokens and partner-application challenges are
@@ -121,28 +129,68 @@ Change the database user's password (`ALTER ROLE … PASSWORD …` for PostgreSQ
 
 ## 7. Git history
 
-Removing a file in a new commit does **not** remove it from history. The cleanup below changes
-public history, so it needs an explicit owner decision and a coordinated push.
+Removing a file in a new commit does **not** remove it from history. A rewrite changes public
+commit hashes, so it needs an explicit owner decision and a coordinated force push. Finish §1–§5
+first: cleaning history does not un-leak anything, rotation does.
 
-1. Finish §1–§5 first. Cleaning history does not un-leak anything; rotation does.
-2. Make a full mirror backup: `git clone --mirror <repo> repo-backup.git`.
-3. Rewrite with [git-filter-repo](https://github.com/newren/git-filter-repo) on a fresh mirror clone:
-   ```bash
-   git clone --mirror <repo> clean.git && cd clean.git
-   git filter-repo --invert-paths \
-     --path backend/.env --path backend/.env.bak-lan --path backend/.env.bak-postgres \
-     --path backend/db.sqlite3 --path-glob '*.DS_Store'
-   ```
-4. Verify: `git log --all -- backend/.env backend/db.sqlite3` prints nothing, and
-   `git rev-list --all --objects | grep -E 'db.sqlite3|\.env$'` prints nothing.
-5. Force-push all branches and tags (`git push --force --mirror`). Then ask every collaborator to
-   re-clone, because old clones still hold the data.
-6. GitHub keeps unreachable commits and cached views for a while. Ask GitHub Support to purge
-   cached views and to garbage-collect. Forks are separate copies and are not cleaned.
+> **Warning, verified the hard way.** `git filter-repo` *prunes* commits that become empty, and
+> around merge commits that can rebuild later trees from the wrong parent. A dry run of the
+> upstream repository with default options left **18 of 1,240 files** in the latest commit. Always
+> pass `--prune-empty never --prune-degenerate never`, use literal paths, and compare tree hashes
+> before pushing anything.
+
+### 7.1 Upstream repository (`Xusanbek0039/Marosim-Go`)
+
+Leaked paths (all branches): `backend/.env`, `backend/.env.bak-lan`, `backend/.env.bak-postgres`,
+**`backend/env`** (no leading dot, holds the real keys), `backend/db.sqlite3`, and `.DS_Store` files.
+The branches `feature/virtual-tryon` and `import-landing-page` still contain `backend/db.sqlite3`
+**in their latest commit**, so it is browsable on GitHub until those branches are cleaned or deleted.
+
+```bash
+pip install git-filter-repo
+git clone --mirror https://github.com/Xusanbek0039/Marosim-Go.git backup.git   # keep this safe, offline
+git clone --mirror https://github.com/Xusanbek0039/Marosim-Go.git clean.git && cd clean.git
+git rev-parse main^{tree} > ../tree-before.txt
+# paths.txt: one literal path per line (the five above + every .DS_Store path from
+#   git log --all --format= --name-only --diff-filter=A | grep -E '(^|/)\.DS_Store$' | sort -u)
+git filter-repo --force --invert-paths --paths-from-file ../paths.txt \
+  --prune-empty never --prune-degenerate never
+```
+
+Verify before pushing (a dry run of exactly this produced all four results):
+
+1. `git rev-parse main^{tree}` equals `tree-before.txt` (the latest code is byte-identical).
+2. `git ls-tree -r <branch>` for the other branches differs from the original only by the removed paths.
+3. `git rev-list --all --objects | awk 'NF>1{print $2}' | grep -cxF -f ../paths.txt` prints `0`.
+4. `git rev-list --all | wc -l` is unchanged (60 commits).
+
+Then `git push --force --mirror`, ask collaborators to re-clone, and ask GitHub Support to purge
+cached views and unreachable objects. Forks, clones and pull-request refs keep the old data;
+that is why rotation (§1–§5) comes first.
+
+### 7.2 This repository: `node_modules` committed in `c04df84d`
+
+Commit `c04df84d` added 118,505 generated files (no secrets). They are untracked now, but stay in
+history: about 116 MB. Optional cleanup (same safety rules):
+
+```bash
+git filter-repo --force --invert-paths --path-regex '(^|/)node_modules/' \
+  --path-regex '(^|/)__pycache__/' --path frontend-user/public/mediapipe/wasm \
+  --prune-empty never --prune-degenerate never
+```
+
+Dry run result: `main` tree byte-identical, all commits kept, no vendor paths left, repository
+116 MB → 8.1 MB. Cost: `c04df84d` and every later commit get new hashes, so it needs a force
+push and every clone must be re-cloned.
 
 ## 8. Prevention (already in this repository)
 
 - `.gitignore` covers `.env*`, `*.sqlite3`, `backend/credentials/*`, client-secret JSON, keys.
-- CI `repo-hygiene` runs `tools/check-no-secrets.sh` on every push and PR.
-- Production refuses placeholder or empty secrets (`config/secret_guard.py`).
+- CI `repo-hygiene` runs `tools/check-no-secrets.sh` on every push and PR. It catches env files
+  with or without the leading dot, databases, key files, and Fernet-shaped secret assignments in
+  any file.
+- Production refuses empty, short, placeholder or known-compromised secrets
+  (`config/secret_guard.py`). The Google OAuth client loader also refuses a compromised client
+  secret, whether it comes from env or from the JSON file.
+- `tools/generate_secrets.py` creates new secrets without printing them.
 - `rotate_encryption_keys` makes routine key rotation a ten-minute job. Consider doing it yearly.
