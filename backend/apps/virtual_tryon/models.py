@@ -18,17 +18,26 @@ Anchor points are stored per layer in ``anchors`` (normalized 0..1 image coordin
 """
 
 from django.conf import settings
+from django.core.files.storage import FileSystemStorage
 from django.db import models
+from django.db.models import Q
 
 from apps.core.models import BaseModel, SoftDeleteModel
 from apps.venues.models import Currency
 
 
+class Audience(models.TextChoices):
+    MEN = "MEN", "Erkaklar"
+    WOMEN = "WOMEN", "Ayollar"
+    UNISEX = "UNISEX", "Hamma uchun"
+
+
 class GarmentCategory(BaseModel):
-    """The five catalogue sections (seeded by migration 0002)."""
+    """Catalogue sections (seeded by migrations 0002 and 0005)."""
 
     name = models.CharField(max_length=80)
     slug = models.SlugField(max_length=60, unique=True)
+    audience = models.CharField(max_length=8, choices=Audience.choices, default=Audience.UNISEX)
     is_active = models.BooleanField(default=True)
     sort_order = models.PositiveSmallIntegerField(default=0)
 
@@ -62,6 +71,19 @@ def asset_upload_to(instance, filename):
     return f"tryon/assets/{filename}"
 
 
+def ai_reference_upload_to(instance, filename):
+    return f"tryon/ai-reference/{filename}"
+
+
+def private_storage():
+    """Saved looks are photos of users: never under the public /media/ tree."""
+    return FileSystemStorage(location=settings.PRIVATE_MEDIA_ROOT)
+
+
+def look_upload_to(instance, filename):
+    return f"tryon-looks/{instance.user_id}/{filename}"
+
+
 class Garment(BaseModel, SoftDeleteModel):
     """One product a user can try on. Users see only ``is_active`` + ``APPROVED`` garments."""
 
@@ -82,6 +104,12 @@ class Garment(BaseModel, SoftDeleteModel):
     cover_image = models.ImageField(upload_to=garment_upload_to, blank=True)
     asset_type = models.CharField(max_length=12, choices=GarmentAssetType.choices, default=GarmentAssetType.LAYERED_2D)
     is_tryon_enabled = models.BooleanField(default=True)
+    #: AI try-on (Decart lucy-vton): a clean garment photo (no person, plain light background, ≥512 px),
+    #: validated and re-encoded by ``reference.process_reference``. Empty = not available for AI try-on.
+    ai_reference_image = models.ImageField(upload_to=ai_reference_upload_to, blank=True)
+    #: Garment description sent with the image, e.g. "Substitute the current outfit with a white
+    #: satin wedding dress with long lace sleeves". Optional; the image alone also works.
+    ai_prompt = models.CharField(max_length=300, blank=True)
     is_active = models.BooleanField(default=True)
     approval_status = models.CharField(max_length=10, choices=ApprovalStatus.choices, default=ApprovalStatus.DRAFT)
     rejection_reason = models.CharField(max_length=300, blank=True)
@@ -150,3 +178,70 @@ class FavoriteGarment(BaseModel):
     class Meta:
         ordering = ["-created_at"]
         constraints = [models.UniqueConstraint(fields=["user", "garment"], name="tryon_favorite_once")]
+
+
+class AiSessionStatus(models.TextChoices):
+    ACTIVE = "ACTIVE", "Faol"
+    FINISHED = "FINISHED", "Yakunlangan"
+    EXPIRED = "EXPIRED", "Muddati tugagan"
+
+
+class AiEndReason(models.TextChoices):
+    USER = "USER", "Foydalanuvchi yakunladi"
+    EXPIRED = "EXPIRED", "Vaqt tugadi"
+    PAGE_HIDDEN = "PAGE_HIDDEN", "Sahifa yopildi / fonga o'tdi"
+    CAMERA_ERROR = "CAMERA_ERROR", "Kamera xatosi"
+    NETWORK_ERROR = "NETWORK_ERROR", "Tarmoq xatosi"
+    PROVIDER_ERROR = "PROVIDER_ERROR", "AI xizmati xatosi"
+    SESSION_LIMIT = "SESSION_LIMIT", "AI xizmati limiti"
+    MODERATION = "MODERATION", "AI xizmati moderatsiyasi"
+    INSUFFICIENT_CREDITS = "INSUFFICIENT_CREDITS", "AI xizmatida kredit tugagan"
+    OTHER = "OTHER", "Boshqa"
+
+
+class AiTryOnSession(BaseModel):
+    """One live AI try-on (camera ↔ Decart over WebRTC). Video never reaches this server.
+
+    The server caps cost: ``expires_at`` is fixed at creation (per-session and daily budget), every
+    client token is limited to the remaining seconds, and a user has at most one ACTIVE session.
+    """
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="ai_tryon_sessions")
+    status = models.CharField(max_length=8, choices=AiSessionStatus.choices, default=AiSessionStatus.ACTIVE)
+    provider_model = models.CharField(max_length=60)
+    consent_at = models.DateTimeField()
+    started_at = models.DateTimeField()
+    expires_at = models.DateTimeField()
+    ended_at = models.DateTimeField(null=True, blank=True)
+    end_reason = models.CharField(max_length=20, choices=AiEndReason.choices, blank=True)
+    token_count = models.PositiveSmallIntegerField(default=0)
+    last_token_at = models.DateTimeField(null=True, blank=True)
+    #: Client-reported measurements (connect time, latency, fps, interruptions, generated seconds).
+    metrics = models.JSONField(default=dict, blank=True)
+
+    class Meta:
+        ordering = ["-started_at"]
+        indexes = [models.Index(fields=["user", "started_at"]), models.Index(fields=["status", "expires_at"])]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user"], condition=Q(status="ACTIVE"), name="tryon_ai_one_active_session_per_user"
+            )
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.user_id} {self.status} {self.started_at:%Y-%m-%d %H:%M}"
+
+
+class SavedLook(BaseModel):
+    """A frame of the AI result the user explicitly chose to keep. Private to its owner."""
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="tryon_looks")
+    garment = models.ForeignKey(Garment, on_delete=models.SET_NULL, null=True, blank=True, related_name="+")
+    session = models.ForeignKey(AiTryOnSession, on_delete=models.SET_NULL, null=True, blank=True, related_name="+")
+    image = models.ImageField(upload_to=look_upload_to, storage=private_storage)
+    width = models.PositiveIntegerField(default=0)
+    height = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [models.Index(fields=["user", "created_at"])]
