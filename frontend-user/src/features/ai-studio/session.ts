@@ -117,7 +117,11 @@ export class StudioSession {
   private garmentsTried = new Set<string>();
   private images = new Map<string, Promise<Blob>>();
 
-  constructor(private deps: StudioDeps) {}
+  private deps: StudioDeps;
+
+  constructor(deps: StudioDeps) {
+    this.deps = deps;
+  }
 
   get snapshot(): StudioState {
     return this.state;
