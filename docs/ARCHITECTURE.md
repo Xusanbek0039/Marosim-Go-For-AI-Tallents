@@ -1,7 +1,7 @@
 # MarosimGo — Arxitektura rejasi (1-bosqich)
 
 > Holat: **1-bosqich amalga oshirildi** (2026-11-07). Vizual konsept: **C — “Liquid Control”**.
-> Ishga tushirish va tekshiruv komandalari — [README](../README.md).
+> Ishga tushirish va tekshiruv komandalari — [README.uz](README.uz.md) · [INSTALLATION (EN)](../INSTALLATION.md).
 
 ## Qabul qilingan qarorlar (tasdiqlangan)
 

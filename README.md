@@ -1,140 +1,114 @@
-# MarosimGo
+# MarosimGo — for AI Talents
 
-Marosim xizmatlari uchun raqamli platforma. **1-bosqich:** Super Admin paneli — foydalanuvchilar, adminlar
-(granular ruxsatlar bilan) va studiyalarni boshqarish.
+MarosimGo is a digital platform for weddings and family ceremonies in Uzbekistan. Photo/video
+studios publish a ceremony's photos and videos to a private gallery that only the couple and their
+invited guests can open. Couples find and book wedding venues (*to'yxona*). Platform staff manage
+everything from an admin panel.
 
-| Qism | Texnologiya |
+This repository is the hackathon submission. It is built on the existing open-source
+[Marosim-Go](https://github.com/Xusanbek0039/Marosim-Go) project (MIT). See
+[What is inherited and what is new](#what-is-inherited-and-what-is-new) for exactly which parts were
+done here.
+
+> Original project documentation (Uzbek): [docs/README.uz.md](docs/README.uz.md)
+
+## Applications
+
+| App | Who uses it | Dev port | Production host |
+|---|---|---|---|
+| `backend/` — Django REST API | every client (web panels, future mobile apps) | 8000 | `api.marosimgo.uz` |
+| `frontend/` — Super Admin & Admin panel | platform staff | 3000 | `superadmin.` / `admin.marosimgo.uz` |
+| `frontend-studio/` — Studio cabinet | studios (OWNER / MANAGER / UPLOADER) | 3001 | `studio.marosimgo.uz` |
+| `frontend-user/` — User cabinet | couples and guests (galleries, venue booking, virtual try-on) | 3002 | `userlogin.marosimgo.uz` |
+| `frontend-toyxona/` — Venue cabinet | wedding venues (OWNER / MANAGER / SCHEDULER / VIEWER) | 3003 | `toyxona.marosimgo.uz` |
+
+In production the Next.js apps are **static exports served by Django itself** (`backend/panel*/`,
+`config/panel.py`). One cPanel/Passenger deployment covers the API and every panel, and each panel
+calls `/api/v1/` on its own origin, so the httpOnly auth cookies stay first-party.
+
+## Technology
+
+| Layer | Stack |
 |---|---|
-| `backend/` | Python 3.12 · Django 5.2 · DRF · SimpleJWT · drf-spectacular · SQLite (PostgreSQL'ga tayyor) |
-| `frontend/` | Next.js 16 (App Router) · TypeScript · Tailwind v4 · shadcn/ui · Motion · TanStack Query · RHF + Zod |
-| `docs/` | Arxitektura ([ARCHITECTURE.md](docs/ARCHITECTURE.md)) va OpenAPI sxema ([openapi.yaml](docs/openapi.yaml)) |
+| Backend | Python 3.12, Django 5.2, Django REST Framework, SimpleJWT, drf-spectacular, django-filter |
+| Database | SQLite (WAL) by default; PostgreSQL through `DATABASE_URL` without code changes |
+| Frontends | Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS v4, shadcn/ui, TanStack Query, React Hook Form + Zod, Motion |
+| Storage | Google Drive (OAuth 2.0, `drive.file` scope, PKCE); browser → Drive resumable uploads |
+| Media | Pillow image re-encoding; ffmpeg video watermarking (optional worker) |
+| Virtual try-on | MediaPipe pose tracking in the browser (user cabinet) |
 
-Biznes logika va REST API faqat Django'da. Next.js — faqat admin web panel; kelajakdagi mobil ilovalar
-xuddi shu `/api/v1/` API'dan `Authorization: Bearer` bilan foydalanadi.
-
----
-
-## Ishga tushirish (lokal)
-
-Talablar: Python 3.12+, Node.js 20+ (LTS).
-
-### 1. Backend
-
-```bash
-cd backend
-python -m venv .venv
-# Windows: .venv\Scripts\activate   ·   macOS/Linux: source .venv/bin/activate
-pip install -r requirements-dev.txt
-
-cp ../.env.example .env          # so'ng sirlarni haqiqiy qiymatlar bilan to'ldiring:
-python -c "import secrets;print(secrets.token_urlsafe(50))"                          # DJANGO_SECRET_KEY, JWT_SIGNING_KEY
-python -c "from cryptography.fernet import Fernet;print(Fernet.generate_key().decode())"  # PINFL_ENCRYPTION_KEYS
-# lokal http uchun .env ichida: AUTH_COOKIE_SECURE=false (yoki DJANGO_DEBUG=true)
-
-python manage.py migrate
-python manage.py createsuperuser   # yagona Super Admin yaratish yo'li (API orqali mumkin emas); login = telefon
-python manage.py set_phone --list-missing          # v2 dan oldingi (telefonsiz) hisoblar
-python manage.py set_phone admin@example.uz +998901234567  # eski hisobga login telefon biriktirish
-python manage.py seed_demo         # ixtiyoriy, faqat DJANGO_DEBUG=true bo'lganda: demo ma'lumotlar
-python manage.py runserver 127.0.0.1:8000
-```
-
-### 2. Frontend
-
-```bash
-cd frontend
-npm install
-echo BACKEND_URL=http://127.0.0.1:8000 > .env.local
-npm run dev            # http://localhost:3000
-```
-
-Brauzer faqat `http://localhost:3000` bilan ishlaydi: `/api/v1/*` va `/media/*` so'rovlarini Next.js
-server tomonda Django'ga uzatadi, shuning uchun auth cookie'lar first-party bo'lib qoladi.
-
-### Swagger
-
-`http://127.0.0.1:8000/api/v1/docs/` — `DJANGO_DEBUG=true` bo'lsa ochiq, aks holda faqat Super Admin uchun.
-
----
-
-## Tekshiruvlar
+## Quick start
 
 ```bash
 # backend
 cd backend
-python -m pytest                     # 68 test: RBAC matritsasi, JWT, JSHSHIR, upload, audit
-ruff check . && ruff format --check .
-python manage.py spectacular --validate --fail-on-warn --file ../docs/openapi.yaml
+python3.12 -m venv .venv && source .venv/bin/activate
+pip install -r requirements-dev.txt
+cp ../.env.example .env        # then generate real secrets, see INSTALLATION.md
+python manage.py migrate
+python manage.py createsuperuser
+python manage.py runserver 127.0.0.1:8000
 
-# frontend
+# any frontend (example: the admin panel)
 cd frontend
-npx tsc --noEmit
-npm run lint
-npm run build
+npm ci
+echo BACKEND_URL=http://127.0.0.1:8000 > .env.local
+npm run dev                    # http://localhost:3000
 ```
 
----
+Full instructions, every environment variable and the PostgreSQL/Google Drive setup are in
+**[INSTALLATION.md](INSTALLATION.md)**.
 
-## PostgreSQL'ga o'tish
+## Documentation
 
-Kod o'zgarmaydi — faqat `backend/.env`:
+| Document | Contents |
+|---|---|
+| [INSTALLATION.md](INSTALLATION.md) | setup, environment, database, running every app, tests |
+| [ARCHITECTURE.md](ARCHITECTURE.md) | system overview, modules, auth model, data flow |
+| [API_DOCUMENTATION.md](API_DOCUMENTATION.md) | API conventions, auth, errors, where the full reference lives |
+| [CHANGELOG.md](CHANGELOG.md) | what changed in this repository |
+| [docs/SECURITY_INCIDENT_RESPONSE.md](docs/SECURITY_INCIDENT_RESPONSE.md) | secret rotation and incident runbook |
+| [docs/](docs/) | detailed design documents from the original project (Uzbek) |
 
-```env
-DATABASE_URL=postgres://marosimgo:parol@localhost:5432/marosimgo
+## Testing
+
+```bash
+cd backend && pytest                                   # 2882 tests
+cd backend && ruff check . && ruff format --check .
+cd frontend-user && npm test                           # 17 tests
+cd <any frontend> && npx tsc --noEmit && npm run lint && npm run build
 ```
 
-so'ng `pip install "psycopg[binary]"` va `python manage.py migrate`. Bir nechta worker ishlatilsa,
-login bloklash va throttling uchun umumiy kesh ham kerak: `CACHE_URL=redis://localhost:6379/0`.
+Live end-to-end checks through the real Next.js proxies are described in
+[INSTALLATION.md → End-to-end tests](INSTALLATION.md#end-to-end-tests). CI runs all of the above
+(`.github/workflows/`).
 
----
+## What is inherited and what is new
 
-## Ilovalar
+**Inherited, unchanged in behaviour.** Everything in the first commit
+(`chore: import Marosim-Go baseline…`) is the original project at upstream commit
+[`c12be31d`](https://github.com/Xusanbek0039/Marosim-Go/commit/c12be31d713ff363e472ac4630c0d684f40bf386).
+The file tree is byte-identical (git tree `b303ef23`). That covers the entire product: the
+Django API, all four frontends, the RBAC and permission catalog, ceremonies/invitations/ownership,
+Google Drive storage, media upload and watermarking, venues and booking, studios and portfolios,
+reviews, subscriptions, support tickets, virtual try-on, monitoring, the 2861 backend tests, and
+the original docs.
 
-| Ilova | Kim uchun | Port | Ishga tushirish |
-|---|---|---|---|
-| `frontend/` | Super Admin, Admin | 3000 | `cd frontend && npm install && npm run dev` |
-| `frontend-studio/` | Studiya (OWNER / MANAGER / UPLOADER) | 3001 | `cd frontend-studio && npm install && npm run dev` |
-| `frontend-user/` | Kelin-kuyov va mehmonlar | 3002 | `cd frontend-user && npm install && npm run dev` |
-| `frontend-toyxona/` | To'yxona (OWNER / MANAGER / SCHEDULER / VIEWER) | 3003 | `cd frontend-toyxona && npm install && npm run dev` |
+**New in this repository** (one commit each, see [CHANGELOG.md](CHANGELOG.md)):
 
-Uchalasi ham `/api/v1` ni server tomonda Django'ga proxy qiladi (`BACKEND_URL`, standart `http://127.0.0.1:8000`).
-Studiya va foydalanuvchi ilovalari auth cookie'larini o'z prefiksi bilan saqlaydi (`mgs_*`, `mgu_*`), shuning uchun
-bitta brauzerda bir vaqtda uch xil rol bilan kirish mumkin. Studiya hisoblari faqat panel orqali yaratiladi.
+| Area | Change |
+|---|---|
+| Security | Production refuses to start with empty or `.env.example`-placeholder secrets (`config/secret_guard.py`, 15 tests) |
+| Security | `manage.py rotate_encryption_keys`: re-encrypts PINFL, invitation identifiers and Drive tokens with new keys and rebuilds blind indexes (6 tests) |
+| Security | Secret rotation and incident-response runbook |
+| CI | Frontend workflow (4 apps: type check, build, lint, tests), repo-hygiene workflow (tracked-secret scanner), stricter backend checks (format, migrations, OpenAPI drift) |
+| Fix | Backend lint gate was failing (upstream CI red): 15 ruff errors, 6 unformatted files |
+| Fix | `frontend-user` lint failed after every build (generated MediaPipe wasm was not ignored) |
+| Docs | OpenAPI schema and endpoint list regenerated: 196 → 239 operations (43 were undocumented) |
+| Tests | End-to-end write-workflow smoke through the real Next.js proxies (`tools/smoke-workflows.mjs`) |
+| Docs | This README, INSTALLATION, ARCHITECTURE, API_DOCUMENTATION, CHANGELOG (English) |
 
-## Google Drive storage
+## License
 
-Media fayllar platforma egasining **shaxsiy Google Drive**'iga OAuth 2.0 orqali saqlanadi
-(scope: faqat `drive.file`). To'liq qo'llanma: [docs/GOOGLE_DRIVE_SETUP.md](docs/GOOGLE_DRIVE_SETUP.md).
-
-| O'zgaruvchi | Nima uchun | Qanday olinadi |
-|---|---|---|
-| `GOOGLE_TOKEN_ENCRYPTION_KEY` | refresh tokenni serverda shifrlash | `python -c "from cryptography.fernet import Fernet;print(Fernet.generate_key().decode())"` |
-| `GOOGLE_OAUTH_CLIENT_ID` / `_SECRET` | OAuth client (JSON fayl o'rniga, ixtiyoriy) | Cloud Console → Credentials → Web application client |
-| `GOOGLE_OAUTH_REDIRECT_URI` | Google qaytaradigan manzil | Cloud'dagi *Authorized redirect URIs* bilan aynan bir xil |
-| `GOOGLE_DRIVE_ROOT_FOLDER_ID` | boshlang'ich root papka (ixtiyoriy) | Drive papka URL'idagi `folders/<ID>` |
-| `PANEL_URL` | callback'dan keyin panelga qaytish | panel manzili, standart `http://localhost:3000` |
-
-OAuth client JSON: `backend/credentials/google_oauth_client.json` (git'dan chetlatilgan).
-Tekshirish: `python manage.py google_oauth_check` · jonli test: `python manage.py storage_selftest`.
-Hujjatlar: [ROADMAP](docs/ROADMAP.md) · [PROGRESS](docs/PROGRESS.md) · [API](docs/API_ENDPOINTS.md) ·
-[Storage arxitekturasi](docs/STORAGE_ARCHITECTURE.md).
-
-## Xavfsizlik — qisqacha
-
-- **JWT:** access 10 daqiqa, refresh 7 kun; refresh har safar almashadi (rotation) va eskisi blacklist'ga tushadi.
-  Ishlatilgan refresh qayta kelsa — o'g'irlik deb hisoblanib, foydalanuvchining **barcha** sessiyalari bekor qilinadi.
-- **Web:** tokenlar faqat `HttpOnly` cookie'da (refresh — `SameSite=Strict`, faqat `/api/v1/auth/` yo'lida);
-  localStorage'da hech qanday token yo'q. Cookie bilan kelgan har bir o'zgartiruvchi so'rov CSRF tekshiruvidan o'tadi.
-- **Sessiyani bekor qilish:** nofaol qilish, o'chirish yoki parol o'zgarganda barcha tokenlar darhol yaroqsiz bo'ladi.
-- **Login:** telefon raqam (E.164) + parol. Xato telefon/parol/nofaol hisob — bir xil umumiy xato.
-- **Brute-force:** IP bo'yicha throttle (5/min) + telefon bo'yicha 5 xatodan keyin 15 daqiqalik blok;
-  ro'yxatdan o'tish 10/soat, ixtiyoriy bot-guard (`BOT_PROTECTION_GUARD`).
-- **API monitoring:** faqat metod, yo'l, status, davomiylik, request ID, user ID saqlanadi (tana, header, cookie,
-  token, query string — yo'q); 14 kunlik retention, `python manage.py prune_request_logs`.
-- **RBAC:** hamma tekshiruvlar serverda. `ADMIN` faqat Super Admin bergan ruxsatlar doirasida ishlaydi;
-  adminlarni faqat Super Admin boshqaradi.
-- **JSHSHIR:** Fernet bilan shifrlangan (kalit rotatsiyasi bilan), unikallik — HMAC orqali; API'da faqat
-  `**********1234`. To'liq qiymat alohida endpoint orqali, ruxsat bilan va audit qilinib beriladi; loglardan kesiladi.
-- **Yuklamalar:** ≤5 MB, faqat JPEG/PNG/WEBP, Pillow bilan to'liq dekodlanadi, EXIF o'chiriladi, WEBP'ga qayta kodlanadi.
-- **Audit:** har bir yaratish/tahrirlash/nofaol qilish/o'chirish/kirish/JSHSHIR ko'rish o'zgarmas jurnalga yoziladi.
-- **Headerlar:** CSP, `X-Frame-Options: DENY`, `nosniff`, API javoblari `no-store`.
+MIT. Original work © 2026 Husanbek Suyunov, see [LICENSE](LICENSE). Changes in this repository are
+released under the same license.
