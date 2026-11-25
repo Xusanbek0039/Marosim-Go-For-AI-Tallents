@@ -78,14 +78,8 @@ class HasAdminPermission(BasePermission):
         return f"{module}.{suffix}" if module and suffix else None
 
 
-def describe_access(view, method: str = "GET") -> dict:
-    """Legacy ``x-access`` shape (kept for existing clients); see ``apps.accounts.access`` for the full policy."""
-    from .access import resolve
-
-    return legacy_access(resolve(view, method))
-
-
 def legacy_access(policy) -> dict:
+    """Legacy ``x-access`` shape still emitted in the OpenAPI schema (``apps.core.schema``)."""
     return {
         "auth_required": not policy.is_public,
         "roles": list(policy.allowed_roles),
