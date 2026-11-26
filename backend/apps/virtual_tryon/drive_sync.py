@@ -6,7 +6,7 @@ from pathlib import Path
 
 from apps.storage import folders
 from apps.storage.google import GoogleError
-from apps.storage.models import StorageConnection
+from apps.storage.models import StorageStatus
 from apps.storage.services import StorageError, connection, gateway
 
 logger = logging.getLogger("apps.virtual_tryon.drive")
@@ -28,7 +28,7 @@ def upload_look_to_drive(look) -> bool:
         return False
     try:
         conn = connection()
-        if conn.status != StorageConnection.Status.CONNECTED:
+        if conn.status != StorageStatus.CONNECTED:
             return False
         local_path = Path(look.image.path)
         if not local_path.is_file():
