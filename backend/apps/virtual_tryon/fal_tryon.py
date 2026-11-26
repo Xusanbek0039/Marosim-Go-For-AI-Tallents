@@ -131,7 +131,9 @@ def _submit(key: str, model_id: str, payload: dict) -> dict:
 
     if submit_res.status_code not in (200, 201):
         code = _map_http_error(submit_res.status_code)
-        logger.warning("fal queue submit rejected (%s): HTTP %s (%s)", model_id, submit_res.status_code, submit_res.text[:300])
+        logger.warning(
+            "fal queue submit rejected (%s): HTTP %s (%s)", model_id, submit_res.status_code, submit_res.text[:300]
+        )
         raise openai_tryon.OpenAITryOnError(code, submit_res.status_code)
 
     try:
@@ -157,7 +159,9 @@ def _fetch_result(key: str, response_url: str) -> dict:
 
     if final_res.status_code != 200:
         code = _map_http_error(final_res.status_code)
-        logger.warning("fal result fetch failed (%s): HTTP %s (%s)", response_url, final_res.status_code, final_res.text[:300])
+        logger.warning(
+            "fal result fetch failed (%s): HTTP %s (%s)", response_url, final_res.status_code, final_res.text[:300]
+        )
         raise openai_tryon.OpenAITryOnError(code, final_res.status_code)
 
     try:
@@ -179,7 +183,9 @@ def _run_queue(key: str, model_id: str, payload: dict, timeout_seconds: int) -> 
 
     while status_val not in ("COMPLETED", "FAILED", "CANCELLED"):
         if time.monotonic() > deadline:
-            logger.warning("fal job %s (%s) timed out after %ss (last_status=%s)", req_id, model_id, timeout_seconds, status_val)
+            logger.warning(
+                "fal job %s (%s) timed out after %ss (last_status=%s)", req_id, model_id, timeout_seconds, status_val
+            )
             raise openai_tryon.OpenAITryOnError("provider_timeout")
         time.sleep(2.5)
         try:
@@ -335,36 +341,59 @@ def _job(raw: dict, model_id: str) -> FalVideoJob:
     )
 
 
+def _photo_stage_model() -> str:
+    return settings.AI_TRYON.get("FAL_PHOTO_STAGE_MODEL", "fal-ai/bytedance/seedream/v4/edit").strip()
+
+
+def _garment_desc(garment) -> str:
+    return (garment.ai_prompt or "").strip() or garment.name
+
+
 def submit_photo_stage(*, frame_jpeg: bytes, garment) -> FalVideoJob:
-    """Fast pipeline, stage 1: FASHN puts the garment on one frame of the user's clip (~20 s)."""
+    """Fast pipeline, stage 1: put the complete outfit on one frame of the user's clip (~20-40 s)."""
     if not is_configured():
         raise openai_tryon.OpenAITryOnError("ai_tryon_not_configured")
     key = _api_key()
     person_url = _upload_bytes(key, frame_jpeg, "frame.jpg", "image/jpeg")
     garment_url = _upload_bytes(key, openai_tryon._garment_png(garment), "garment.png", "image/png")
-    model_id = _photo_model()
-    raw = _submit(
-        key,
-        model_id,
-        {
+    model_id = _photo_stage_model()
+    if "fashn" in model_id:
+        payload = {
             "model_image": person_url,
             "garment_image": garment_url,
             "garment_photo_type": "auto",
-            "category": "auto",
-            "mode": "performance",
-        },
-    )
+            "category": "one-pieces",
+            "mode": "quality",
+        }
+    else:
+        frame = Image.open(io.BytesIO(frame_jpeg))
+        scale = 1152 / max(frame.width, frame.height)
+        size = {"width": int(frame.width * scale) // 16 * 16, "height": int(frame.height * scale) // 16 * 16}
+        payload = {
+            "prompt": (
+                "Virtual try-on. Image 1 is a photo of a person, image 2 is an outfit "
+                f"({_garment_desc(garment)}). Remove all of the person's current clothes and dress them in the "
+                "complete outfit from image 2. Every garment and accessory visible in image 2 must appear "
+                "exactly as in image 2 — shirt, bow tie or tie, belt, jacket, trousers or skirt, embroidery, "
+                "lace, colours and fabric; nothing of the old clothes may remain. Keep the person's face, "
+                "hair, body shape, pose, hands, the camera framing and the whole background exactly "
+                "unchanged. Photorealistic."
+            ),
+            "image_urls": [person_url, garment_url],
+            "image_size": size,
+            "num_images": 1,
+        }
+    raw = _submit(key, model_id, payload)
     return _job(raw, model_id)
 
 
-def submit_motion_stage(*, image_url: str, garment) -> FalVideoJob:
-    """Fast pipeline, stage 2: the dressed photo becomes a short video of the user turning (~30 s)."""
-    garment_desc = (garment.ai_prompt or "").strip() or garment.name
+def submit_motion_stage(*, image_url: str, garment, motion: str = "") -> FalVideoJob:
+    """Fast pipeline, stage 2: the dressed photo becomes a video doing the user's movements (~30 s)."""
+    motion = motion or "slowly turns a little to the left, then a little to the right, then faces the camera again"
     prompt = (
-        "Realistic phone camera footage. The same person stands in place wearing the outfit "
-        f"({garment_desc}), slowly turns a little to the left, then a little to the right, then faces "
-        "the camera again. The garment moves naturally. Keep the face, hair, body and the room exactly "
-        "the same. Static camera, no zoom, same lighting."
+        f"Realistic phone camera footage. The same person, wearing the outfit ({_garment_desc(garment)}), "
+        f"{motion}. The garment and every accessory stay exactly as in the image and move naturally with "
+        "the body. Keep the face, hair, body and the room exactly the same. Static camera, no zoom, same lighting."
     )
     model_id = _motion_model()
     raw = _submit(

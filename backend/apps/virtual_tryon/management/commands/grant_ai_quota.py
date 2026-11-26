@@ -1,7 +1,7 @@
 """Give one user extra AI try-ons for the current month.
 
-    python manage.py grant_ai_quota +998934243408 --videos 10
-    python manage.py grant_ai_quota 934243408 --videos 5 --photos 20 --note "Taqdimot uchun"
+python manage.py grant_ai_quota +998934243408 --videos 10
+python manage.py grant_ai_quota 934243408 --videos 5 --photos 20 --note "Taqdimot uchun"
 """
 
 from django.core.management.base import BaseCommand, CommandError

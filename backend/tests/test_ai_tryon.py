@@ -980,7 +980,7 @@ def test_fast_video_pipeline_shows_the_photo_first_then_the_video(settings, monk
     def post(url, headers=None, json=None, timeout=None):
         if "storage/upload/initiate" in url:
             return Res(200, {"upload_url": "https://up/x", "file_url": f"https://files/{json['file_name']}"})
-        kind = "photo" if "fashn" in url else "video"
+        kind = "video" if "ltx" in url else "photo"
         state["submitted"].append((kind, json))
         return Res(200, {"request_id": f"req_{kind}", "status": "IN_QUEUE",
                          "status_url": f"https://q/{kind}/status", "response_url": f"https://q/{kind}/result"})
@@ -1004,7 +1004,9 @@ def test_fast_video_pipeline_shows_the_photo_first_then_the_video(settings, monk
                         {"garment": str(garment.pk), "video": SimpleUploadedFile("c.webm", clip, content_type="video/webm")},
                         format="multipart")
     assert start.status_code == 202 and start.data["stage"] == "PHOTO"
-    assert state["submitted"][0][1]["model_image"].endswith("frame.jpg")  # one frame, not the whole clip
+    photo_req = state["submitted"][0][1]
+    assert photo_req["image_urls"][0].endswith("frame.jpg")  # one frame of the clip + the garment photo
+    assert "bow tie" in photo_req["prompt"]  # small accessories must be kept (user report)
     url = f"{BASE}/ai/render-video/{start.data['job_id']}/"
 
     assert "preview_url" not in client.get(url).data
@@ -1019,6 +1021,8 @@ def test_fast_video_pipeline_shows_the_photo_first_then_the_video(settings, monk
     assert done["status"] == "DONE" and done["look_id"] == preview["look_id"]  # same look, video added
     assert client.get(done["video_url"]).status_code == 200
     assert len(state["submitted"]) == 2  # each stage submitted exactly once
+    # without an OpenAI key the video still gets a natural default movement
+    assert "turns" in state["submitted"][1][1]["prompt"]
 
 
 def test_admin_can_delete_saved_look_and_files(user, make_user, super_admin, client_for):
@@ -1042,3 +1046,35 @@ def test_admin_can_delete_saved_look_and_files(user, make_user, super_admin, cli
     assert not image_path.exists()
     assert not video_path.exists()
     assert client_for(super_admin).delete(url).status_code == 404
+
+
+def test_motion_caption_puts_the_users_real_movement_into_the_video_prompt(settings, monkeypatch, tmp_path):
+    import shutil
+    import subprocess
+
+    from apps.virtual_tryon import motion_caption
+
+    if not shutil.which("ffmpeg"):
+        pytest.skip("ffmpeg not installed")
+    settings.AI_PLANNER = {**settings.AI_PLANNER, "OPENAI_API_KEY": "sk-test"}
+    clip = tmp_path / "c.mp4"
+    subprocess.run(["ffmpeg", "-y", "-f", "lavfi", "-i", "testsrc=duration=4:size=320x240:rate=12", str(clip)],
+                   check=True, capture_output=True)
+    sent = {}
+
+    class Res:
+        status_code = 200
+
+        def json(self):
+            return {"choices": [{"message": {"content": "Raises the right hand above the head, then lowers it."}}]}
+
+    def post(url, headers=None, json=None, timeout=None):
+        sent["images"] = [c for c in json["messages"][0]["content"] if c["type"] == "image_url"]
+        return Res()
+
+    monkeypatch.setattr(requests, "post", post)
+    assert motion_caption.describe(clip, tmp_path) == "Raises the right hand above the head, then lowers it"
+    assert len(sent["images"]) >= 4  # frames across the whole clip
+
+    monkeypatch.setattr(requests, "post", lambda *a, **k: (_ for _ in ()).throw(requests.ConnectionError()))
+    assert motion_caption.describe(clip, tmp_path) == motion_caption.DEFAULT_MOTION  # never blocks the try-on

@@ -323,6 +323,8 @@ class VideoTryOnJob(BaseModel):
     #: "fast" = FASHN photo → LTX video (stage PHOTO then VIDEO); "kling" = one Kling edit job.
     pipeline = models.CharField(max_length=8, default="kling")
     stage = models.CharField(max_length=6, blank=True, default="")
+    #: The user's real movements in their clip, written by a vision model; drives the fast video.
+    motion_prompt = models.CharField(max_length=300, blank=True, default="")
     #: fal id of the first request; it also tags the user's quota reservation (AiRenderLog.ref).
     request_id = models.CharField(max_length=128, unique=True)
     status_url = models.URLField(max_length=500)

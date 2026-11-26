@@ -35,9 +35,20 @@ INSTRUCTION = (
 
 def _frames(src: Path, work: Path) -> list[bytes]:
     pattern = work / "cap_%02d.jpg"
-    subprocess.run(
-        [video_tryon._ffmpeg_bin(), "-y", "-i", str(src), "-vf", f"fps={FRAMES / 4},scale=384:-2", "-frames:v",
-         str(FRAMES), "-q:v", "4", str(pattern)],
+    subprocess.run(  # noqa: S603 — fixed argv, paths we created
+        [
+            video_tryon._ffmpeg_bin(),
+            "-y",
+            "-i",
+            str(src),
+            "-vf",
+            f"fps={FRAMES / 4},scale=384:-2",
+            "-frames:v",
+            str(FRAMES),
+            "-q:v",
+            "4",
+            str(pattern),
+        ],
         capture_output=True,
         timeout=20,
         check=False,
@@ -69,8 +80,12 @@ def describe(src: Path, work: Path) -> str:
         res = requests.post(
             f"{openai_tryon._base_url()}/chat/completions",
             headers={"Authorization": f"Bearer {openai_tryon._api_key()}"},
-            json={"model": MODEL, "messages": [{"role": "user", "content": content}], "max_tokens": 80,
-                  "temperature": 0},
+            json={
+                "model": MODEL,
+                "messages": [{"role": "user", "content": content}],
+                "max_tokens": 80,
+                "temperature": 0,
+            },
             timeout=20,
         )
         if res.status_code != 200:

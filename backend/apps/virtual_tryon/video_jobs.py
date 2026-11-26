@@ -23,14 +23,17 @@ import io
 import logging
 import subprocess
 import tempfile
+import threading
+from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
 from pathlib import Path
 
+from django.conf import settings
 from django.core.files.base import ContentFile
 from django.utils import timezone
 from PIL import Image
 
-from . import drive_sync, fal_tryon, openai_tryon, quota, video_tryon
+from . import drive_sync, fal_tryon, motion_caption, openai_tryon, quota, video_tryon
 from .models import AiRenderLog, RenderLogStatus, SavedLook, VideoJobStatus, VideoTryOnJob
 
 logger = logging.getLogger("apps.virtual_tryon.video_jobs")
@@ -44,7 +47,7 @@ MAX_JOB_AGE = timedelta(hours=6)
 def _frame_jpeg(src: Path, work: Path) -> bytes:
     """A sharp frame from the start of the clip (the user faces the camera before turning)."""
     out = work / "frame.jpg"
-    subprocess.run(
+    subprocess.run(  # noqa: S603 — fixed argv, paths we created
         [video_tryon._ffmpeg_bin(), "-y", "-ss", "0.4", "-i", str(src), "-frames:v", "1", "-q:v", "2", str(out)],
         capture_output=True,
         timeout=20,
@@ -74,8 +77,13 @@ def start(*, user, video_upload, garment) -> VideoTryOnJob:
         with open(src, "wb") as fh:
             for chunk in video_upload.chunks():
                 fh.write(chunk)
+        motion = ""
         if pipeline == "fast":
-            fal_job = fal_tryon.submit_photo_stage(frame_jpeg=_frame_jpeg(src, work), garment=garment)
+            # describe the user's real movements while the photo stage is uploaded and submitted
+            with ThreadPoolExecutor(max_workers=1) as pool:
+                caption = pool.submit(motion_caption.describe, src, work)
+                fal_job = fal_tryon.submit_photo_stage(frame_jpeg=_frame_jpeg(src, work), garment=garment)
+                motion = caption.result()
             stage = "PHOTO"
         else:
             norm_mp4 = work / "input_720p.mp4"
@@ -89,6 +97,7 @@ def start(*, user, video_upload, garment) -> VideoTryOnJob:
         model=fal_job.model_id,
         pipeline=pipeline,
         stage=stage,
+        motion_prompt=motion,
         request_id=fal_job.request_id,
         status_url=fal_job.status_url,
         response_url=fal_job.response_url,
@@ -101,7 +110,7 @@ def _photo_stage_done(job: VideoTryOnJob) -> VideoTryOnJob:
     img = Image.open(io.BytesIO(fal_tryon.download(photo_url, timeout=60))).convert("RGB")
     buf = io.BytesIO()
     img.save(buf, format="JPEG", quality=90, optimize=True)
-    motion = fal_tryon.submit_motion_stage(image_url=photo_url, garment=job.garment)
+    motion = fal_tryon.submit_motion_stage(image_url=photo_url, garment=job.garment, motion=job.motion_prompt)
 
     look = job.look or SavedLook(user=job.user, garment=job.garment)
     look.width, look.height = img.width, img.height
@@ -112,8 +121,33 @@ def _photo_stage_done(job: VideoTryOnJob) -> VideoTryOnJob:
     job.model = f"{job.model} + {motion.model_id}"[:200]
     job.status_url, job.response_url = motion.status_url, motion.response_url
     job.save(update_fields=["look", "stage", "status", "model", "status_url", "response_url", "updated_at"])
-    logger.info("fal video job %s: photo ready (look %s), motion %s submitted", job.request_id, look.pk, motion.request_id)
+    logger.info(
+        "fal video job %s: photo ready (look %s), motion %s submitted", job.request_id, look.pk, motion.request_id
+    )
     return job
+
+
+def _drive_backup_later(look_id) -> None:
+    """Copy the finished video to Google Drive in the background.
+
+    Uploading a video can take minutes; doing it inside the status poll held the request open until
+    the proxy gave up ("server temporarily unavailable") although the video was already saved.
+    """
+
+    def run():
+        from django.db import connection
+
+        try:
+            drive_sync.upload_look_to_drive(SavedLook.objects.get(pk=look_id))
+        except Exception:  # noqa: BLE001 — Drive backup must never affect the user's video
+            logger.exception("drive upload of look %s failed", look_id)
+        finally:
+            connection.close()
+
+    if getattr(settings, "TRYON_DRIVE_BACKUP_SYNC", False):  # tests: run inline
+        run()
+        return
+    threading.Thread(target=run, name=f"drive-backup-{look_id}", daemon=True).start()
 
 
 def _render_log(job: VideoTryOnJob) -> AiRenderLog | None:
@@ -192,10 +226,7 @@ def advance(job: VideoTryOnJob) -> VideoTryOnJob:
         look.image.save(f"tryon-{tag}.jpg", ContentFile(poster_bytes), save=False)
     look.video.save(f"tryon-{tag}.mp4", ContentFile(mp4_bytes), save=False)
     look.save()
-    try:
-        drive_sync.upload_look_to_drive(look)
-    except Exception:  # noqa: BLE001 — Drive backup must never lose the paid video
-        logger.exception("drive upload of look %s failed", look.pk)
+    _drive_backup_later(look.pk)
 
     job.look = look
     job.status = VideoJobStatus.DONE
