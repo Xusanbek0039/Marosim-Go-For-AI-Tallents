@@ -24,18 +24,19 @@ def upload_look_to_drive(look) -> bool:
     """
     if look.drive_file_id:
         return True
-    if not look.image:
+    file_field = look.video if getattr(look, "video", None) else look.image
+    if not file_field:
         return False
     try:
         conn = connection()
         if conn.status != ConnectionStatus.CONNECTED:
             return False
-        local_path = Path(look.image.path)
+        local_path = Path(file_field.path)
         if not local_path.is_file():
             return False
         folder_id, creds = folders.ensure_path([("virtual_tryon", "VirtualTryOn")])
-        mime_type = mimetypes.guess_type(local_path.name)[0] or "image/jpeg"
-        ext = local_path.suffix or ".jpg"
+        mime_type = mimetypes.guess_type(local_path.name)[0] or ("video/mp4" if look.video else "image/jpeg")
+        ext = local_path.suffix or (".mp4" if look.video else ".jpg")
         meta = gateway().upload_file(
             creds,
             name=f"tryon_{look.pk}{ext}",

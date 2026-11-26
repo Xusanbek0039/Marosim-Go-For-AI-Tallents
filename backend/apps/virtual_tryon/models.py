@@ -244,6 +244,7 @@ class SavedLook(BaseModel):
     garment = models.ForeignKey(Garment, on_delete=models.SET_NULL, null=True, blank=True, related_name="+")
     session = models.ForeignKey(AiTryOnSession, on_delete=models.SET_NULL, null=True, blank=True, related_name="+")
     image = models.ImageField(upload_to=look_upload_to, storage=private_storage)
+    video = models.FileField(upload_to=look_upload_to, storage=private_storage, blank=True, default="")
     width = models.PositiveIntegerField(default=0)
     height = models.PositiveIntegerField(default=0)
     drive_file_id = models.CharField(max_length=128, blank=True, default="")

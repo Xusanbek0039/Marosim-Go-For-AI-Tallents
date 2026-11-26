@@ -35,7 +35,7 @@ from rest_framework.views import APIView
 from apps.accounts.access import AccessNote
 from apps.ceremonies.permissions import IsClientUser
 
-from . import ai, decart, drive_sync, openai_tryon, watermark
+from . import ai, decart, drive_sync, openai_tryon, video_tryon, watermark
 from .models import (
     AiTryOnSession,
     ApprovalStatus,
@@ -52,6 +52,7 @@ from .serializers import (
     AiFinishSerializer,
     AiRenderRequestSerializer,
     AiRenderResponseSerializer,
+    AiRenderVideoRequestSerializer,
     AiSessionCreateSerializer,
     AiSessionSerializer,
     AiStatusSerializer,
@@ -349,6 +350,69 @@ class AiRenderView(APIView):
         )
 
 
+class AiRenderVideoView(APIView):
+    """Video Virtual Try-On: short camera video + garment → ffmpeg + OpenAI → MP4."""
+
+    permission_classes = [IsClientUser]
+    throttle_scope = "ai_tryon_session"
+    throttle_classes = [*APIView.throttle_classes, ScopedRateThrottle]
+
+    @extend_schema(
+        summary="Kamera videosi ustida kiyimni AI bilan kiyib ko'rish (MP4 video)",
+        tags=["virtual-tryon"],
+        request={"multipart/form-data": AiRenderVideoRequestSerializer},
+        responses={200: OpenApiTypes.OBJECT},
+    )
+    def post(self, request):
+        from django.urls import reverse
+
+        body = AiRenderVideoRequestSerializer(data=request.data)
+        body.is_valid(raise_exception=True)
+        garment = get_object_or_404(
+            visible_garments().exclude(ai_reference_image=""),
+            pk=body.validated_data["garment"],
+        )
+        try:
+            result = video_tryon.render_video_tryon(
+                video_upload=body.validated_data["video"],
+                garment=garment,
+            )
+        except openai_tryon.OpenAITryOnError as exc:
+            message, http_status = ai.PROVIDER_MESSAGES.get(exc.code, ai.PROVIDER_MESSAGES["provider_unavailable"])
+            raise ai.AiTryOnError(exc.code, message, http_status) from None
+
+        look = SavedLook(
+            user=request.user,
+            garment=garment,
+            width=result.width,
+            height=result.height,
+        )
+        look.image.save(f"tryon-{garment.pk}.jpg", ContentFile(result.poster_bytes), save=False)
+        look.video.save(f"tryon-{garment.pk}.mp4", ContentFile(result.video_bytes), save=False)
+        look.save()
+        drive_sync.upload_look_to_drive(look)
+
+        video_url = request.build_absolute_uri(reverse("tryon-look-video", args=[look.pk]))
+        poster_url = request.build_absolute_uri(reverse("tryon-look-image", args=[look.pk]))
+        download_url = request.build_absolute_uri(reverse("tryon-look-download", args=[look.pk]))
+        return Response(
+            {
+                "look_id": str(look.pk),
+                "video_url": video_url,
+                "poster_url": poster_url,
+                "download_url": download_url,
+                "width": result.width,
+                "height": result.height,
+                "frames": result.frames,
+                "model": result.model,
+                "latency_ms": result.latency_ms,
+                "garment": str(garment.pk),
+                "drive_file_id": look.drive_file_id,
+                "drive_web_url": look.drive_web_url,
+            }
+        )
+
+
 class AiSessionViewSet(mixins.RetrieveModelMixin, viewsets.GenericViewSet):
     permission_classes = [IsClientUser]
     serializer_class = AiSessionSerializer
@@ -505,6 +569,20 @@ class SavedLookViewSet(mixins.ListModelMixin, mixins.DestroyModelMixin, viewsets
         return response
 
     @extend_schema(
+        summary="Saqlangan AI video (faqat egasi)",
+        tags=["virtual-tryon"],
+        responses={(200, "video/mp4"): OpenApiTypes.BINARY},
+    )
+    @action(detail=True, methods=["get"], url_path="video", url_name="video")
+    def video(self, request, pk=None):
+        look = self.get_object()
+        if not look.video:
+            return Response({"detail": "Video mavjud emas."}, status=status.HTTP_404_NOT_FOUND)
+        response = FileResponse(look.video.open("rb"), content_type="video/mp4")
+        response["Cache-Control"] = "private, no-store"
+        return response
+
+    @extend_schema(
         summary="Obrazni yuklab olish (Premium: logosiz, oddiy: MarosimGo logosi bilan)",
         tags=["virtual-tryon"],
         responses={(200, "image/jpeg"): OpenApiTypes.BINARY},
@@ -512,6 +590,11 @@ class SavedLookViewSet(mixins.ListModelMixin, mixins.DestroyModelMixin, viewsets
     @action(detail=True, methods=["get"], url_path="download", url_name="download")
     def download(self, request, pk=None):
         look = self.get_object()
+        if look.video:
+            response = FileResponse(look.video.open("rb"), content_type="video/mp4")
+            response["Content-Disposition"] = f'attachment; filename="marosimgo-tryon-{str(look.pk)[:8]}.mp4"'
+            response["Cache-Control"] = "private, no-store"
+            return response
         with look.image.open("rb") as fh:
             raw = fh.read()
         premium = watermark.is_premium_user(request.user)

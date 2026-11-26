@@ -182,6 +182,11 @@ class AiRenderRequestSerializer(serializers.Serializer):
     photo = serializers.ImageField()
 
 
+class AiRenderVideoRequestSerializer(serializers.Serializer):
+    garment = serializers.UUIDField()
+    video = serializers.FileField()
+
+
 class AiRenderResponseSerializer(serializers.Serializer):
     image = serializers.CharField(help_text="Data URL (data:image/jpeg;base64,...) — AI kiyib ko'rish natijasi.")
     width = serializers.IntegerField()
