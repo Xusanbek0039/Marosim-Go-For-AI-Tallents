@@ -134,6 +134,200 @@ function StreamVideo({ stream, mirrored, className, videoRef }: {
 
 // ------------------------------------------------------------------ studio
 export function AiFashionStudio({ status }: { status: AiStatus }) {
+  if (status.mode === "snapshot") {
+    return <SnapshotAiStudio status={status} />;
+  }
+  return <RealtimeAiStudio status={status} />;
+}
+
+function SnapshotAiStudio({ status }: { status: AiStatus }) {
+  const [consent, setConsent] = useState(false);
+  const [stream, setStream] = useState<MediaStream | null>(null);
+  const [cameraError, setCameraError] = useState<string | null>(null);
+  const [selected, setSelected] = useState<Garment | null>(null);
+  const [rendering, setRendering] = useState(false);
+  const [renderError, setRenderError] = useState<unknown>(null);
+  const [result, setResult] = useState<{ url: string; garmentId: string; garmentName: string; latencyMs: number } | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const saveLook = useSaveLook();
+
+  useEffect(() => {
+    return () => {
+      stream?.getTracks().forEach((t) => t.stop());
+    };
+  }, [stream]);
+
+  const openCamera = async () => {
+    setCameraError(null);
+    try {
+      const s = await navigator.mediaDevices.getUserMedia({
+        audio: false,
+        video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 960 } },
+      });
+      setStream(s);
+    } catch {
+      setCameraError("Kameraga ruxsat berilmadi yoki kamera topilmadi.");
+    }
+  };
+
+  const stopCamera = () => {
+    stream?.getTracks().forEach((t) => t.stop());
+    setStream(null);
+  };
+
+  const tryOnNow = async (garment: Garment | null) => {
+    const video = videoRef.current;
+    if (!garment || !video || !video.videoWidth) return;
+    setRendering(true);
+    setRenderError(null);
+    saveLook.reset();
+    try {
+      const canvas = document.createElement("canvas");
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext("2d");
+      if (ctx) {
+        ctx.translate(canvas.width, 0);
+        ctx.scale(-1, 1);
+        ctx.drawImage(video, 0, 0);
+      }
+      const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.92));
+      if (!blob) throw new Error("Kadrni olib bo'lmadi.");
+      const out = await aiApi.render(blob, garment.id);
+      setResult({ url: out.image, garmentId: garment.id, garmentName: garment.name, latencyMs: out.latency_ms });
+    } catch (err) {
+      setRenderError(err);
+    } finally {
+      setRendering(false);
+    }
+  };
+
+  const saveResult = async () => {
+    if (!result) return;
+    const res = await fetch(result.url);
+    const blob = await res.blob();
+    saveLook.mutate({ image: blob, garment: result.garmentId, session: null });
+  };
+
+  return (
+    <div className="flex flex-col gap-4">
+      <section
+        aria-label="AI kiyib ko'rish"
+        className="relative overflow-hidden rounded-3xl bg-neutral-950 shadow-[0_30px_80px_-40px_rgb(15_23_42/0.8)] ring-1 ring-white/10"
+      >
+        <div className="relative aspect-[3/4] w-full sm:aspect-video">
+          {result ? (
+            /* eslint-disable-next-line @next/next/no-img-element -- data URL from OpenAI try-on */
+            <img src={result.url} alt={result.garmentName} className="h-full w-full object-contain bg-black" />
+          ) : stream ? (
+            <StreamVideo
+              stream={stream}
+              mirrored
+              videoRef={videoRef}
+              className={cn("transition", rendering && "scale-105 blur-md brightness-50")}
+            />
+          ) : (
+            <div className="brand-gradient absolute inset-0 opacity-30" />
+          )}
+
+          {/* top bar */}
+          <div className="absolute inset-x-0 top-0 flex items-center justify-between gap-2 p-3">
+            <span
+              role="status"
+              aria-live="polite"
+              className="inline-flex items-center gap-2 rounded-full bg-black/45 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur-md ring-1 ring-white/15"
+            >
+              <span className={cn("size-2 rounded-full", rendering ? "animate-pulse bg-amber-400" : result ? "bg-emerald-400" : stream ? "bg-sky-400" : "bg-white/50")} />
+              {rendering ? "AI kiyimni kiyib ko'rsatmoqda..." : result ? `AI natija · ${result.garmentName}` : stream ? "Kamera tayyor" : "AI Fashion Studio"}
+            </span>
+            <span className="rounded-full bg-black/45 px-2.5 py-1 text-[11px] font-medium text-white/80 backdrop-blur-md">
+              {status.model}
+            </span>
+          </div>
+
+          {/* consent overlay before camera */}
+          {!stream && !result && (
+            <Panel icon={<ShieldCheckIcon />} title="MarosimGo AI Fashion Studio">
+              <p>
+                Kamerangizdan olingan kadr va siz tanlagan haqiqiy kiyim rasmi AI orqali birlashtirilib, ustingizda
+                fotorealistik ko'rinishda ko'rsatiladi. Surat serverda saqlanmaydi.
+              </p>
+              {cameraError && <p className="text-xs text-rose-300">{cameraError}</p>}
+              <label className="flex items-start gap-2 text-left text-white">
+                <input
+                  type="checkbox"
+                  className="mt-0.5 size-4 accent-blue-500"
+                  checked={consent}
+                  onChange={(e) => setConsent(e.target.checked)}
+                />
+                <span>Kamera va AI qayta ishlashga roziman</span>
+              </label>
+              <Button size="lg" className="w-full" disabled={!consent} onClick={openCamera}>
+                <CameraIcon /> Kamerani yoqish
+              </Button>
+            </Panel>
+          )}
+
+          {rendering && (
+            <Busy
+              title="AI kiyimni kiydirmoqda"
+              note="Taxminan 10–20 soniya davom etadi. Iltimos kuting..."
+            />
+          )}
+
+          {/* bottom controls */}
+          {stream && !rendering && (
+            <div className="absolute inset-x-0 bottom-0 flex flex-wrap items-center justify-center gap-2 bg-gradient-to-t from-black/75 to-transparent p-4 pt-10">
+              {result ? (
+                <>
+                  <Button variant="outline" className="border-white/30 bg-white/15 text-white" onClick={() => setResult(null)}>
+                    <RefreshCwIcon /> Qayta suratga olish
+                  </Button>
+                  {saveLook.isSuccess ? (
+                    <Badge tone="success">Saqlandi</Badge>
+                  ) : (
+                    <Button loading={saveLook.isPending} onClick={saveResult}>
+                      <BookmarkIcon /> Obrazni saqlash
+                    </Button>
+                  )}
+                </>
+              ) : (
+                <>
+                  <Button size="lg" onClick={() => void tryOnNow(selected)} disabled={!selected}>
+                    <SparklesIcon />
+                    {selected ? `${selected.name} — AI bilan kiyib ko'rish` : "Pastdan kiyim tanlang"}
+                  </Button>
+                  <button
+                    type="button"
+                    onClick={stopCamera}
+                    className="rounded-full bg-black/50 px-3 py-2 text-xs font-semibold text-white backdrop-blur-md ring-1 ring-white/20 hover:bg-black/70"
+                  >
+                    <CircleStopIcon className="mr-1 inline size-4" /> O'chirish
+                  </button>
+                </>
+              )}
+            </div>
+          )}
+        </div>
+      </section>
+
+      {!!renderError && <ErrorState error={renderError} />}
+
+      <GarmentPicker
+        selected={selected}
+        onPick={(g) => {
+          setSelected(g);
+          setResult(null);
+        }}
+        disabled={rendering}
+      />
+
+      <SavedLooks />
+    </div>
+  );
+}
+
+function RealtimeAiStudio({ status }: { status: AiStatus }) {
   const [session, setSession] = useState<StudioSession | null>(null);
   const [consent, setConsent] = useState(false);
   const state = useStudio(session);

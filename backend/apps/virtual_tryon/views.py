@@ -14,6 +14,7 @@ AI mode: the browser streams the camera straight to Decart over WebRTC with a sh
 token from ``ai-sessions/{id}/token/``; this server never receives video (see ``decart.py``).
 """
 
+import base64
 from datetime import timedelta
 
 from django.conf import settings
@@ -33,7 +34,7 @@ from rest_framework.views import APIView
 from apps.accounts.access import AccessNote
 from apps.ceremonies.permissions import IsClientUser
 
-from . import ai, decart
+from . import ai, decart, openai_tryon
 from .models import (
     AiTryOnSession,
     ApprovalStatus,
@@ -47,6 +48,8 @@ from .models import (
 )
 from .serializers import (
     AiFinishSerializer,
+    AiRenderRequestSerializer,
+    AiRenderResponseSerializer,
     AiSessionCreateSerializer,
     AiSessionSerializer,
     AiStatusSerializer,
@@ -251,7 +254,7 @@ class FavoriteViewSet(mixins.ListModelMixin, mixins.DestroyModelMixin, viewsets.
         return Response(data, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
 
 
-# ------------------------------------------------------------------ AI try-on (Decart)
+# ------------------------------------------------------------------ AI try-on (Decart / OpenAI)
 class AiStatusView(APIView):
     permission_classes = [IsClientUser]
     access_notes = {"*": AccessNote(ownership="Faqat o'z limitlari.")}
@@ -263,14 +266,68 @@ class AiStatusView(APIView):
         cfg = settings.AI_TRYON
         left = ai.budget(request.user)
         active = ai.active_session(request.user)
+        if decart.is_configured():
+            enabled, mode, model = True, "realtime", cfg["MODEL"]
+        elif openai_tryon.is_configured():
+            enabled, mode, model = True, "snapshot", cfg.get("OPENAI_MODEL", "gpt-image-1")
+        else:
+            enabled, mode, model = False, "realtime", cfg["MODEL"]
         return Response(
             {
-                "enabled": decart.is_configured(),
-                "model": cfg["MODEL"],
+                "enabled": enabled,
+                "mode": mode,
+                "model": model,
                 "max_session_seconds": cfg["MAX_SESSION_SECONDS"],
                 "seconds_left_today": left.seconds_left_today,
                 "sessions_left_today": left.sessions_left_today,
                 "active_session": active.pk if active else None,
+            }
+        )
+
+
+class AiRenderView(APIView):
+    """Snapshot AI try-on: user camera photo + selected garment reference → OpenAI Image Edit."""
+
+    permission_classes = [IsClientUser]
+    throttle_scope = "ai_tryon_session"
+    throttle_classes = [*APIView.throttle_classes, ScopedRateThrottle]
+    access_notes = {
+        "post": AccessNote(
+            conditions=(
+                "Faqat tasdiqlangan va ai_reference_image ga ega kiyimlar uchun.",
+                "Foydalanuvchi surati serverda saqlanmaydi; faqat AI xizmatiga yuboriladi.",
+            )
+        )
+    }
+
+    @extend_schema(
+        summary="Kamera surati ustida kiyimni AI bilan kiyib ko'rish (OpenAI)",
+        tags=["virtual-tryon"],
+        request={"multipart/form-data": AiRenderRequestSerializer},
+        responses={200: AiRenderResponseSerializer},
+    )
+    def post(self, request):
+        body = AiRenderRequestSerializer(data=request.data)
+        body.is_valid(raise_exception=True)
+        garment = get_object_or_404(
+            visible_garments().exclude(ai_reference_image=""),
+            pk=body.validated_data["garment"],
+        )
+        photo_bytes = openai_tryon.prepare_user_photo(body.validated_data["photo"])
+        try:
+            result = openai_tryon.render_tryon(photo_bytes=photo_bytes, garment=garment)
+        except openai_tryon.OpenAITryOnError as exc:
+            message, http_status = ai.PROVIDER_MESSAGES.get(exc.code, ai.PROVIDER_MESSAGES["provider_unavailable"])
+            raise ai.AiTryOnError(exc.code, message, http_status) from None
+        data_url = f"data:{result.content_type};base64,{base64.b64encode(result.image_bytes).decode('ascii')}"
+        return Response(
+            {
+                "image": data_url,
+                "width": result.width,
+                "height": result.height,
+                "model": result.model,
+                "latency_ms": result.latency_ms,
+                "garment": str(garment.pk),
             }
         )
 

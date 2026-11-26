@@ -94,6 +94,7 @@ urlpatterns = [
     path("admin/storage/", include("apps.storage.urls")),
     path("health/live/", LiveView.as_view(), name="health-live"),
     path("virtual-tryon/ai/status/", tryon_views.AiStatusView.as_view(), name="tryon-ai-status"),
+    path("virtual-tryon/ai/render/", tryon_views.AiRenderView.as_view(), name="tryon-ai-render"),
     path("admin/virtual-tryon/ai-usage/", AiUsageView.as_view(), name="admin-tryon-ai-usage"),
     path("health/ready/", ReadyView.as_view(), name="health-ready"),
     # AI event planner (apps.event_planner)

@@ -9,13 +9,24 @@ import type { Garment } from "./tryon";
 const BASE = "/virtual-tryon";
 
 export interface AiStatus {
-  /** The server has a Decart key; false = the feature is honestly unavailable. */
+  /** The server has a Decart or OpenAI key; false = the feature is honestly unavailable. */
   enabled: boolean;
+  /** realtime = Decart WebRTC live video; snapshot = OpenAI camera snapshot try-on. */
+  mode?: "realtime" | "snapshot";
   model: string;
   max_session_seconds: number;
   seconds_left_today: number;
   sessions_left_today: number;
   active_session: string | null;
+}
+
+export interface AiRenderResult {
+  image: string;
+  width: number;
+  height: number;
+  model: string;
+  latency_ms: number;
+  garment: string;
 }
 
 export type AiEndReason =
@@ -88,6 +99,12 @@ export const aiApi = {
     if (garment) form.append("garment", garment);
     if (session) form.append("session", session);
     return apiRequest<SavedLook>(`${BASE}/looks/`, { method: "POST", body: form });
+  },
+  render: (photo: Blob, garment: string) => {
+    const form = new FormData();
+    form.append("photo", photo, "camera.jpg");
+    form.append("garment", garment);
+    return apiRequest<AiRenderResult>(`${BASE}/ai/render/`, { method: "POST", body: form });
   },
 };
 

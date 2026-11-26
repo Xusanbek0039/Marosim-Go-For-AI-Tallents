@@ -151,12 +151,31 @@ class FavoriteSerializer(serializers.ModelSerializer):
 
 # ---------------------------------------------------------------- AI try-on
 class AiStatusSerializer(serializers.Serializer):
-    enabled = serializers.BooleanField(help_text="Server AI xizmati (Decart) kaliti bilan sozlangan.")
+    enabled = serializers.BooleanField(help_text="Server AI xizmati (Decart yoki OpenAI) kaliti bilan sozlangan.")
+    mode = serializers.ChoiceField(
+        choices=["realtime", "snapshot"],
+        default="realtime",
+        help_text="realtime = Decart WebRTC jonli video; snapshot = OpenAI kamera kadri orqali AI kiyib ko'rish.",
+    )
     model = serializers.CharField()
     max_session_seconds = serializers.IntegerField()
     seconds_left_today = serializers.IntegerField()
     sessions_left_today = serializers.IntegerField()
     active_session = serializers.UUIDField(allow_null=True)
+
+
+class AiRenderRequestSerializer(serializers.Serializer):
+    garment = serializers.UUIDField()
+    photo = serializers.ImageField()
+
+
+class AiRenderResponseSerializer(serializers.Serializer):
+    image = serializers.CharField(help_text="Data URL (data:image/jpeg;base64,...) — AI kiyib ko'rish natijasi.")
+    width = serializers.IntegerField()
+    height = serializers.IntegerField()
+    model = serializers.CharField()
+    latency_ms = serializers.IntegerField()
+    garment = serializers.UUIDField()
 
 
 class AiSessionCreateSerializer(serializers.Serializer):

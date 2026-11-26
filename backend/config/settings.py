@@ -431,6 +431,10 @@ AI_TRYON = {
     #: Only for the admin usage estimate (USD per second; Decart list price for lucy-vton at 720p).
     "PRICE_PER_SECOND_USD": env.float("AI_TRYON_PRICE_PER_SECOND_USD", default=0.02),
     "MAX_SAVED_LOOKS_PER_USER": env.int("AI_TRYON_MAX_SAVED_LOOKS", default=50),
+    #: Snapshot AI try-on fallback via OpenAI Image Edit when DECART_API_KEY is not set.
+    "OPENAI_MODEL": env.str("OPENAI_TRYON_MODEL", default="gpt-image-1"),
+    "OPENAI_QUALITY": env.str("OPENAI_TRYON_QUALITY", default="medium"),
+    "OPENAI_TIMEOUT_SECONDS": env.int("OPENAI_TRYON_TIMEOUT_SECONDS", default=90),
 }
 # ------------------------------------------------- AI event planner (OpenAI / Anthropic)
 # The key is read from the environment only (never stored in the DB or shown in the panel; the panel only
