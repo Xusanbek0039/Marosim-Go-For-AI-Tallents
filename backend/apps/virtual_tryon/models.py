@@ -257,6 +257,37 @@ class SavedLook(BaseModel):
         indexes = [models.Index(fields=["user", "created_at"])]
 
 
+class RenderKind(models.TextChoices):
+    PHOTO = "PHOTO", "AI foto"
+    VIDEO = "VIDEO", "AI video"
+
+
+class RenderLogStatus(models.TextChoices):
+    RESERVED = "RESERVED", "Bajarilmoqda"
+    DONE = "DONE", "Bajarildi"
+    REFUNDED = "REFUNDED", "Qaytarildi (xato)"
+
+
+class AiRenderLog(BaseModel):
+    """One paid AI try-on render: counts against the user's monthly quota and is a platform expense.
+
+    Reserved *before* the provider is called (so two parallel requests cannot both pass the quota),
+    then DONE, or REFUNDED when the provider failed — a refunded render neither counts nor costs.
+    """
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name="+")
+    kind = models.CharField(max_length=5, choices=RenderKind.choices)
+    status = models.CharField(max_length=8, choices=RenderLogStatus.choices, default=RenderLogStatus.RESERVED)
+    model = models.CharField(max_length=200, blank=True, default="")
+    cost_usd = models.DecimalField(max_digits=8, decimal_places=4, default=0)
+    #: fal request id of a background video job (to refund it when the job fails).
+    ref = models.CharField(max_length=128, blank=True, default="", db_index=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [models.Index(fields=["user", "kind", "created_at"]), models.Index(fields=["created_at", "kind"])]
+
+
 class VideoJobStatus(models.TextChoices):
     PENDING = "PENDING", "Navbatda / tayyorlanmoqda"
     FINALIZING = "FINALIZING", "Natija yuklanmoqda"
