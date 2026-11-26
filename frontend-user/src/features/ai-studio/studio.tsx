@@ -149,7 +149,18 @@ function SnapshotAiStudio({ status }: { status: AiStatus }) {
   const [renderError, setRenderError] = useState<unknown>(null);
   const [result, setResult] = useState<{ url: string; garmentId: string; garmentName: string; latencyMs: number } | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const stageRef = useRef<HTMLElement | null>(null);
   const saveLook = useSaveLook();
+  const allAiGarments = useAiGarments(null);
+
+  // Auto-select garment if navigated from /kiyib-korish?garment=<id>
+  useEffect(() => {
+    if (selected || typeof window === "undefined") return;
+    const preselectedId = new URLSearchParams(window.location.search).get("garment");
+    if (!preselectedId) return;
+    const match = allAiGarments.data?.results.find((g) => g.id === preselectedId);
+    if (match) setSelected(match);
+  }, [allAiGarments.data, selected]);
 
   useEffect(() => {
     return () => {
@@ -158,11 +169,13 @@ function SnapshotAiStudio({ status }: { status: AiStatus }) {
   }, [stream]);
 
   const openCamera = async () => {
+    if (!selected) return;
     setCameraError(null);
+    setResult(null);
     try {
       const s = await navigator.mediaDevices.getUserMedia({
         audio: false,
-        video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 960 } },
+        video: { facingMode: "user", width: { ideal: 1080 }, height: { ideal: 1440 } },
       });
       setStream(s);
     } catch {
@@ -191,7 +204,7 @@ function SnapshotAiStudio({ status }: { status: AiStatus }) {
         ctx.scale(-1, 1);
         ctx.drawImage(video, 0, 0);
       }
-      const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.92));
+      const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.94));
       if (!blob) throw new Error("Kadrni olib bo'lmadi.");
       const out = await aiApi.render(blob, garment.id);
       setResult({ url: out.image, garmentId: garment.id, garmentName: garment.name, latencyMs: out.latency_ms });
@@ -211,7 +224,21 @@ function SnapshotAiStudio({ status }: { status: AiStatus }) {
 
   return (
     <div className="flex flex-col gap-4">
+      {/* -------------------------------------------------- 1-qadam: Avval kiyim tanlash */}
+      <GarmentPicker
+        selected={selected}
+        onPick={(g) => {
+          setSelected(g);
+          setResult(null);
+          setRenderError(null);
+          stageRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        }}
+        disabled={rendering}
+      />
+
+      {/* -------------------------------------------------- 2-qadam: Kamera va rasm tushib kiyib ko'rish */}
       <section
+        ref={stageRef}
         aria-label="AI kiyib ko'rish"
         className="relative overflow-hidden rounded-3xl bg-neutral-950 shadow-[0_30px_80px_-40px_rgb(15_23_42/0.8)] ring-1 ring-white/10"
       >
@@ -238,40 +265,88 @@ function SnapshotAiStudio({ status }: { status: AiStatus }) {
               className="inline-flex items-center gap-2 rounded-full bg-black/45 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur-md ring-1 ring-white/15"
             >
               <span className={cn("size-2 rounded-full", rendering ? "animate-pulse bg-amber-400" : result ? "bg-emerald-400" : stream ? "bg-sky-400" : "bg-white/50")} />
-              {rendering ? "AI kiyimni kiyib ko'rsatmoqda..." : result ? `AI natija · ${result.garmentName}` : stream ? "Kamera tayyor" : "AI Fashion Studio"}
+              {rendering
+                ? "AI tanlangan kiyimni kiydirmoqda..."
+                : result
+                  ? `Tayyor · ${result.garmentName}`
+                  : stream && selected
+                    ? `2-qadam: Rasmga tushing · ${selected.name}`
+                    : selected
+                      ? `Tanlangan kiyim: ${selected.name}`
+                      : "1-qadam: Tepadan kiyim tanlang"}
             </span>
             <span className="rounded-full bg-black/45 px-2.5 py-1 text-[11px] font-medium text-white/80 backdrop-blur-md">
               {status.model}
             </span>
           </div>
 
-          {/* consent overlay before camera */}
+          {/* Selected garment mini preview while camera is open */}
+          {selected && stream && !result && !rendering && (
+            <div className="absolute top-14 right-3 flex items-center gap-2 rounded-2xl bg-black/55 p-1.5 pr-3 text-white backdrop-blur-md ring-1 ring-white/20">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={selected.cover_image ?? selected.ai_reference_image ?? ""}
+                alt={selected.name}
+                className="size-12 rounded-xl bg-white object-contain"
+              />
+              <div className="max-w-32">
+                <p className="text-[10px] text-white/70">Tanlangan kiyim</p>
+                <p className="truncate text-xs font-bold">{selected.name}</p>
+              </div>
+            </div>
+          )}
+
+          {/* Overlay before camera opens */}
           {!stream && !result && (
-            <Panel icon={<ShieldCheckIcon />} title="MarosimGo AI Fashion Studio">
-              <p>
-                Kamerangizdan olingan kadr va siz tanlagan haqiqiy kiyim rasmi AI orqali birlashtirilib, ustingizda
-                fotorealistik ko'rinishda ko'rsatiladi. Surat serverda saqlanmaydi.
-              </p>
-              {cameraError && <p className="text-xs text-rose-300">{cameraError}</p>}
-              <label className="flex items-start gap-2 text-left text-white">
-                <input
-                  type="checkbox"
-                  className="mt-0.5 size-4 accent-blue-500"
-                  checked={consent}
-                  onChange={(e) => setConsent(e.target.checked)}
-                />
-                <span>Kamera va AI qayta ishlashga roziman</span>
-              </label>
-              <Button size="lg" className="w-full" disabled={!consent} onClick={openCamera}>
-                <CameraIcon /> Kamerani yoqish
-              </Button>
+            <Panel
+              icon={selected ? <CameraIcon /> : <ShirtIcon />}
+              title={selected ? "2-qadam: Kamerani yoqib rasmga tushing" : "1-qadam: Avval kiyim tanlang"}
+            >
+              {selected ? (
+                <>
+                  <div className="mx-auto flex items-center gap-3 rounded-2xl bg-white/10 p-2 text-left">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={selected.cover_image ?? selected.ai_reference_image ?? ""}
+                      alt={selected.name}
+                      className="size-14 shrink-0 rounded-xl bg-white object-contain"
+                    />
+                    <div className="min-w-0">
+                      <p className="text-[11px] text-white/70">Tanlangan kiyim:</p>
+                      <p className="truncate text-sm font-bold text-white">{selected.name}</p>
+                    </div>
+                  </div>
+                  <p className="text-xs">
+                    Kamerani yoqing, tik va yorug&apos; joyda turing, so&apos;ng suratga oling — AI aynan shu kiyimni
+                    yuzingizni o&apos;zgartirmasdan ustingizda ko&apos;rsatadi.
+                  </p>
+                  {cameraError && <p className="text-xs text-rose-300">{cameraError}</p>}
+                  <label className="flex items-start gap-2 text-left text-white">
+                    <input
+                      type="checkbox"
+                      className="mt-0.5 size-4 accent-blue-500"
+                      checked={consent}
+                      onChange={(e) => setConsent(e.target.checked)}
+                    />
+                    <span>Kamera va AI qayta ishlashga roziman</span>
+                  </label>
+                  <Button size="lg" className="w-full" disabled={!consent} onClick={openCamera}>
+                    <CameraIcon /> Kamerani yoqish
+                  </Button>
+                </>
+              ) : (
+                <p>
+                  Tepadagi ro&apos;yxatdan kiyib ko&apos;rmoqchi bo&apos;lgan kiyimingizni tanlang — shundan keyin
+                  kamera ochiladi.
+                </p>
+              )}
             </Panel>
           )}
 
           {rendering && (
             <Busy
-              title="AI kiyimni kiydirmoqda"
-              note="Taxminan 10–20 soniya davom etadi. Iltimos kuting..."
+              title={`${selected?.name ?? "Kiyim"} kiydirilmoqda`}
+              note="Yuzingiz va holatingiz saqlangan holda fotorealistik natija tayyorlanmoqda (10–20 soniya)..."
             />
           )}
 
@@ -281,7 +356,7 @@ function SnapshotAiStudio({ status }: { status: AiStatus }) {
               {result ? (
                 <>
                   <Button variant="outline" className="border-white/30 bg-white/15 text-white" onClick={() => setResult(null)}>
-                    <RefreshCwIcon /> Qayta suratga olish
+                    <RefreshCwIcon /> Qayta rasmga olish
                   </Button>
                   {saveLook.isSuccess ? (
                     <Badge tone="success">Saqlandi</Badge>
@@ -294,15 +369,14 @@ function SnapshotAiStudio({ status }: { status: AiStatus }) {
               ) : (
                 <>
                   <Button size="lg" onClick={() => void tryOnNow(selected)} disabled={!selected}>
-                    <SparklesIcon />
-                    {selected ? `${selected.name} — AI bilan kiyib ko'rish` : "Pastdan kiyim tanlang"}
+                    <CameraIcon /> Rasmga olib, kiyib ko&apos;rish
                   </Button>
                   <button
                     type="button"
                     onClick={stopCamera}
                     className="rounded-full bg-black/50 px-3 py-2 text-xs font-semibold text-white backdrop-blur-md ring-1 ring-white/20 hover:bg-black/70"
                   >
-                    <CircleStopIcon className="mr-1 inline size-4" /> O'chirish
+                    <CircleStopIcon className="mr-1 inline size-4" /> O&apos;chirish
                   </button>
                 </>
               )}
@@ -312,15 +386,6 @@ function SnapshotAiStudio({ status }: { status: AiStatus }) {
       </section>
 
       {!!renderError && <ErrorState error={renderError} />}
-
-      <GarmentPicker
-        selected={selected}
-        onPick={(g) => {
-          setSelected(g);
-          setResult(null);
-        }}
-        disabled={rendering}
-      />
 
       <SavedLooks />
     </div>

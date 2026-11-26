@@ -117,7 +117,7 @@ def render_tryon(*, photo_bytes: bytes, garment) -> TryOnRenderResult:
     data = {
         "model": model,
         "prompt": _build_prompt(garment),
-        "size": "1024x1024",
+        "size": "auto",
         "quality": settings.AI_TRYON.get("OPENAI_QUALITY", "medium"),
         "input_fidelity": settings.AI_TRYON.get("OPENAI_INPUT_FIDELITY", "high"),
     }

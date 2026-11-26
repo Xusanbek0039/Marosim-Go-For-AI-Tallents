@@ -119,7 +119,7 @@ export default function VirtualTryOnPage() {
               <p className="text-xs text-muted-foreground">{formatMoney(selected.price)}</p>
             </div>
             {selected.ai_ready && !selected.tryon_ready ? (
-              <Link href="/ai-studio">
+              <Link href={`/ai-studio?garment=${selected.id}`}>
                 <Button>
                   <SparklesIcon /> AI bilan kiyib ko&apos;rish
                 </Button>
