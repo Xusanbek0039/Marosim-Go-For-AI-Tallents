@@ -288,6 +288,24 @@ class AiRenderLog(BaseModel):
         indexes = [models.Index(fields=["user", "kind", "created_at"]), models.Index(fields=["created_at", "kind"])]
 
 
+class AiQuotaBonus(BaseModel):
+    """Extra AI try-ons an admin grants one user for one calendar month (on top of their plan)."""
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="ai_quota_bonuses")
+    #: First day of the month the bonus is for.
+    month = models.DateField()
+    extra_videos = models.PositiveSmallIntegerField(default=0)
+    extra_photos = models.PositiveSmallIntegerField(default=0)
+    note = models.CharField(max_length=300, blank=True)
+    granted_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
+    )
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [models.Index(fields=["user", "month"])]
+
+
 class VideoJobStatus(models.TextChoices):
     PENDING = "PENDING", "Navbatda / tayyorlanmoqda"
     FINALIZING = "FINALIZING", "Natija yuklanmoqda"

@@ -2,6 +2,8 @@
 
 * Premium: the running subscription's ``ai_video_per_month`` / ``ai_photo_per_month``.
 * Without Premium: ``AI_FREE_PHOTOS_PER_MONTH`` photos and no video.
+* Plus any ``AiQuotaBonus`` an admin granted the user for this month (``grant_ai_quota`` command);
+  a video bonus also unlocks AI video for a user without Premium.
 
 Months are calendar months in the server time zone (Asia/Tashkent). A render is reserved before the
 provider is called and refunded if it fails, so a failed render never uses up the quota.
@@ -12,12 +14,13 @@ from decimal import Decimal
 
 from django.conf import settings
 from django.db import transaction
+from django.db.models import Sum
 from django.utils import timezone
 from rest_framework import status
 
 from apps.subscriptions.services import active_subscription
 
-from .models import AiRenderLog, RenderKind, RenderLogStatus
+from .models import AiQuotaBonus, AiRenderLog, RenderKind, RenderLogStatus
 
 UNIT_COST_USD = {
     RenderKind.PHOTO: lambda: Decimal(str(settings.PLATFORM_COSTS["AI_PHOTO_USD"])),
@@ -54,12 +57,21 @@ def _used(user, kind: str) -> int:
     )
 
 
+def _bonus(user) -> tuple[int, int]:
+    agg = AiQuotaBonus.objects.filter(user=user, month=month_start().date()).aggregate(
+        v=Sum("extra_videos"), p=Sum("extra_photos")
+    )
+    return agg["v"] or 0, agg["p"] or 0
+
+
 def quota(user) -> Quota:
     sub = active_subscription(user)
     if sub:
         video_limit, photo_limit = sub.ai_video_per_month, sub.ai_photo_per_month
     else:
         video_limit, photo_limit = 0, settings.AI_FREE_PHOTOS_PER_MONTH
+    bonus_video, bonus_photo = _bonus(user)
+    video_limit, photo_limit = video_limit + bonus_video, photo_limit + bonus_photo
     return Quota(
         is_premium=sub is not None,
         video_limit=video_limit,
@@ -78,7 +90,7 @@ def reserve(user, kind: str) -> AiRenderLog:
     with transaction.atomic():
         User.objects.select_for_update().filter(pk=user.pk).first()  # serialise one user's reservations
         q = quota(user)
-        if kind == RenderKind.VIDEO and not q.is_premium:
+        if kind == RenderKind.VIDEO and not q.is_premium and q.video_limit == 0:
             raise AiTryOnError(
                 "ai_premium_required",
                 "AI video faqat Premium obunada. Obuna bo'limida Premium sotib oling.",
