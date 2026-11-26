@@ -7,6 +7,9 @@ Primary engine (when ``REPLICATE_API_TOKEN`` is set):
   edits the video with temporal consistency, the user's exact face, background, and every single
   real movement stay locked to their original recording while only the garment changes.
 
+fal.ai (``FAL_KEY``) is not handled here: it renders for minutes, so it runs as a background job
+(see ``video_jobs.py``) instead of inside one request.
+
 Fallback (when ``REPLICATE_API_TOKEN`` is not set):
 * OpenAI ``gpt-image-1.5`` keyframe try-on + ``ffmpeg`` motion interpolation.
 """
@@ -26,7 +29,7 @@ from django.conf import settings
 from PIL import Image
 from rest_framework.exceptions import ValidationError
 
-from . import fal_tryon, openai_tryon
+from . import openai_tryon
 
 logger = logging.getLogger("apps.virtual_tryon.video")
 
@@ -320,41 +323,6 @@ def render_video_tryon(*, video_upload, garment) -> VideoTryOnResult:
         with open(src, "wb") as fh:
             for chunk in video_upload.chunks():
                 fh.write(chunk)
-
-        if fal_tryon.is_configured():
-            try:
-                norm_mp4 = work / "input_720p.mp4"
-                _normalize_input_mp4(src, norm_mp4)
-                mp4_bytes, model_id, latency_ms = fal_tryon.render_video_tryon(norm_mp4=norm_mp4, garment=garment)
-                out_mp4 = work / "fal_output.mp4"
-                out_mp4.write_bytes(mp4_bytes)
-                poster_bytes, width, height = _extract_poster(out_mp4, work / "fal_poster.jpg")
-                return VideoTryOnResult(
-                    video_bytes=mp4_bytes,
-                    poster_bytes=poster_bytes,
-                    width=width,
-                    height=height,
-                    frames=0,
-                    model=model_id,
-                    latency_ms=latency_ms,
-                )
-            except openai_tryon.OpenAITryOnError as exc:
-                if (
-                    exc.code
-                    in (
-                        "provider_insufficient_credits",
-                        "provider_auth_failed",
-                        "provider_rate_limited",
-                        "provider_unavailable",
-                    )
-                    and (is_replicate_configured() or openai_tryon.is_configured())
-                ):
-                    logger.warning(
-                        "fal.ai video try-on unavailable (%s); falling back to next provider",
-                        exc.code,
-                    )
-                else:
-                    raise
 
         if is_replicate_configured():
             try:

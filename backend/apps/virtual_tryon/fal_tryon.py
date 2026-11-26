@@ -5,7 +5,8 @@
   and pattern.
 * **Video Try-On**: ``fal-ai/kling-video/o3/standard/video-to-video/edit`` — temporal video-to-video
   editing that preserves the user's real camera motion while replacing only their outfit with
-  ``@Image1``.
+  ``@Image1``. It renders for minutes, so it is submitted and checked later (``submit_video_tryon``
+  / ``check_video_job`` / ``fetch_video_result``), never awaited inside one web request.
 
 Uses fal.ai's REST Storage + Queue API directly via ``requests`` (no extra SDK dependency), so the
 permanent ``FAL_KEY`` stays strictly on the server.
@@ -14,6 +15,7 @@ permanent ``FAL_KEY`` stays strictly on the server.
 import io
 import logging
 import time
+from dataclasses import dataclass
 from pathlib import Path
 
 import requests
@@ -110,8 +112,8 @@ def _upload_bytes(key: str, data: bytes, filename: str, content_type: str) -> st
     return str(file_url)
 
 
-def _run_queue(key: str, model_id: str, payload: dict, timeout_seconds: int) -> dict:
-    """Submit a job to ``queue.fal.run`` and poll until ``COMPLETED``."""
+def _submit(key: str, model_id: str, payload: dict) -> dict:
+    """Submit a job to ``queue.fal.run``. Returns the job with ``request_id``, ``status_url``, ``response_url``."""
     headers = {"Authorization": f"Key {key}", "Content-Type": "application/json"}
     try:
         submit_res = requests.post(
@@ -133,18 +135,47 @@ def _run_queue(key: str, model_id: str, payload: dict, timeout_seconds: int) -> 
         raise openai_tryon.OpenAITryOnError(code, submit_res.status_code)
 
     try:
-        job = submit_res.json()
+        job = dict(submit_res.json())
         req_id = job["request_id"]
     except (ValueError, KeyError, TypeError):
         raise openai_tryon.OpenAITryOnError("provider_bad_response", submit_res.status_code) from None
 
-    status_url = job.get("status_url") or f"{FAL_QUEUE_BASE}/{model_id}/requests/{req_id}/status"
-    response_url = job.get("response_url") or f"{FAL_QUEUE_BASE}/{model_id}/requests/{req_id}"
+    job.setdefault("status", "IN_QUEUE")
+    job["status_url"] = job.get("status_url") or f"{FAL_QUEUE_BASE}/{model_id}/requests/{req_id}/status"
+    job["response_url"] = job.get("response_url") or f"{FAL_QUEUE_BASE}/{model_id}/requests/{req_id}"
+    logger.info("fal job %s submitted to %s (status=%s)", req_id, model_id, job["status"])
+    return job
+
+
+def _fetch_result(key: str, response_url: str) -> dict:
+    try:
+        final_res = requests.get(response_url, headers={"Authorization": f"Key {key}"}, timeout=60)
+    except requests.Timeout:
+        raise openai_tryon.OpenAITryOnError("provider_timeout") from None
+    except requests.RequestException:
+        raise openai_tryon.OpenAITryOnError("provider_unavailable") from None
+
+    if final_res.status_code != 200:
+        code = _map_http_error(final_res.status_code)
+        logger.warning("fal result fetch failed (%s): HTTP %s (%s)", response_url, final_res.status_code, final_res.text[:300])
+        raise openai_tryon.OpenAITryOnError(code, final_res.status_code)
+
+    try:
+        return final_res.json()
+    except ValueError:
+        raise openai_tryon.OpenAITryOnError("provider_bad_response", 200) from None
+
+
+def _run_queue(key: str, model_id: str, payload: dict, timeout_seconds: int) -> dict:
+    """Submit a job and poll until ``COMPLETED`` (used for the fast photo model only)."""
+    job = _submit(key, model_id, payload)
+    req_id = job["request_id"]
+    status_url = job["status_url"]
+    response_url = job["response_url"]
 
     auth_header = {"Authorization": f"Key {key}"}
     deadline = time.monotonic() + timeout_seconds
-    status_val = job.get("status", "IN_QUEUE")
-    logger.info("fal job %s submitted to %s (status=%s)", req_id, model_id, status_val)
+    status_val = job["status"]
 
     while status_val not in ("COMPLETED", "FAILED", "CANCELLED"):
         if time.monotonic() > deadline:
@@ -176,22 +207,7 @@ def _run_queue(key: str, model_id: str, payload: dict, timeout_seconds: int) -> 
         logger.warning("fal job %s (%s) ended with status=%s", req_id, model_id, status_val)
         raise openai_tryon.OpenAITryOnError("provider_rejected_request")
 
-    try:
-        final_res = requests.get(response_url, headers=auth_header, timeout=60)
-    except requests.Timeout:
-        raise openai_tryon.OpenAITryOnError("provider_timeout") from None
-    except requests.RequestException:
-        raise openai_tryon.OpenAITryOnError("provider_unavailable") from None
-
-    if final_res.status_code != 200:
-        code = _map_http_error(final_res.status_code)
-        logger.warning("fal result fetch failed (%s): HTTP %s (%s)", req_id, final_res.status_code, final_res.text[:300])
-        raise openai_tryon.OpenAITryOnError(code, final_res.status_code)
-
-    try:
-        return final_res.json()
-    except ValueError:
-        raise openai_tryon.OpenAITryOnError("provider_bad_response", 200) from None
+    return _fetch_result(key, response_url)
 
 
 def render_photo_tryon(
@@ -257,24 +273,17 @@ def render_photo_tryon(
     )
 
 
-def render_video_tryon(*, norm_mp4: Path, garment) -> tuple[bytes, str, int]:
-    """Run video virtual try-on on a normalized ≥720p MP4 + garment via fal.ai Kling O3 Edit.
+@dataclass(frozen=True)
+class FalVideoJob:
+    request_id: str
+    status_url: str
+    response_url: str
+    model_id: str
 
-    Returns ``(mp4_bytes, model_id, latency_ms)``.
-    """
-    if not is_configured():
-        raise openai_tryon.OpenAITryOnError("ai_tryon_not_configured")
 
-    key = _api_key()
-    model_id = _video_model()
-    started = time.monotonic()
-
-    garment_bytes = openai_tryon._garment_png(garment)
-    video_url = _upload_bytes(key, norm_mp4.read_bytes(), "input_720p.mp4", "video/mp4")
-    garment_url = _upload_bytes(key, garment_bytes, "garment.png", "image/png")
-
+def _video_prompt(garment) -> str:
     garment_desc = (garment.ai_prompt or "").strip() or garment.name
-    prompt = (
+    return (
         "Strict virtual try-on video edit. Keep the exact same person from the video: "
         "preserve their exact face, facial expression, hairstyle, skin tone, hands, body, "
         "exact movements, camera angle, and background unchanged in every frame. "
@@ -283,18 +292,58 @@ def render_video_tryon(*, norm_mp4: Path, garment) -> tuple[bytes, str, int]:
         "naturally with their body."
     )
 
-    result = _run_queue(
+
+def submit_video_tryon(*, norm_mp4: Path, garment) -> FalVideoJob:
+    """Upload inputs and enqueue a Kling O3 video edit on fal.ai. Returns at once; fal bills this job.
+
+    The render takes several minutes, far longer than a web request may stay open, so the caller
+    stores the returned job and checks it later with :func:`check_video_job`.
+    """
+    if not is_configured():
+        raise openai_tryon.OpenAITryOnError("ai_tryon_not_configured")
+
+    key = _api_key()
+    model_id = _video_model()
+    garment_bytes = openai_tryon._garment_png(garment)
+    video_url = _upload_bytes(key, norm_mp4.read_bytes(), "input_720p.mp4", "video/mp4")
+    garment_url = _upload_bytes(key, garment_bytes, "garment.png", "image/png")
+
+    job = _submit(
         key,
         model_id,
-        {
-            "prompt": prompt,
-            "video_url": video_url,
-            "image_urls": [garment_url],
-            "keep_audio": False,
-        },
-        timeout_seconds=_timeout(),
+        {"prompt": _video_prompt(garment), "video_url": video_url, "image_urls": [garment_url], "keep_audio": False},
+    )
+    return FalVideoJob(
+        request_id=job["request_id"],
+        status_url=job["status_url"],
+        response_url=job["response_url"],
+        model_id=model_id,
     )
 
+
+def check_video_job(status_url: str) -> tuple[str, str]:
+    """One status check (no waiting). Returns ``(status, response_url_or_empty)``.
+
+    ``status`` is fal's own value: ``IN_QUEUE``, ``IN_PROGRESS``, ``COMPLETED``, ``FAILED``, ``CANCELLED``.
+    """
+    try:
+        res = requests.get(status_url, headers={"Authorization": f"Key {_api_key()}"}, timeout=20)
+    except requests.Timeout:
+        raise openai_tryon.OpenAITryOnError("provider_timeout") from None
+    except requests.RequestException:
+        raise openai_tryon.OpenAITryOnError("provider_unavailable") from None
+    if res.status_code not in (200, 202):
+        raise openai_tryon.OpenAITryOnError(_map_http_error(res.status_code), res.status_code)
+    try:
+        data = res.json()
+    except ValueError:
+        raise openai_tryon.OpenAITryOnError("provider_bad_response", res.status_code) from None
+    return str(data.get("status", "")), str(data.get("response_url") or "")
+
+
+def fetch_video_result(response_url: str) -> bytes:
+    """Download the finished MP4 of a COMPLETED job. Safe to repeat: fal keeps the result, no new charge."""
+    result = _fetch_result(_api_key(), response_url)
     video_obj = result.get("video")
     out_url = video_obj.get("url") if isinstance(video_obj, dict) else None
     if not isinstance(out_url, str) or not out_url.startswith("http"):
@@ -310,6 +359,4 @@ def render_video_tryon(*, norm_mp4: Path, garment) -> tuple[bytes, str, int]:
 
     if dl.status_code != 200 or not dl.content:
         raise openai_tryon.OpenAITryOnError("provider_unavailable", dl.status_code)
-
-    latency_ms = int((time.monotonic() - started) * 1000)
-    return dl.content, model_id, latency_ms
+    return dl.content

@@ -35,7 +35,7 @@ from rest_framework.views import APIView
 from apps.accounts.access import AccessNote
 from apps.ceremonies.permissions import IsClientUser
 
-from . import ai, decart, drive_sync, fal_tryon, openai_tryon, video_tryon, watermark
+from . import ai, decart, drive_sync, fal_tryon, openai_tryon, video_jobs, video_tryon, watermark
 from .models import (
     AiTryOnSession,
     ApprovalStatus,
@@ -47,6 +47,8 @@ from .models import (
     GarmentOrder,
     SavedLook,
     TryOnSession,
+    VideoJobStatus,
+    VideoTryOnJob,
 )
 from .serializers import (
     AiFinishSerializer,
@@ -370,8 +372,49 @@ class AiRenderView(APIView):
         )
 
 
+def _video_look_payload(request, look, *, model: str, latency_ms: int, frames: int = 0) -> dict:
+    from django.urls import reverse
+
+    return {
+        "status": VideoJobStatus.DONE,
+        "look_id": str(look.pk),
+        "video_url": request.build_absolute_uri(reverse("tryon-look-video", args=[look.pk])),
+        "poster_url": request.build_absolute_uri(reverse("tryon-look-image", args=[look.pk])),
+        "download_url": request.build_absolute_uri(reverse("tryon-look-download", args=[look.pk])),
+        "width": look.width,
+        "height": look.height,
+        "frames": frames,
+        "model": model,
+        "latency_ms": latency_ms,
+        "garment": str(look.garment_id) if look.garment_id else None,
+        "drive_file_id": look.drive_file_id,
+        "drive_web_url": look.drive_web_url,
+    }
+
+
+def _video_job_payload(request, job: VideoTryOnJob) -> dict:
+    if job.status == VideoJobStatus.DONE and job.look_id:
+        latency_ms = int(((job.finished_at or job.updated_at) - job.created_at).total_seconds() * 1000)
+        return {"job_id": str(job.pk), **_video_look_payload(request, job.look, model=job.model, latency_ms=latency_ms)}
+    payload = {"job_id": str(job.pk), "status": job.status, "garment": str(job.garment_id) if job.garment_id else None}
+    if job.status == VideoJobStatus.FAILED:
+        message, _ = ai.PROVIDER_MESSAGES.get(job.error_code, ai.PROVIDER_MESSAGES["provider_unavailable"])
+        payload["error"] = {"code": job.error_code, "message": message}
+    return payload
+
+
+def _provider_error(exc: openai_tryon.OpenAITryOnError) -> ai.AiTryOnError:
+    message, http_status = ai.PROVIDER_MESSAGES.get(exc.code, ai.PROVIDER_MESSAGES["provider_unavailable"])
+    return ai.AiTryOnError(exc.code, message, http_status)
+
+
 class AiRenderVideoView(APIView):
-    """Video Virtual Try-On: short camera video + garment → ffmpeg + OpenAI → MP4."""
+    """Video Virtual Try-On: short camera video + garment → MP4.
+
+    With fal.ai configured the render runs in the background: the response is ``202`` with a
+    ``job_id``; poll ``ai/render-video/{job_id}/`` until ``status`` is ``DONE`` or ``FAILED``.
+    Otherwise (Replicate / OpenAI keyframes) it answers ``200`` with the finished video.
+    """
 
     permission_classes = [IsClientUser]
     throttle_scope = "ai_tryon_session"
@@ -381,25 +424,30 @@ class AiRenderVideoView(APIView):
         summary="Kamera videosi ustida kiyimni AI bilan kiyib ko'rish (MP4 video)",
         tags=["virtual-tryon"],
         request={"multipart/form-data": AiRenderVideoRequestSerializer},
-        responses={200: OpenApiTypes.OBJECT},
+        responses={200: OpenApiTypes.OBJECT, 202: OpenApiTypes.OBJECT},
     )
     def post(self, request):
-        from django.urls import reverse
-
         body = AiRenderVideoRequestSerializer(data=request.data)
         body.is_valid(raise_exception=True)
         garment = get_object_or_404(
             visible_garments().exclude(ai_reference_image=""),
             pk=body.validated_data["garment"],
         )
+
+        if fal_tryon.is_configured():
+            try:
+                job = video_jobs.start(user=request.user, video_upload=body.validated_data["video"], garment=garment)
+            except openai_tryon.OpenAITryOnError as exc:
+                raise _provider_error(exc) from None
+            return Response(_video_job_payload(request, job), status=status.HTTP_202_ACCEPTED)
+
         try:
             result = video_tryon.render_video_tryon(
                 video_upload=body.validated_data["video"],
                 garment=garment,
             )
         except openai_tryon.OpenAITryOnError as exc:
-            message, http_status = ai.PROVIDER_MESSAGES.get(exc.code, ai.PROVIDER_MESSAGES["provider_unavailable"])
-            raise ai.AiTryOnError(exc.code, message, http_status) from None
+            raise _provider_error(exc) from None
 
         look = SavedLook(
             user=request.user,
@@ -411,26 +459,25 @@ class AiRenderVideoView(APIView):
         look.video.save(f"tryon-{garment.pk}.mp4", ContentFile(result.video_bytes), save=False)
         look.save()
         drive_sync.upload_look_to_drive(look)
-
-        video_url = request.build_absolute_uri(reverse("tryon-look-video", args=[look.pk]))
-        poster_url = request.build_absolute_uri(reverse("tryon-look-image", args=[look.pk]))
-        download_url = request.build_absolute_uri(reverse("tryon-look-download", args=[look.pk]))
         return Response(
-            {
-                "look_id": str(look.pk),
-                "video_url": video_url,
-                "poster_url": poster_url,
-                "download_url": download_url,
-                "width": result.width,
-                "height": result.height,
-                "frames": result.frames,
-                "model": result.model,
-                "latency_ms": result.latency_ms,
-                "garment": str(garment.pk),
-                "drive_file_id": look.drive_file_id,
-                "drive_web_url": look.drive_web_url,
-            }
+            _video_look_payload(request, look, model=result.model, latency_ms=result.latency_ms, frames=result.frames)
         )
+
+
+class AiRenderVideoJobView(APIView):
+    """Status of a background video try-on; returns the finished video once it is ready."""
+
+    permission_classes = [IsClientUser]
+
+    @extend_schema(
+        summary="AI video tayyorlanish holati (PENDING / FINALIZING / DONE / FAILED)",
+        tags=["virtual-tryon"],
+        responses={200: OpenApiTypes.OBJECT},
+    )
+    def get(self, request, job_id):
+        job = get_object_or_404(VideoTryOnJob.objects.select_related("look"), pk=job_id, user=request.user)
+        job = video_jobs.advance(job)
+        return Response(_video_job_payload(request, job))
 
 
 class AiSessionViewSet(mixins.RetrieveModelMixin, viewsets.GenericViewSet):

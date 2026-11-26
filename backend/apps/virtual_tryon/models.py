@@ -257,6 +257,32 @@ class SavedLook(BaseModel):
         indexes = [models.Index(fields=["user", "created_at"])]
 
 
+class VideoJobStatus(models.TextChoices):
+    PENDING = "PENDING", "Navbatda / tayyorlanmoqda"
+    FINALIZING = "FINALIZING", "Natija yuklanmoqda"
+    DONE = "DONE", "Tayyor"
+    FAILED = "FAILED", "Xato"
+
+
+class VideoTryOnJob(BaseModel):
+    """A paid fal.ai video render. Kept so a finished (already billed) render is never lost or resubmitted."""
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="tryon_video_jobs")
+    garment = models.ForeignKey(Garment, on_delete=models.SET_NULL, null=True, blank=True, related_name="+")
+    status = models.CharField(max_length=12, choices=VideoJobStatus.choices, default=VideoJobStatus.PENDING)
+    model = models.CharField(max_length=200, blank=True, default="")
+    request_id = models.CharField(max_length=128, unique=True)
+    status_url = models.URLField(max_length=500)
+    response_url = models.URLField(max_length=500)
+    look = models.OneToOneField(SavedLook, on_delete=models.SET_NULL, null=True, blank=True, related_name="video_job")
+    error_code = models.CharField(max_length=64, blank=True, default="")
+    finished_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [models.Index(fields=["status", "created_at"])]
+
+
 class OrderStatus(models.TextChoices):
     NEW = "NEW", "Yangi"
     CONFIRMED = "CONFIRMED", "Tasdiqlangan"

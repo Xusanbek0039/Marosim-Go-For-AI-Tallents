@@ -105,6 +105,11 @@ urlpatterns = [
     path("virtual-tryon/ai/status/", tryon_views.AiStatusView.as_view(), name="tryon-ai-status"),
     path("virtual-tryon/ai/render/", tryon_views.AiRenderView.as_view(), name="tryon-ai-render"),
     path("virtual-tryon/ai/render-video/", tryon_views.AiRenderVideoView.as_view(), name="tryon-ai-render-video"),
+    path(
+        "virtual-tryon/ai/render-video/<uuid:job_id>/",
+        tryon_views.AiRenderVideoJobView.as_view(),
+        name="tryon-ai-render-video-job",
+    ),
     path("admin/virtual-tryon/ai-usage/", AiUsageView.as_view(), name="admin-tryon-ai-usage"),
     path("admin/virtual-tryon/categories/", AdminCategoryListView.as_view(), name="admin-tryon-categories"),
     path("health/ready/", ReadyView.as_view(), name="health-ready"),
