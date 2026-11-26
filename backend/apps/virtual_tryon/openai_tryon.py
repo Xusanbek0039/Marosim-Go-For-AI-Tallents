@@ -101,7 +101,13 @@ def _build_prompt(garment) -> str:
     )
 
 
-def render_tryon(*, photo_bytes: bytes, garment, garment_bytes: bytes | None = None) -> TryOnRenderResult:
+def render_tryon(
+    *,
+    photo_bytes: bytes,
+    garment,
+    garment_bytes: bytes | None = None,
+    quality: str | None = None,
+) -> TryOnRenderResult:
     """Call OpenAI ``/v1/images/edits`` with the person photo + garment reference image."""
     if not is_configured():
         raise OpenAITryOnError("ai_tryon_not_configured")
@@ -118,7 +124,7 @@ def render_tryon(*, photo_bytes: bytes, garment, garment_bytes: bytes | None = N
         "model": model,
         "prompt": _build_prompt(garment),
         "size": "auto",
-        "quality": settings.AI_TRYON.get("OPENAI_QUALITY", "medium"),
+        "quality": quality or settings.AI_TRYON.get("OPENAI_QUALITY", "medium"),
         "input_fidelity": settings.AI_TRYON.get("OPENAI_INPUT_FIDELITY", "high"),
     }
 

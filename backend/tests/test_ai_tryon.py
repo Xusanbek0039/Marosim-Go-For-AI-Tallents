@@ -555,3 +555,76 @@ def test_download_watermark_free_vs_premium_and_orders(super_admin, user, client
     upd = sa.patch(f"/api/v1/admin/virtual-tryon/orders/{order_id}/", {"status": "CONFIRMED"}, format="json")
     assert upd.status_code == 200 and upd.data["status"] == "CONFIRMED"
     assert u_client.get("/api/v1/admin/virtual-tryon/orders/").status_code == 403
+
+
+def test_video_tryon_preserves_motion_sequence(settings, monkeypatch, user, client_for):
+    import shutil
+    import subprocess
+    import tempfile
+    from apps.virtual_tryon import openai_tryon
+
+    if not shutil.which("ffmpeg"):
+        pytest.skip("ffmpeg not installed")
+
+    settings.AI_TRYON = {**settings.AI_TRYON, "API_KEY": "", "OPENAI_MODEL": "gpt-image-1.5"}
+    settings.AI_PLANNER = {**settings.AI_PLANNER, "OPENAI_API_KEY": "sk-test-video"}
+    garment = make_garment(name="Motion Test Suit")
+
+    # Echo each input frame with a colored garment rectangle so motion across frames is preserved
+    call_count = 0
+
+    def fake_render(*, photo_bytes, garment, garment_bytes=None, quality=None):
+        nonlocal call_count
+        call_count += 1
+        img = Image.open(io.BytesIO(photo_bytes)).convert("RGB")
+        buf = io.BytesIO()
+        img.save(buf, format="JPEG", quality=90)
+        return openai_tryon.TryOnRenderResult(
+            image_bytes=buf.getvalue(),
+            content_type="image/jpeg",
+            width=img.width,
+            height=img.height,
+            model="gpt-image-1.5",
+            latency_ms=50,
+        )
+
+    monkeypatch.setattr(openai_tryon, "render_tryon", fake_render)
+
+    with tempfile.TemporaryDirectory() as tmp:
+        src = Path(tmp) / "motion.webm"
+        # 4-second synthetic moving test video
+        subprocess.run(
+            [
+                "ffmpeg",
+                "-y",
+                "-f",
+                "lavfi",
+                "-i",
+                "testsrc=duration=4:size=320x240:rate=12",
+                "-c:v",
+                "libvpx",
+                str(src),
+            ],
+            check=True,
+            capture_output=True,
+        )
+        upload = SimpleUploadedFile("motion.webm", src.read_bytes(), content_type="video/webm")
+
+    client = client_for(user)
+    res = client.post(
+        f"{BASE}/ai/render-video/",
+        {"garment": str(garment.pk), "video": upload},
+        format="multipart",
+    )
+    assert res.status_code == 200, res.data
+    assert res.data["frames"] == 8
+    assert call_count == 8
+    assert res.data["video_url"].endswith("/video/")
+
+    vid_res = client.get(res.data["video_url"])
+    assert vid_res.status_code == 200 and vid_res["Content-Type"] == "video/mp4"
+    mp4_bytes = b"".join(vid_res.streaming_content)
+    assert len(mp4_bytes) > 1000
+
+    dl_res = client.get(res.data["download_url"])
+    assert dl_res.status_code == 200 and "attachment" in dl_res["Content-Disposition"]

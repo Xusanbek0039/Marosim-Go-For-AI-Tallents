@@ -1,11 +1,12 @@
-"""Video Virtual Try-On pipeline for Apple Silicon / CPU servers (ffmpeg + OpenAI gpt-image-1.5).
+"""Motion-preserving Video Virtual Try-On pipeline (ffmpeg optical-flow + OpenAI gpt-image-1.5).
 
 Flow:
-1. Extract 3 evenly-spaced pose keyframes from the user's 3–5 s camera video via ``ffmpeg``.
-2. Run ``openai_tryon.render_tryon`` on the keyframes in parallel (preserving facial identity with
-   ``input_fidelity="high"``).
-3. Assemble the dressed frames into a smooth, looping ~5 s H.264 MP4 showcase via ``ffmpeg``
-   ``xfade`` transitions (compatible with Chrome, Safari, iOS and Android).
+1. Extract 8 evenly-spaced motion frames across the user's 4-second camera recording (2 fps) so
+   every real movement (turning, raising arms, smiling, shifting posture) is captured in order.
+2. Dress all 8 frames in parallel via OpenAI ``gpt-image-1.5`` (``input_fidelity="high"``) while
+   strictly preserving the user's exact face, hands, body pose and room background in each frame.
+3. Reconstruct fluid 24 fps motion from the user's exact sequence using ``ffmpeg`` optical-flow
+   motion-compensated interpolation (``minterpolate``), outputting a fast-start H.264 MP4.
 """
 
 import io
@@ -26,7 +27,10 @@ from . import openai_tryon
 logger = logging.getLogger("apps.virtual_tryon.video")
 
 MAX_VIDEO_BYTES = 25 * 1024 * 1024
-KEYFRAME_COUNT = 3
+KEYFRAME_COUNT = 8
+SOURCE_FPS = 2.0
+OUTPUT_FPS = 24
+MAX_OUTPUT_SIDE = 768
 
 
 @dataclass(frozen=True)
@@ -48,25 +52,23 @@ def _ffmpeg_bin() -> str:
 
 
 def _extract_keyframes(video_path: Path, out_dir: Path, count: int = KEYFRAME_COUNT) -> list[bytes]:
-    """Extract ``count`` evenly-spaced PNG frames from ``video_path`` using ffmpeg."""
+    """Extract ``count`` evenly-spaced PNG motion frames in exact chronological order."""
     ffmpeg = _ffmpeg_bin()
-    pattern = out_dir / "frame_%02d.png"
-    # Sample at 1 fps (capped to 10 frames) and pick evenly spaced frames so it works on any duration/codec.
+    pattern = out_dir / "frame_%03d.png"
     cmd = [
         ffmpeg,
         "-y",
         "-i",
         str(video_path),
         "-vf",
-        "fps=2,scale='min(1024,iw)':'min(1024,ih)':force_original_aspect_ratio=decrease",
+        "fps=4,scale='min(1024,iw)':'min(1024,ih)':force_original_aspect_ratio=decrease",
         "-frames:v",
-        "12",
+        "24",
         str(pattern),
     ]
     proc = subprocess.run(cmd, capture_output=True, timeout=30, check=False)
     files = sorted(out_dir.glob("frame_*.png"))
     if not files:
-        # Fallback: grab at least the very first frame if video is ultra-short
         fallback = out_dir / "single.png"
         subprocess.run(
             [ffmpeg, "-y", "-i", str(video_path), "-frames:v", "1", str(fallback)],
@@ -96,36 +98,42 @@ def _extract_keyframes(video_path: Path, out_dir: Path, count: int = KEYFRAME_CO
     return out
 
 
-def _assemble_mp4(frame_jpegs: list[bytes], work_dir: Path) -> tuple[bytes, int, int]:
-    """Normalize frame sizes and stitch them into a smooth H.264 MP4 using ffmpeg xfade."""
+def _assemble_motion_mp4(frame_jpegs: list[bytes], work_dir: Path) -> tuple[bytes, int, int]:
+    """Assemble dressed user motion frames into a fluid 24 fps MP4 using optical-flow interpolation."""
     ffmpeg = _ffmpeg_bin()
     imgs = [Image.open(io.BytesIO(raw)).convert("RGB") for raw in frame_jpegs]
-    # Use the first frame's aspect ratio, rounded to even dimensions for yuv420p.
-    target_w = (imgs[0].width // 2) * 2
-    target_h = (imgs[0].height // 2) * 2
-    saved: list[Path] = []
-    for idx, img in enumerate(imgs):
+    first = imgs[0].copy()
+    first.thumbnail((MAX_OUTPUT_SIDE, MAX_OUTPUT_SIDE), Image.LANCZOS)
+    target_w = max(2, (first.width // 2) * 2)
+    target_h = max(2, (first.height // 2) * 2)
+
+    for idx, img in enumerate(imgs, start=1):
         if img.size != (target_w, target_h):
             img = img.resize((target_w, target_h), Image.LANCZOS)
-        path = work_dir / f"dressed_{idx:02d}.jpg"
-        img.save(path, format="JPEG", quality=92)
-        saved.append(path)
+        img.save(work_dir / f"dressed_{idx:03d}.jpg", format="JPEG", quality=92)
 
-    out_mp4 = work_dir / "tryon_result.mp4"
-    if len(saved) == 1:
+    out_mp4 = work_dir / "tryon_motion.mp4"
+    input_fps = max(1.0, len(imgs) / 4.0)
+
+    if len(imgs) == 1:
+        vf = f"fps={OUTPUT_FPS},format=yuv420p"
         cmd = [
             ffmpeg,
             "-y",
             "-loop",
             "1",
             "-t",
-            "3.5",
+            "3.0",
             "-i",
-            str(saved[0]),
+            str(work_dir / "dressed_001.jpg"),
             "-vf",
-            "fps=25,format=yuv420p",
+            vf,
             "-c:v",
             "libx264",
+            "-preset",
+            "veryfast",
+            "-crf",
+            "22",
             "-pix_fmt",
             "yuv420p",
             "-movflags",
@@ -133,31 +141,21 @@ def _assemble_mp4(frame_jpegs: list[bytes], work_dir: Path) -> tuple[bytes, int,
             str(out_mp4),
         ]
     else:
-        # Build smooth crossfade chain across all frames (plus return to frame 0 for seamless loop feel)
-        seq = [*saved, saved[0]]
-        seg_dur = 1.6
-        fade_dur = 0.55
-        inputs: list[str] = []
-        for p in seq:
-            inputs += ["-loop", "1", "-t", str(seg_dur), "-i", str(p)]
-        filters: list[str] = []
-        prev = "0:v"
-        for i in range(1, len(seq)):
-            offset = round(i * (seg_dur - fade_dur), 2)
-            out_label = f"v{i}"
-            filters.append(f"[{prev}][{i}:v]xfade=transition=fade:duration={fade_dur}:offset={offset}[{out_label}]")
-            prev = out_label
-        filters.append(f"[{prev}]format=yuv420p[outv]")
+        # Optical-flow motion-compensated interpolation preserves the user's exact recorded movements
+        # between consecutive dressed frames without artificial camera panning or slideshow cuts.
+        vf = (
+            f"minterpolate=fps={OUTPUT_FPS}:mi_mode=mci:mc_mode=aobmc:me_mode=bidir:vsbmc=1,"
+            "format=yuv420p"
+        )
         cmd = [
             ffmpeg,
             "-y",
-            *inputs,
-            "-filter_complex",
-            ";".join(filters),
-            "-map",
-            "[outv]",
-            "-r",
-            "25",
+            "-framerate",
+            f"{input_fps:.2f}",
+            "-i",
+            str(work_dir / "dressed_%03d.jpg"),
+            "-vf",
+            vf,
             "-c:v",
             "libx264",
             "-preset",
@@ -171,15 +169,39 @@ def _assemble_mp4(frame_jpegs: list[bytes], work_dir: Path) -> tuple[bytes, int,
             str(out_mp4),
         ]
 
-    proc = subprocess.run(cmd, capture_output=True, timeout=60, check=False)
+    proc = subprocess.run(cmd, capture_output=True, timeout=90, check=False)
     if proc.returncode != 0 or not out_mp4.is_file():
-        logger.warning("ffmpeg assemble failed: %s", proc.stderr.decode(errors="ignore")[-400:])
-        raise openai_tryon.OpenAITryOnError("provider_unavailable")
+        logger.warning("ffmpeg minterpolate failed, falling back to blend: %s", proc.stderr.decode(errors="ignore")[-300:])
+        fallback_cmd = [
+            ffmpeg,
+            "-y",
+            "-framerate",
+            f"{input_fps:.2f}",
+            "-i",
+            str(work_dir / "dressed_%03d.jpg"),
+            "-vf",
+            f"minterpolate=fps={OUTPUT_FPS}:mi_mode=blend,format=yuv420p",
+            "-c:v",
+            "libx264",
+            "-preset",
+            "veryfast",
+            "-crf",
+            "22",
+            "-pix_fmt",
+            "yuv420p",
+            "-movflags",
+            "+faststart",
+            str(out_mp4),
+        ]
+        proc2 = subprocess.run(fallback_cmd, capture_output=True, timeout=60, check=False)
+        if proc2.returncode != 0 or not out_mp4.is_file():
+            logger.warning("ffmpeg fallback failed: %s", proc2.stderr.decode(errors="ignore")[-300:])
+            raise openai_tryon.OpenAITryOnError("provider_unavailable")
     return out_mp4.read_bytes(), target_w, target_h
 
 
 def render_video_tryon(*, video_upload, garment) -> VideoTryOnResult:
-    """Process uploaded camera video + garment → dressed MP4 video."""
+    """Process uploaded camera video + garment → motion-preserving 24 fps MP4 video."""
     if not openai_tryon.is_configured():
         raise openai_tryon.OpenAITryOnError("ai_tryon_not_configured")
     if video_upload.size > MAX_VIDEO_BYTES:
@@ -198,19 +220,20 @@ def render_video_tryon(*, video_upload, garment) -> VideoTryOnResult:
         # Pre-read the garment image ONCE on the main thread (Django's FieldFile is not thread-safe).
         garment_bytes = openai_tryon._garment_png(garment)
 
-        # Render all keyframes in parallel via OpenAI gpt-image-1.5 (input_fidelity="high")
+        # Render all 8 motion frames in parallel via OpenAI gpt-image-1.5 (input_fidelity="high")
         def _dress(frame_bytes: bytes) -> openai_tryon.TryOnRenderResult:
             return openai_tryon.render_tryon(
                 photo_bytes=frame_bytes,
                 garment=garment,
                 garment_bytes=garment_bytes,
+                quality="low",
             )
 
         with ThreadPoolExecutor(max_workers=len(keyframes)) as pool:
             results = list(pool.map(_dress, keyframes))
 
         dressed_jpegs = [r.image_bytes for r in results]
-        mp4_bytes, width, height = _assemble_mp4(dressed_jpegs, work)
+        mp4_bytes, width, height = _assemble_motion_mp4(dressed_jpegs, work)
 
     latency_ms = int((time.monotonic() - started) * 1000)
     return VideoTryOnResult(
