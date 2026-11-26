@@ -6,6 +6,7 @@ import {
   CameraIcon,
   CheckCircle2Icon,
   CircleStopIcon,
+  CrownIcon,
   DownloadIcon,
   GaugeIcon,
   ImagesIcon,
@@ -28,6 +29,7 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import Link from "next/link";
 import { createPortal } from "react-dom";
 
 import { Badge, Button, Card, cn, EmptyState, ErrorState, Skeleton } from "@/components/ui";
@@ -175,6 +177,8 @@ export function AiFashionStudio({ status }: { status: AiStatus }) {
 }
 
 function SnapshotAiStudio({ status }: { status: AiStatus }) {
+  const videoLeft = status.quota?.video_left;
+  const photoLeft = status.quota?.photo_left;
   const [consent, setConsent] = useState(false);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
@@ -258,6 +262,7 @@ function SnapshotAiStudio({ status }: { status: AiStatus }) {
       setRenderError(err);
     } finally {
       setRendering(false);
+      void queryClient.invalidateQueries({ queryKey: ["tryon", "ai", "status"] });
     }
   };
 
@@ -311,6 +316,7 @@ function SnapshotAiStudio({ status }: { status: AiStatus }) {
       window.clearInterval(timer);
       setRecordingSec(null);
       setRendering(false);
+      void queryClient.invalidateQueries({ queryKey: ["tryon", "ai", "status"] });
     }
   };
 
@@ -511,11 +517,25 @@ function SnapshotAiStudio({ status }: { status: AiStatus }) {
                 </>
               ) : (
                 <>
-                  <Button size="lg" onClick={() => void tryOnVideo(selected)} disabled={!selected}>
-                    <VideoIcon /> Video Try-On (4 soniya)
-                  </Button>
-                  <Button variant="outline" className="border-white/30 bg-white/15 text-white" onClick={() => void tryOnNow(selected)} disabled={!selected}>
-                    <CameraIcon /> Rasm (tez)
+                  {status.is_premium ? (
+                    <Button size="lg" onClick={() => void tryOnVideo(selected)} disabled={!selected || videoLeft === 0}>
+                      <VideoIcon /> {videoLeft === 0 ? "Video: bu oy limiti tugadi" : `Video Try-On (4 soniya) · ${videoLeft} ta`}
+                    </Button>
+                  ) : (
+                    <Link
+                      href="/obuna"
+                      className="inline-flex h-11 items-center gap-2 rounded-2xl bg-gradient-to-r from-amber-400 to-orange-500 px-5 text-sm font-bold text-white shadow-lg"
+                    >
+                      <CrownIcon className="size-4" aria-hidden /> Video Try-On — Premium
+                    </Link>
+                  )}
+                  <Button
+                    variant="outline"
+                    className="border-white/30 bg-white/15 text-white"
+                    onClick={() => void tryOnNow(selected)}
+                    disabled={!selected || photoLeft === 0}
+                  >
+                    <CameraIcon /> {photoLeft === 0 ? "Rasm: bu oy limiti tugadi" : `Rasm (tez)${photoLeft !== undefined ? ` · ${photoLeft} ta` : ""}`}
                   </Button>
                   <button
                     type="button"
@@ -530,6 +550,20 @@ function SnapshotAiStudio({ status }: { status: AiStatus }) {
           )}
         </div>
       </section>
+
+      {status.quota && (
+        <p className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-center text-xs text-muted-foreground">
+          <span>
+            Bu oy: AI video <b>{status.quota.video_left}</b>/{status.quota.video_limit} · AI rasm <b>{status.quota.photo_left}</b>/
+            {status.quota.photo_limit}
+          </span>
+          {!status.is_premium && (
+            <Link href="/obuna" className="font-semibold text-brand underline-offset-2 hover:underline">
+              Premium: oyiga 2 ta AI video va 15 ta rasm →
+            </Link>
+          )}
+        </p>
+      )}
 
       {result && !status.is_premium && (
         <p className="text-center text-xs text-muted-foreground">
