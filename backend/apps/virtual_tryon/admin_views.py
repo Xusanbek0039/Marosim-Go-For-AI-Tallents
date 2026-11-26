@@ -375,12 +375,12 @@ class AdminSavedLookViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, vi
     )
     @action(detail=True, methods=["get"], url_path="video", url_name="video")
     def video(self, request, pk=None):
+        from .views import serve_mp4_range
+
         look = self.get_object()
         if not look.video:
             raise NotFound("Video mavjud emas.")
-        response = FileResponse(look.video.open("rb"), content_type="video/mp4")
-        response["Cache-Control"] = "private, no-store"
-        return response
+        return serve_mp4_range(request, look.video)
 
     @extend_schema(
         summary="Obrazni Google Drive'ga yuklash",

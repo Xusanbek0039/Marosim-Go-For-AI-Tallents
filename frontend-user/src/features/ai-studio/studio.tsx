@@ -11,6 +11,7 @@ import {
   ImagesIcon,
   Loader2Icon,
   PauseIcon,
+  PlayIcon,
   RefreshCwIcon,
   ScanFaceIcon,
   ShieldCheckIcon,
@@ -24,6 +25,7 @@ import {
   WifiOffIcon,
   XIcon,
 } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 
@@ -31,6 +33,7 @@ import { Badge, Button, Card, cn, EmptyState, ErrorState, Skeleton } from "@/com
 import {
   aiApi,
   type AiStatus,
+  type SavedLook,
   useAiGarments,
   useCreateGarmentOrder,
   useDeleteLook,
@@ -41,6 +44,7 @@ import { useMe } from "@/lib/auth";
 import { type Garment, useGarmentCategories } from "@/lib/tryon";
 
 import { type GarmentInput, type Phase, type StudioDeps, StudioSession, type StudioState } from "./session";
+import { MarosimVideoPlayer } from "./video-player";
 
 // ------------------------------------------------------------------ real dependencies
 /** The official SDK is loaded only when the studio opens (it pulls in livekit-client). */
@@ -188,6 +192,7 @@ function SnapshotAiStudio({ status }: { status: AiStatus }) {
   const [buyOpen, setBuyOpen] = useState(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const stageRef = useRef<HTMLElement | null>(null);
+  const queryClient = useQueryClient();
   const saveLook = useSaveLook();
   const allAiGarments = useAiGarments(null);
 
@@ -247,6 +252,7 @@ function SnapshotAiStudio({ status }: { status: AiStatus }) {
       if (!blob) throw new Error("Kadrni olib bo'lmadi.");
       const out = await aiApi.render(blob, garment.id);
       setResult({ url: out.image, lookId: out.look_id, garment, latencyMs: out.latency_ms });
+      void queryClient.invalidateQueries({ queryKey: ["tryon", "looks"] });
     } catch (err) {
       setRenderError(err);
     } finally {
@@ -297,6 +303,7 @@ function SnapshotAiStudio({ status }: { status: AiStatus }) {
         garment,
         latencyMs: out.latency_ms,
       });
+      void queryClient.invalidateQueries({ queryKey: ["tryon", "looks"] });
     } catch (err) {
       setRenderError(err);
     } finally {
@@ -1371,77 +1378,175 @@ function Chip({ active, onClick, children }: { active: boolean; onClick: () => v
 function SavedLooks({ isPremium = false }: { isPremium?: boolean }) {
   const looks = useSavedLooks();
   const remove = useDeleteLook();
+  const [activeLook, setActiveLook] = useState<SavedLook | null>(null);
   const rows = looks.data?.results ?? [];
+
+  useEffect(() => {
+    if (!activeLook) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setActiveLook(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [activeLook]);
+
   return (
-    <Card className="flex flex-col gap-3 p-3 sm:p-4">
-      <div className="flex items-center justify-between gap-2">
-        <h2 className="flex items-center gap-2 text-sm font-bold">
-          <ImagesIcon className="size-4" /> Saqlangan obrazlarim
-        </h2>
-        <span className="text-[11px] text-muted-foreground">
-          {isPremium ? "Premium · logosiz yuklab olish" : "Yuklab olishda MarosimGo logosi"}
-        </span>
-      </div>
-      {looks.error ? (
-        <ErrorState error={looks.error} onRetry={() => looks.refetch()} />
-      ) : looks.isPending ? (
-        <Skeleton className="h-32 w-full rounded-2xl" />
-      ) : rows.length === 0 ? (
-        <EmptyState title="Hali saqlangan obraz yo'q" description="Jonli AI paytida kamera tugmasini bosing va «Saqlash»ni tanlang." />
-      ) : (
-        <ul className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {rows.map((look) => (
-            <li key={look.id} className="group relative overflow-hidden rounded-2xl bg-black">
-              {look.video ? (
-                <>
-                  <video
-                    src={look.video}
-                    poster={look.image}
-                    controls
-                    playsInline
-                    loop
-                    muted
-                    className="aspect-[3/4] w-full object-cover"
+    <>
+      <Card className="flex flex-col gap-3 p-3 sm:p-4">
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="flex items-center gap-2 text-sm font-bold">
+            <ImagesIcon className="size-4" /> Saqlangan obrazlarim
+          </h2>
+          <span className="text-[11px] text-muted-foreground">
+            {isPremium ? "Premium · logosiz yuklab olish" : "Yuklab olishda MarosimGo logosi"}
+          </span>
+        </div>
+        {looks.error ? (
+          <ErrorState error={looks.error} onRetry={() => looks.refetch()} />
+        ) : looks.isPending ? (
+          <Skeleton className="h-32 w-full rounded-2xl" />
+        ) : rows.length === 0 ? (
+          <EmptyState title="Hali saqlangan obraz yo'q" description="Rasm yoki video kiyib ko'rganingizda natijalar avtomatik shu yerda saqlanadi." />
+        ) : (
+          <ul className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {rows.map((look) => (
+              <li key={look.id} className="group relative overflow-hidden rounded-2xl bg-black">
+                <button
+                  type="button"
+                  onClick={() => setActiveLook(look)}
+                  aria-label={look.video ? "Videoni ko'rish" : "Rasmni kattalashtirish"}
+                  className="relative block aspect-[3/4] w-full overflow-hidden text-left"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element -- owner-only API URL */}
+                  <img
+                    src={look.image}
+                    alt={look.garment?.name ?? "Saqlangan obraz"}
+                    loading="lazy"
+                    className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
                   />
-                  <span className="pointer-events-none absolute top-2 left-2 inline-flex items-center gap-1 rounded-full bg-brand/90 px-2 py-0.5 text-[10px] font-bold text-white backdrop-blur-md">
-                    <VideoIcon className="size-3" /> Video
-                  </span>
-                </>
+                  {look.video && (
+                    <>
+                      <span className="brand-gradient pointer-events-none absolute top-2 left-2 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold text-white shadow">
+                        <VideoIcon className="size-3" /> Video
+                      </span>
+                      <span className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/15 transition group-hover:bg-black/30">
+                        <span className="brand-gradient flex size-11 items-center justify-center rounded-full text-white shadow-lg ring-4 ring-white/25 transition group-hover:scale-110">
+                          <PlayIcon className="ml-0.5 size-5 fill-current" />
+                        </span>
+                      </span>
+                    </>
+                  )}
+                </button>
+                <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-1 bg-gradient-to-t from-black/85 via-black/45 to-transparent p-2 pt-6">
+                  <span className="truncate text-[11px] font-semibold text-white">{look.garment?.name ?? "—"}</span>
+                  <div className="flex items-center gap-1">
+                    <a
+                      href={aiApi.downloadUrl(look.id)}
+                      download={`marosimgo-look-${look.id.slice(0, 8)}.${look.video ? "mp4" : "jpg"}`}
+                      aria-label="Yuklab olish"
+                      className="rounded-full bg-white/15 p-1.5 text-white transition hover:bg-blue-500/80"
+                    >
+                      <DownloadIcon className="size-3.5" />
+                    </a>
+                    <button
+                      type="button"
+                      aria-label="O'chirish"
+                      onClick={() => remove.mutate(look.id)}
+                      disabled={remove.isPending}
+                      className="rounded-full bg-white/15 p-1.5 text-white transition hover:bg-red-500/80"
+                    >
+                      {remove.isPending && remove.variables === look.id ? (
+                        <Loader2Icon className="size-3.5 animate-spin" />
+                      ) : (
+                        <Trash2Icon className="size-3.5" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
+
+      {/* MarosimGo Media / Video Player Modal */}
+      <AnimatePresence>
+        {activeLook && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={() => setActiveLook(null)}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-3 backdrop-blur-md sm:p-6"
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96, y: 8 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.96, y: 8 }}
+              transition={{ duration: 0.2 }}
+              onClick={(e) => e.stopPropagation()}
+              className="glass relative flex max-h-[92vh] w-full max-w-xl flex-col overflow-hidden rounded-3xl border border-white/15 bg-neutral-950 shadow-2xl"
+            >
+              <button
+                type="button"
+                onClick={() => setActiveLook(null)}
+                aria-label="Yopish"
+                className="absolute top-3 right-3 z-20 flex size-9 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-md transition hover:bg-black/85"
+              >
+                <XIcon className="size-4" />
+              </button>
+
+              {activeLook.video ? (
+                <MarosimVideoPlayer
+                  src={activeLook.video}
+                  poster={activeLook.image}
+                  title={activeLook.garment?.name ?? "MarosimGo AI Video"}
+                  className="w-full"
+                />
               ) : (
                 /* eslint-disable-next-line @next/next/no-img-element -- owner-only API URL */
-                <img src={look.image} alt={look.garment?.name ?? "Saqlangan obraz"} loading="lazy" className="aspect-[3/4] w-full object-cover" />
+                <img
+                  src={activeLook.image}
+                  alt={activeLook.garment?.name ?? "Saqlangan obraz"}
+                  className="max-h-[72vh] w-full bg-black object-contain"
+                />
               )}
-              <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-1 bg-gradient-to-t from-black/80 to-transparent p-2 pt-6">
-                <span className="truncate text-[11px] font-semibold text-white">{look.garment?.name ?? "—"}</span>
-                <div className="flex items-center gap-1">
+
+              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-white/10 bg-neutral-950/95 px-4 py-3 text-white">
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-bold">{activeLook.garment?.name ?? "Saqlangan obraz"}</p>
+                  <p className="text-[11px] text-white/60">
+                    {activeLook.video ? "AI Video Try-On · MP4" : "AI Foto Try-On"}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
                   <a
-                    href={aiApi.downloadUrl(look.id)}
-                    download={`marosimgo-look-${look.id.slice(0, 8)}.${look.video ? "mp4" : "jpg"}`}
-                    aria-label="Yuklab olish"
-                    className="rounded-full bg-white/15 p-1.5 text-white transition hover:bg-blue-500/80"
+                    href={aiApi.downloadUrl(activeLook.id)}
+                    download={`marosimgo-look-${activeLook.id.slice(0, 8)}.${activeLook.video ? "mp4" : "jpg"}`}
+                    className="brand-gradient inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-xs font-semibold text-white shadow transition hover:brightness-110"
                   >
                     <DownloadIcon className="size-3.5" />
+                    {activeLook.video ? "Videoni yuklab olish" : "Yuklab olish"}
                   </a>
                   <button
                     type="button"
+                    onClick={() => {
+                      const id = activeLook.id;
+                      setActiveLook(null);
+                      remove.mutate(id);
+                    }}
                     aria-label="O'chirish"
-                    onClick={() => remove.mutate(look.id)}
-                    disabled={remove.isPending}
-                    className="rounded-full bg-white/15 p-1.5 text-white transition hover:bg-red-500/80"
+                    className="inline-flex items-center gap-1 rounded-full bg-white/10 px-3 py-2 text-xs font-semibold text-white/85 transition hover:bg-red-500/80 hover:text-white"
                   >
-                    {remove.isPending && remove.variables === look.id ? (
-                      <Loader2Icon className="size-3.5 animate-spin" />
-                    ) : (
-                      <Trash2Icon className="size-3.5" />
-                    )}
+                    <Trash2Icon className="size-3.5" /> O&apos;chirish
                   </button>
                 </div>
               </div>
-            </li>
-          ))}
-        </ul>
-      )}
-    </Card>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </>
   );
 }
 

@@ -2,7 +2,7 @@
 
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { api, apiRequest } from "./api";
+import { ApiError, api, apiRequest } from "./api";
 import type { Garment } from "./tryon";
 
 /** Backend: apps/virtual_tryon (AiStatusView, AiSessionViewSet, SavedLookViewSet). */
@@ -34,7 +34,21 @@ export interface AiRenderResult {
   drive_web_url?: string;
 }
 
+const VIDEO_JOB_POLL_MS = 4000;
+const VIDEO_JOB_MAX_WAIT_MS = 15 * 60 * 1000;
+
+export type AiVideoJobStatus = "PENDING" | "FINALIZING" | "DONE" | "FAILED";
+
+/** Background video try-on as the server reports it; the result fields are filled once DONE. */
+export interface AiRenderVideoJob extends Partial<Omit<AiRenderVideoResult, "status">> {
+  job_id: string;
+  status: AiVideoJobStatus;
+  error?: { code: string; message: string };
+}
+
 export interface AiRenderVideoResult {
+  status?: "DONE";
+  job_id?: string;
   look_id: string;
   video_url: string;
   poster_url: string;
@@ -153,12 +167,38 @@ export const aiApi = {
     form.append("garment", garment);
     return apiRequest<AiRenderResult>(`${BASE}/ai/render/`, { method: "POST", body: form });
   },
-  renderVideo: (video: Blob, garment: string) => {
+  /**
+   * Uploads the clip and resolves with the finished video. With fal.ai the server answers at once
+   * with a background job (the render takes minutes); this polls it until it is DONE or FAILED.
+   * A dropped poll is retried, never resubmitted, so one try-on is billed only once.
+   */
+  renderVideo: async (video: Blob, garment: string): Promise<AiRenderVideoResult> => {
     const form = new FormData();
     const ext = video.type.includes("mp4") ? "mp4" : "webm";
     form.append("video", video, `camera.${ext}`);
     form.append("garment", garment);
-    return apiRequest<AiRenderVideoResult>(`${BASE}/ai/render-video/`, { method: "POST", body: form });
+    let job = await apiRequest<AiRenderVideoJob>(`${BASE}/ai/render-video/`, { method: "POST", body: form });
+    const deadline = Date.now() + VIDEO_JOB_MAX_WAIT_MS;
+    while (job.status !== "DONE") {
+      if (job.status === "FAILED") {
+        throw new ApiError(502, job.error?.code ?? "provider_unavailable", job.error?.message ?? "AI video tayyorlanmadi.");
+      }
+      if (Date.now() > deadline) {
+        throw new ApiError(
+          504,
+          "provider_timeout",
+          "Video hali tayyorlanmoqda. U tayyor bo'lgach \"Saqlangan obrazlar\" bo'limida paydo bo'ladi.",
+        );
+      }
+      await new Promise((r) => setTimeout(r, VIDEO_JOB_POLL_MS));
+      try {
+        job = await apiRequest<AiRenderVideoJob>(`${BASE}/ai/render-video/${job.job_id}/`);
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 0) continue; // network blip: keep polling
+        throw err;
+      }
+    }
+    return job as unknown as AiRenderVideoResult;
   },
   downloadUrl: (lookId: string) => `/api/v1${BASE}/looks/${lookId}/download/`,
   createOrder: (payload: GarmentOrderPayload) => api.post<GarmentOrder>(`${BASE}/orders/`, payload),

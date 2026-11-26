@@ -15,12 +15,14 @@ token from ``ai-sessions/{id}/token/``; this server never receives video (see ``
 """
 
 import base64
+import os
+import re
 from datetime import timedelta
 
 from django.conf import settings
 from django.core.files.base import ContentFile
 from django.db.models import Count, Exists, OuterRef, Q
-from django.http import FileResponse, HttpResponse
+from django.http import FileResponse, HttpResponse, StreamingHttpResponse
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from drf_spectacular.types import OpenApiTypes
@@ -76,6 +78,49 @@ UUID_RE = "[0-9a-fA-F-]{36}"
 VISIBLE_ONLY = "Faqat faol va tasdiqlangan (APPROVED) kiyimlar; boshqalari 404."
 #: A session left open (tab closed, phone locked) is cut at this length when finished late.
 MAX_SESSION = timedelta(hours=2)
+_RANGE_RE = re.compile(r"bytes=(\d+)-(\d*)")
+
+
+def serve_mp4_range(request, file_field) -> HttpResponse:
+    """Serve an MP4 with HTTP Range (206 Partial Content) support for Safari/Chrome/iOS ``<video>``."""
+    path = file_field.path
+    size = os.path.getsize(path)
+    range_header = request.META.get("HTTP_RANGE", "").strip()
+    match = _RANGE_RE.match(range_header) if range_header else None
+
+    if match:
+        start = int(match.group(1))
+        end = int(match.group(2)) if match.group(2) else size - 1
+        end = min(end, size - 1)
+        if start >= size or start > end:
+            resp = HttpResponse(status=status.HTTP_416_REQUESTED_RANGE_NOT_SATISFIABLE)
+            resp["Content-Range"] = f"bytes */{size}"
+            return resp
+        length = end - start + 1
+
+        def _iter_range(chunk_size: int = 65536):
+            with open(path, "rb") as fh:
+                fh.seek(start)
+                remaining = length
+                while remaining > 0:
+                    chunk = fh.read(min(chunk_size, remaining))
+                    if not chunk:
+                        break
+                    remaining -= len(chunk)
+                    yield chunk
+
+        resp = StreamingHttpResponse(_iter_range(), status=status.HTTP_206_PARTIAL_CONTENT, content_type="video/mp4")
+        resp["Content-Length"] = str(length)
+        resp["Content-Range"] = f"bytes {start}-{end}/{size}"
+        resp["Accept-Ranges"] = "bytes"
+        resp["Cache-Control"] = "private, max-age=300"
+        return resp
+
+    resp = FileResponse(open(path, "rb"), content_type="video/mp4")
+    resp["Content-Length"] = str(size)
+    resp["Accept-Ranges"] = "bytes"
+    resp["Cache-Control"] = "private, max-age=300"
+    return resp
 
 
 def visible_garments():
@@ -645,9 +690,7 @@ class SavedLookViewSet(mixins.ListModelMixin, mixins.DestroyModelMixin, viewsets
         look = self.get_object()
         if not look.video:
             return Response({"detail": "Video mavjud emas."}, status=status.HTTP_404_NOT_FOUND)
-        response = FileResponse(look.video.open("rb"), content_type="video/mp4")
-        response["Cache-Control"] = "private, no-store"
-        return response
+        return serve_mp4_range(request, look.video)
 
     @extend_schema(
         summary="Obrazni yuklab olish (Premium: logosiz, oddiy: MarosimGo logosi bilan)",

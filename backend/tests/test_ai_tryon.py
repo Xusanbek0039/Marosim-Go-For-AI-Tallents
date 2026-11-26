@@ -936,4 +936,8 @@ def test_fal_photo_and_video_tryon_and_admin_video_gallery(settings, monkeypatch
     assert admin_vid["video"] and admin_vid["video"].endswith("/video/")
     stream_res = sa.get(admin_vid["video"])
     assert stream_res.status_code == 200 and stream_res["Content-Type"] == "video/mp4"
+    assert stream_res["Accept-Ranges"] == "bytes"
     assert len(b"".join(stream_res.streaming_content)) > 1000
+    range_res = client.get(video_look["video"], HTTP_RANGE="bytes=0-1023")
+    assert range_res.status_code == 206 and range_res["Content-Range"].startswith("bytes 0-1023/")
+    assert len(b"".join(range_res.streaming_content)) == 1024
