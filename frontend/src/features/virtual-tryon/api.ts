@@ -20,6 +20,11 @@ export interface AdminGarment {
   currency: string;
   sizes: string[];
   colors: { name: string; hex?: string }[];
+  brand: string;
+  material: string;
+  stock_quantity: number;
+  delivery_days: number;
+  care_instructions: string;
   cover_image_url: string | null;
   ai_reference_image_url: string | null;
   ai_prompt: string;
@@ -54,6 +59,44 @@ export interface AdminSavedLook {
   created_at: string;
 }
 
+export interface AdminGarmentOrder {
+  id: string;
+  user: {
+    id: string;
+    full_name: string;
+    phone_number: string | null;
+    email: string | null;
+  };
+  garment: {
+    id: string;
+    name: string;
+    brand: string;
+    material: string;
+    category_name: string;
+    cover_image: string | null;
+  };
+  look: string | null;
+  look_image: string | null;
+  look_drive_url: string;
+  size: string;
+  color: string;
+  quantity: number;
+  unit_price: string;
+  total_price: string;
+  currency: string;
+  customer_name: string;
+  customer_phone: string;
+  delivery_type: "DELIVERY" | "PICKUP";
+  delivery_type_label: string;
+  delivery_address: string;
+  payment_method: "CASH" | "CARD";
+  payment_method_label: string;
+  notes: string;
+  status: "NEW" | "CONFIRMED" | "PREPARING" | "SHIPPED" | "DELIVERED" | "CANCELLED";
+  status_label: string;
+  created_at: string;
+}
+
 interface Page<T> {
   count: number;
   results: T[];
@@ -62,8 +105,30 @@ interface Page<T> {
 export const tryonKeys = {
   looks: (q?: string) => ["admin-tryon", "looks", q ?? ""] as const,
   garments: (q?: string) => ["admin-tryon", "garments", q ?? ""] as const,
+  orders: (status?: string, q?: string) => ["admin-tryon", "orders", status ?? "", q ?? ""] as const,
   categories: ["admin-tryon", "categories"] as const,
 };
+
+export function useAdminOrders(status?: string, q?: string) {
+  return useQuery({
+    queryKey: tryonKeys.orders(status, q),
+    queryFn: ({ signal }) =>
+      api.get<Page<AdminGarmentOrder>>(
+        "/admin/virtual-tryon/orders/",
+        { status: status || undefined, q: q || undefined, page_size: 60 },
+        signal,
+      ),
+  });
+}
+
+export function useUpdateOrderStatus() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, status }: { id: string; status: AdminGarmentOrder["status"] }) =>
+      api.patch<AdminGarmentOrder>(`/admin/virtual-tryon/orders/${id}/`, { status }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-tryon", "orders"] }),
+  });
+}
 
 export function useAdminLooks(q?: string) {
   return useQuery({
@@ -101,6 +166,13 @@ export interface CreateGarmentInput {
   name: string;
   category_id: string;
   price: string;
+  brand: string;
+  material: string;
+  sizes: string[];
+  colors: { name: string }[];
+  stock_quantity: number;
+  delivery_days: number;
+  care_instructions: string;
   description: string;
   ai_prompt: string;
   photo: File;
@@ -115,6 +187,13 @@ export function useCreateGarmentWithPhoto() {
         name: input.name,
         category_id: input.category_id,
         price: input.price || "0",
+        brand: input.brand,
+        material: input.material,
+        sizes: input.sizes,
+        colors: input.colors,
+        stock_quantity: input.stock_quantity,
+        delivery_days: input.delivery_days,
+        care_instructions: input.care_instructions,
         description: input.description,
         is_tryon_enabled: true,
         is_active: true,

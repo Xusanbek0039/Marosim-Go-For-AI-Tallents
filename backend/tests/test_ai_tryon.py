@@ -494,3 +494,60 @@ def test_admin_tryon_looks_and_categories(super_admin, user, client_for, monkeyp
     # Regular USER cannot access admin try-on looks or categories
     assert client_for(user).get("/api/v1/admin/virtual-tryon/looks/").status_code == 403
     assert client_for(user).get("/api/v1/admin/virtual-tryon/categories/").status_code == 403
+
+
+def test_download_watermark_free_vs_premium_and_orders(super_admin, user, client_for, monkeypatch):
+    from apps.virtual_tryon import watermark
+
+    garment = make_garment(name="Buyable Suit", price=4500000, sizes=["46", "48", "50"], brand="MarosimGo")
+    look = SavedLook.objects.create(user=user, garment=garment, width=600, height=800)
+    look.image.save("worn.jpg", ContentFile(reference_png(size=(600, 800))), save=True)
+
+    u_client = client_for(user)
+    # Non-premium download gets watermarked JPEG
+    monkeypatch.setattr(watermark, "is_premium_user", lambda u: False)
+    dl_free = u_client.get(f"{BASE}/looks/{look.pk}/download/")
+    assert dl_free.status_code == 200
+    assert dl_free["X-MarosimGo-Watermarked"] == "true"
+    assert "attachment" in dl_free["Content-Disposition"]
+    assert len(dl_free.content) > 100
+
+    # Premium download gets clean image
+    monkeypatch.setattr(watermark, "is_premium_user", lambda u: True)
+    dl_prem = u_client.get(f"{BASE}/looks/{look.pk}/download/")
+    assert dl_prem.status_code == 200
+    assert dl_prem["X-MarosimGo-Watermarked"] == "false"
+
+    # User places a garment order
+    order_res = u_client.post(
+        f"{BASE}/orders/",
+        {
+            "garment": str(garment.pk),
+            "look": str(look.pk),
+            "size": "48",
+            "color": "Qora",
+            "quantity": 2,
+            "customer_name": "Jasur Aliyev",
+            "customer_phone": "+998901112233",
+            "delivery_type": "DELIVERY",
+            "delivery_address": "Toshkent, Chilonzor 5",
+            "payment_method": "CARD",
+            "notes": "Bo'yim 180 sm",
+        },
+        format="json",
+    )
+    assert order_res.status_code == 201, order_res.data
+    assert order_res.data["size"] == "48" and order_res.data["quantity"] == 2
+    assert float(order_res.data["total_price"]) == 9000000.0
+    order_id = order_res.data["id"]
+
+    # Admin sees order and updates status
+    sa = client_for(super_admin)
+    admin_orders = sa.get("/api/v1/admin/virtual-tryon/orders/")
+    assert admin_orders.status_code == 200 and admin_orders.data["count"] == 1
+    assert admin_orders.data["results"][0]["customer_name"] == "Jasur Aliyev"
+    assert admin_orders.data["results"][0]["look_image"]
+
+    upd = sa.patch(f"/api/v1/admin/virtual-tryon/orders/{order_id}/", {"status": "CONFIRMED"}, format="json")
+    assert upd.status_code == 200 and upd.data["status"] == "CONFIRMED"
+    assert u_client.get("/api/v1/admin/virtual-tryon/orders/").status_code == 403

@@ -9,6 +9,7 @@ import {
   PlusIcon,
   SearchIcon,
   ShirtIcon,
+  ShoppingBagIcon,
   SparklesIcon,
   Trash2Icon,
   UploadCloudIcon,
@@ -24,20 +25,33 @@ import { PageTransition } from "@/components/motion/page-transition";
 import { Button } from "@/components/ui/button";
 import { useCan, useMe } from "@/features/auth/hooks";
 import {
+  type AdminGarmentOrder,
   type AdminSavedLook,
   useAdminCategories,
   useAdminGarments,
   useAdminLooks,
+  useAdminOrders,
   useApproveGarment,
   useCreateGarmentWithPhoto,
   useDeleteGarment,
   useSyncLookToDrive,
+  useUpdateOrderStatus,
 } from "@/features/virtual-tryon/api";
 import { ApiError } from "@/lib/api/client";
 import { formatDateTime, formatPhone } from "@/lib/format";
 import { cn } from "@/lib/utils";
 
-type Tab = "looks" | "garments";
+type Tab = "looks" | "orders" | "garments";
+
+const SIZE_PRESETS = ["XS", "S", "M", "L", "XL", "XXL", "44", "46", "48", "50", "52", "54"];
+const ORDER_STATUSES: { value: AdminGarmentOrder["status"]; label: string }[] = [
+  { value: "NEW", label: "Yangi" },
+  { value: "CONFIRMED", label: "Tasdiqlangan" },
+  { value: "PREPARING", label: "Tayyorlanmoqda" },
+  { value: "SHIPPED", label: "Yo'lda" },
+  { value: "DELIVERED", label: "Yetkazildi" },
+  { value: "CANCELLED", label: "Bekor qilindi" },
+];
 
 function formatMoney(raw: string) {
   const n = Number(raw || 0);
@@ -248,10 +262,20 @@ function GarmentsTab() {
   const [showForm, setShowForm] = useState(false);
   const [name, setName] = useState("");
   const [categoryId, setCategoryId] = useState("");
+  const [brand, setBrand] = useState("");
+  const [material, setMaterial] = useState("");
   const [price, setPrice] = useState("");
+  const [sizes, setSizes] = useState<string[]>(["S", "M", "L", "XL"]);
+  const [colorsText, setColorsText] = useState("");
+  const [stockQuantity, setStockQuantity] = useState("10");
+  const [deliveryDays, setDeliveryDays] = useState("2");
+  const [careInstructions, setCareInstructions] = useState("");
   const [description, setDescription] = useState("");
   const [aiPrompt, setAiPrompt] = useState("");
   const [photo, setPhoto] = useState<File | null>(null);
+
+  const toggleSize = (s: string) =>
+    setSizes((prev) => (prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]));
 
   const garments = useAdminGarments();
   const categories = useAdminCategories();
@@ -265,11 +289,23 @@ function GarmentsTab() {
       toast.error("Kiyim nomi, kategoriya va rasm majburiy.");
       return;
     }
+    const parsedColors = colorsText
+      .split(",")
+      .map((c) => c.trim())
+      .filter(Boolean)
+      .map((c) => ({ name: c }));
     createGarment.mutate(
       {
         name: name.trim(),
         category_id: categoryId,
         price: price.trim() || "0",
+        brand: brand.trim(),
+        material: material.trim(),
+        sizes,
+        colors: parsedColors,
+        stock_quantity: Math.max(0, Number(stockQuantity) || 0),
+        delivery_days: Math.max(1, Number(deliveryDays) || 2),
+        care_instructions: careInstructions.trim(),
         description: description.trim(),
         ai_prompt: aiPrompt.trim(),
         photo,
@@ -279,7 +315,13 @@ function GarmentsTab() {
         onSuccess: () => {
           toast.success(canApprove ? "Kiyim qo'shildi va tasdiqlandi!" : "Kiyim qo'shildi (tasdiqlash kutilmoqda).");
           setName("");
+          setBrand("");
+          setMaterial("");
           setPrice("");
+          setColorsText("");
+          setStockQuantity("10");
+          setDeliveryDays("2");
+          setCareInstructions("");
           setDescription("");
           setAiPrompt("");
           setPhoto(null);
@@ -339,14 +381,102 @@ function GarmentsTab() {
             </div>
 
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-bold">Narxi (so&apos;m)</label>
+              <label className="text-xs font-bold">Brend / Atelye</label>
+              <input
+                type="text"
+                value={brand}
+                onChange={(e) => setBrand(e.target.value)}
+                placeholder="Masalan: MarosimGo Atelier"
+                className="h-10 rounded-xl border border-glass-border bg-background/60 px-3 text-sm outline-none focus:border-brand"
+              />
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-bold">Mato turi (material)</label>
+              <input
+                type="text"
+                value={material}
+                onChange={(e) => setMaterial(e.target.value)}
+                placeholder="Masalan: 100% tabiiy atlas / Italiya jun matosi"
+                className="h-10 rounded-xl border border-glass-border bg-background/60 px-3 text-sm outline-none focus:border-brand"
+              />
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-bold">Narxi (so&apos;m) *</label>
               <input
                 type="number"
+                required
                 min="0"
                 step="1000"
                 value={price}
                 onChange={(e) => setPrice(e.target.value)}
                 placeholder="4500000"
+                className="h-10 rounded-xl border border-glass-border bg-background/60 px-3 text-sm outline-none focus:border-brand"
+              />
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-bold">Ranglar (vergul bilan)</label>
+              <input
+                type="text"
+                value={colorsText}
+                onChange={(e) => setColorsText(e.target.value)}
+                placeholder="Masalan: Oq, Qora, To'q ko'k"
+                className="h-10 rounded-xl border border-glass-border bg-background/60 px-3 text-sm outline-none focus:border-brand"
+              />
+            </div>
+
+            <div className="flex flex-col gap-1.5 sm:col-span-2">
+              <label className="text-xs font-bold">Mavjud razmerlar</label>
+              <div className="flex flex-wrap gap-1.5">
+                {SIZE_PRESETS.map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => toggleSize(s)}
+                    className={cn(
+                      "rounded-lg px-2.5 py-1 text-xs font-bold transition",
+                      sizes.includes(s)
+                        ? "bg-blue-600 text-white"
+                        : "border border-glass-border bg-background/60 text-muted-foreground hover:text-foreground",
+                    )}
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-bold">Ombordagi soni (dona)</label>
+              <input
+                type="number"
+                min="0"
+                value={stockQuantity}
+                onChange={(e) => setStockQuantity(e.target.value)}
+                className="h-10 rounded-xl border border-glass-border bg-background/60 px-3 text-sm outline-none focus:border-brand"
+              />
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-bold">Yetkazib berish muddati (kun)</label>
+              <input
+                type="number"
+                min="1"
+                value={deliveryDays}
+                onChange={(e) => setDeliveryDays(e.target.value)}
+                className="h-10 rounded-xl border border-glass-border bg-background/60 px-3 text-sm outline-none focus:border-brand"
+              />
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs font-bold">Parvarishlash yo&apos;riqnomasi</label>
+              <input
+                type="text"
+                value={careInstructions}
+                onChange={(e) => setCareInstructions(e.target.value)}
+                placeholder="Masalan: Faqat quruq tozalash (ximchistka)"
                 className="h-10 rounded-xl border border-glass-border bg-background/60 px-3 text-sm outline-none focus:border-brand"
               />
             </div>
@@ -493,6 +623,150 @@ function GarmentsTab() {
   );
 }
 
+function OrdersTab() {
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const orders = useAdminOrders(statusFilter, search.trim());
+  const updateStatus = useUpdateOrderStatus();
+  const can = useCan();
+  const { data: me } = useMe();
+  const canUpdate = me?.role === "SUPER_ADMIN" || can("tryon.update");
+
+  const rows = orders.data?.results ?? [];
+
+  return (
+    <div className="flex flex-col gap-4">
+      <GlassCard className="flex flex-wrap items-center gap-3 p-4">
+        <div className="relative min-w-56 flex-1">
+          <SearchIcon className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground" />
+          <input
+            type="search"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Mijoz ismi, telefoni, kiyim nomi yoki manzil..."
+            className="h-10 w-full rounded-xl border border-glass-border bg-background/60 pr-3 pl-10 text-sm outline-none focus:border-brand"
+          />
+        </div>
+        <select
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          className="h-10 rounded-xl border border-glass-border bg-background/60 px-3 text-sm"
+        >
+          <option value="">Barcha holatlar</option>
+          {ORDER_STATUSES.map((s) => (
+            <option key={s.value} value={s.value}>
+              {s.label}
+            </option>
+          ))}
+        </select>
+        <span className="text-xs font-semibold text-muted-foreground">Jami: {orders.data?.count ?? 0} ta buyurtma</span>
+      </GlassCard>
+
+      {orders.isPending ? (
+        <GlassCard className="p-4">
+          <RowsSkeleton />
+        </GlassCard>
+      ) : orders.error ? (
+        <GlassCard className="p-4">
+          <ErrorState error={orders.error} onRetry={() => orders.refetch()} />
+        </GlassCard>
+      ) : rows.length === 0 ? (
+        <GlassCard className="p-6">
+          <EmptyState
+            title="Hali kiyim buyurtmalari yo'q"
+            description="Foydalanuvchilar kiyib ko'rganidan so'ng «Sotib olish» orqali buyurtma berganda shu yerda ko'rinadi."
+          />
+        </GlassCard>
+      ) : (
+        <div className="flex flex-col gap-3">
+          {rows.map((order) => (
+            <GlassCard key={order.id} className="flex flex-col gap-3 p-4 sm:flex-row sm:items-start">
+              <div className="flex shrink-0 gap-2">
+                {order.garment.cover_image && (
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img
+                    src={order.garment.cover_image}
+                    alt={order.garment.name}
+                    className="size-20 rounded-2xl bg-white object-contain p-1"
+                  />
+                )}
+                {order.look_image && (
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img
+                    src={order.look_image}
+                    alt="Kiyib ko'rilgan rasm"
+                    className="size-20 rounded-2xl bg-black object-cover"
+                  />
+                )}
+              </div>
+
+              <div className="min-w-0 flex-1 space-y-1.5">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-sm font-extrabold">
+                    {order.garment.name} · <span className="text-brand">{formatMoney(order.total_price)}</span>
+                  </p>
+                  <span className="text-xs text-muted-foreground">{formatDateTime(order.created_at)}</span>
+                </div>
+                <p className="text-xs">
+                  <strong>Razmer:</strong> {order.size}
+                  {order.color ? ` · Rang: ${order.color}` : ""} · <strong>Soni:</strong> {order.quantity} dona
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  <strong>Mijoz:</strong> {order.customer_name} ({formatPhone(order.customer_phone)}) ·{" "}
+                  <strong>To&apos;lov:</strong> {order.payment_method_label}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  <strong>Yetkazib berish:</strong> {order.delivery_type_label}
+                  {order.delivery_address ? ` — ${order.delivery_address}` : ""}
+                </p>
+                {order.notes && <p className="text-xs text-muted-foreground">Izoh: {order.notes}</p>}
+              </div>
+
+              <div className="flex shrink-0 flex-col items-end gap-2">
+                {canUpdate ? (
+                  <select
+                    value={order.status}
+                    disabled={updateStatus.isPending}
+                    onChange={(e) =>
+                      updateStatus.mutate(
+                        { id: order.id, status: e.target.value as AdminGarmentOrder["status"] },
+                        {
+                          onSuccess: () => toast.success("Buyurtma holati yangilandi"),
+                          onError: (err) =>
+                            toast.error(err instanceof ApiError ? err.message : "Holatni yangilab bo'lmadi"),
+                        },
+                      )
+                    }
+                    className="h-9 rounded-xl border border-glass-border bg-background px-2.5 text-xs font-bold"
+                  >
+                    {ORDER_STATUSES.map((s) => (
+                      <option key={s.value} value={s.value}>
+                        {s.label}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <span className="rounded-full bg-muted px-2.5 py-1 text-xs font-bold">{order.status_label}</span>
+                )}
+                {order.look_drive_url && (
+                  <a
+                    href={order.look_drive_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-emerald-600 hover:underline"
+                  >
+                    <CloudIcon className="size-3" /> Drive rasmi
+                  </a>
+                )}
+              </div>
+            </GlassCard>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function VirtualTryOnContent() {
   const [tab, setTab] = useState<Tab>("looks");
   return (
@@ -502,16 +776,19 @@ function VirtualTryOnContent() {
         crumb="Boshqaruv / Virtual kiyib ko'rish"
       />
 
-      <div className="flex gap-2">
+      <div className="flex flex-wrap gap-2">
         <Button variant={tab === "looks" ? "default" : "outline"} onClick={() => setTab("looks")}>
           <ImagesIcon className="size-4" /> Kiyib ko&apos;rganlar (Google Drive)
+        </Button>
+        <Button variant={tab === "orders" ? "default" : "outline"} onClick={() => setTab("orders")}>
+          <ShoppingBagIcon className="size-4" /> Buyurtmalar (Sotib olinganlar)
         </Button>
         <Button variant={tab === "garments" ? "default" : "outline"} onClick={() => setTab("garments")}>
           <ShirtIcon className="size-4" /> Kiyimlar katalogi
         </Button>
       </div>
 
-      {tab === "looks" ? <LooksTab /> : <GarmentsTab />}
+      {tab === "looks" ? <LooksTab /> : tab === "orders" ? <OrdersTab /> : <GarmentsTab />}
     </>
   );
 }
