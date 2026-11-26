@@ -28,6 +28,7 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { createPortal } from "react-dom";
 
 import { Badge, Button, Card, cn, EmptyState, ErrorState, Skeleton } from "@/components/ui";
 import {
@@ -1383,11 +1384,16 @@ function SavedLooks({ isPremium = false }: { isPremium?: boolean }) {
 
   useEffect(() => {
     if (!activeLook) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") setActiveLook(null);
     };
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener("keydown", onKey);
+    };
   }, [activeLook]);
 
   return (
@@ -1469,83 +1475,87 @@ function SavedLooks({ isPremium = false }: { isPremium?: boolean }) {
         )}
       </Card>
 
-      {/* MarosimGo Media / Video Player Modal */}
-      <AnimatePresence>
-        {activeLook && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setActiveLook(null)}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-3 backdrop-blur-md sm:p-6"
-          >
-            <motion.div
-              initial={{ opacity: 0, scale: 0.96, y: 8 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.96, y: 8 }}
-              transition={{ duration: 0.2 }}
-              onClick={(e) => e.stopPropagation()}
-              className="glass relative flex max-h-[92vh] w-full max-w-xl flex-col overflow-hidden rounded-3xl border border-white/15 bg-neutral-950 shadow-2xl"
-            >
-              <button
-                type="button"
+      {/* MarosimGo Media / Video Player Modal (portaled to document.body so it always centers in the viewport) */}
+      {typeof document !== "undefined" &&
+        createPortal(
+          <AnimatePresence>
+            {activeLook && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
                 onClick={() => setActiveLook(null)}
-                aria-label="Yopish"
-                className="absolute top-3 right-3 z-20 flex size-9 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-md transition hover:bg-black/85"
+                className="fixed inset-0 z-[100] flex h-dvh w-screen items-center justify-center bg-black/80 p-3 backdrop-blur-md sm:p-6"
               >
-                <XIcon className="size-4" />
-              </button>
-
-              {activeLook.video ? (
-                <MarosimVideoPlayer
-                  src={activeLook.video}
-                  poster={activeLook.image}
-                  title={activeLook.garment?.name ?? "MarosimGo AI Video"}
-                  className="w-full"
-                />
-              ) : (
-                /* eslint-disable-next-line @next/next/no-img-element -- owner-only API URL */
-                <img
-                  src={activeLook.image}
-                  alt={activeLook.garment?.name ?? "Saqlangan obraz"}
-                  className="max-h-[72vh] w-full bg-black object-contain"
-                />
-              )}
-
-              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-white/10 bg-neutral-950/95 px-4 py-3 text-white">
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-bold">{activeLook.garment?.name ?? "Saqlangan obraz"}</p>
-                  <p className="text-[11px] text-white/60">
-                    {activeLook.video ? "AI Video Try-On · MP4" : "AI Foto Try-On"}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <a
-                    href={aiApi.downloadUrl(activeLook.id)}
-                    download={`marosimgo-look-${activeLook.id.slice(0, 8)}.${activeLook.video ? "mp4" : "jpg"}`}
-                    className="brand-gradient inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-xs font-semibold text-white shadow transition hover:brightness-110"
-                  >
-                    <DownloadIcon className="size-3.5" />
-                    {activeLook.video ? "Videoni yuklab olish" : "Yuklab olish"}
-                  </a>
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.96, y: 8 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.96, y: 8 }}
+                  transition={{ duration: 0.2 }}
+                  onClick={(e) => e.stopPropagation()}
+                  className="glass relative flex max-h-[92dvh] w-full max-w-xl flex-col overflow-hidden rounded-3xl border border-white/15 bg-neutral-950 shadow-2xl"
+                >
                   <button
                     type="button"
-                    onClick={() => {
-                      const id = activeLook.id;
-                      setActiveLook(null);
-                      remove.mutate(id);
-                    }}
-                    aria-label="O'chirish"
-                    className="inline-flex items-center gap-1 rounded-full bg-white/10 px-3 py-2 text-xs font-semibold text-white/85 transition hover:bg-red-500/80 hover:text-white"
+                    onClick={() => setActiveLook(null)}
+                    aria-label="Yopish"
+                    className="absolute top-3 right-3 z-20 flex size-9 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-md transition hover:bg-black/85"
                   >
-                    <Trash2Icon className="size-3.5" /> O&apos;chirish
+                    <XIcon className="size-4" />
                   </button>
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
+
+                  {activeLook.video ? (
+                    <MarosimVideoPlayer
+                      src={activeLook.video}
+                      poster={activeLook.image}
+                      title={activeLook.garment?.name ?? "MarosimGo AI Video"}
+                      className="w-full"
+                    />
+                  ) : (
+                    /* eslint-disable-next-line @next/next/no-img-element -- owner-only API URL */
+                    <img
+                      src={activeLook.image}
+                      alt={activeLook.garment?.name ?? "Saqlangan obraz"}
+                      className="max-h-[72dvh] w-full bg-black object-contain"
+                    />
+                  )}
+
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-t border-white/10 bg-neutral-950/95 px-4 py-3 text-white">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-bold">{activeLook.garment?.name ?? "Saqlangan obraz"}</p>
+                      <p className="text-[11px] text-white/60">
+                        {activeLook.video ? "AI Video Try-On · MP4" : "AI Foto Try-On"}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <a
+                        href={aiApi.downloadUrl(activeLook.id)}
+                        download={`marosimgo-look-${activeLook.id.slice(0, 8)}.${activeLook.video ? "mp4" : "jpg"}`}
+                        className="brand-gradient inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-xs font-semibold text-white shadow transition hover:brightness-110"
+                      >
+                        <DownloadIcon className="size-3.5" />
+                        {activeLook.video ? "Videoni yuklab olish" : "Yuklab olish"}
+                      </a>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const id = activeLook.id;
+                          setActiveLook(null);
+                          remove.mutate(id);
+                        }}
+                        aria-label="O'chirish"
+                        className="inline-flex items-center gap-1 rounded-full bg-white/10 px-3 py-2 text-xs font-semibold text-white/85 transition hover:bg-red-500/80 hover:text-white"
+                      >
+                        <Trash2Icon className="size-3.5" /> O&apos;chirish
+                      </button>
+                    </div>
+                  </div>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>,
+          document.body,
         )}
-      </AnimatePresence>
     </>
   );
 }

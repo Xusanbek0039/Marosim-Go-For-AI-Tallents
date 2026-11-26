@@ -19,7 +19,8 @@ import {
   VideoIcon,
   XIcon,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { toast } from "sonner";
 
 import { EmptyState, ErrorState, GlassCard, PageHeader, RowsSkeleton } from "@/components/common";
@@ -40,6 +41,7 @@ import {
   useSyncLookToDrive,
   useUpdateOrderStatus,
 } from "@/features/virtual-tryon/api";
+import { MarosimVideoPlayer } from "@/features/virtual-tryon/video-player";
 import { ApiError } from "@/lib/api/client";
 import { formatDateTime, formatPhone } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -71,6 +73,20 @@ function LooksTab() {
   const can = useCan();
   const { data: me } = useMe();
   const canSync = me?.role === "SUPER_ADMIN" || can("tryon.update");
+
+  useEffect(() => {
+    if (!preview) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setPreview(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [preview]);
 
   const allRows = looks.data?.results ?? [];
   const rows =
@@ -249,71 +265,71 @@ function LooksTab() {
         </div>
       )}
 
-      {preview && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm"
-          onClick={() => setPreview(null)}
-        >
+      {preview &&
+        typeof document !== "undefined" &&
+        createPortal(
           <div
-            className="glass relative max-h-[90vh] w-full max-w-2xl overflow-hidden rounded-3xl"
-            onClick={(e) => e.stopPropagation()}
+            className="fixed inset-0 z-[100] flex h-dvh w-screen items-center justify-center bg-black/80 p-3 backdrop-blur-md sm:p-6"
+            onClick={() => setPreview(null)}
           >
-            <button
-              type="button"
-              onClick={() => setPreview(null)}
-              aria-label="Yopish"
-              className="absolute top-3 right-3 z-10 inline-flex size-9 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80"
+            <div
+              className="glass relative flex max-h-[92dvh] w-full max-w-2xl flex-col overflow-hidden rounded-3xl border border-white/15 bg-neutral-950 text-white shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
             >
-              <XIcon className="size-4" />
-            </button>
-            {preview.video ? (
-              <video
-                src={preview.video}
-                poster={preview.image}
-                controls
-                autoPlay
-                loop
-                playsInline
-                className="max-h-[72vh] w-full bg-black object-contain"
-              />
-            ) : (
-              /* eslint-disable-next-line @next/next/no-img-element */
-              <img
-                src={preview.image}
-                alt={preview.garment?.name ?? "Obraz"}
-                className="max-h-[72vh] w-full bg-black object-contain"
-              />
-            )}
-            <div className="flex flex-wrap items-center justify-between gap-2 p-4">
-              <div>
-                <p className="text-sm font-bold">
-                  {preview.user.full_name} — {preview.garment?.name ?? "—"}
-                </p>
-                <p className="text-xs text-muted-foreground">{formatDateTime(preview.created_at)}</p>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <a
-                  href={preview.video ?? preview.image}
-                  download={`marosimgo-tryon-${preview.id.slice(0, 8)}.${preview.video ? "mp4" : "jpg"}`}
-                  className="inline-flex items-center gap-1.5 rounded-xl border border-glass-border bg-background/70 px-3 py-2 text-xs font-semibold hover:bg-muted"
-                >
-                  <DownloadIcon className="size-3.5" /> {preview.video ? "Videoni yuklab olish" : "Rasmni yuklab olish"}
-                </a>
-                {preview.drive_web_url && (
+              <button
+                type="button"
+                onClick={() => setPreview(null)}
+                aria-label="Yopish"
+                className="absolute top-3 right-3 z-20 inline-flex size-9 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-md hover:bg-black/85"
+              >
+                <XIcon className="size-4" />
+              </button>
+              {preview.video ? (
+                <MarosimVideoPlayer
+                  src={preview.video}
+                  poster={preview.image}
+                  title={`${preview.user.full_name} — ${preview.garment?.name ?? ""}`}
+                  className="w-full"
+                />
+              ) : (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img
+                  src={preview.image}
+                  alt={preview.garment?.name ?? "Obraz"}
+                  className="max-h-[72dvh] w-full bg-black object-contain"
+                />
+              )}
+              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-white/10 bg-neutral-950/95 p-4">
+                <div>
+                  <p className="text-sm font-bold text-white">
+                    {preview.user.full_name} — {preview.garment?.name ?? "—"}
+                  </p>
+                  <p className="text-xs text-white/60">{formatDateTime(preview.created_at)}</p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
                   <a
-                    href={preview.drive_web_url}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-700"
+                    href={preview.video ?? preview.image}
+                    download={`marosimgo-tryon-${preview.id.slice(0, 8)}.${preview.video ? "mp4" : "jpg"}`}
+                    className="brand-gradient inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-xs font-semibold text-white shadow hover:brightness-110"
                   >
-                    <CloudIcon className="size-3.5" /> Google Drive&apos;da ko&apos;rish
+                    <DownloadIcon className="size-3.5" /> {preview.video ? "Videoni yuklab olish" : "Rasmni yuklab olish"}
                   </a>
-                )}
+                  {preview.drive_web_url && (
+                    <a
+                      href={preview.drive_web_url}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1.5 rounded-full bg-emerald-600 px-3.5 py-2 text-xs font-semibold text-white hover:bg-emerald-700"
+                    >
+                      <CloudIcon className="size-3.5" /> Google Drive&apos;da ko&apos;rish
+                    </a>
+                  )}
+                </div>
               </div>
             </div>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }
