@@ -532,7 +532,9 @@ class ConfigSerializer(serializers.ModelSerializer):
         return providers.is_configured(obj.provider)
 
     def get_key_source(self, obj) -> str:
-        return "ANTHROPIC_API_KEY (environment)"
+        if obj.provider == "anthropic":
+            return "ANTHROPIC_API_KEY (environment)"
+        return "OPENAI_API_KEY (environment)"
 
     def get_updated_by_label(self, obj) -> str | None:
         return obj.updated_by.identifier if obj.updated_by else None

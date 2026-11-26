@@ -6,8 +6,12 @@ from django.conf import settings
 
 from .anthropic_provider import AnthropicProvider
 from .base import ERRORS, BaseProvider, ProviderError, ProviderReply, ProviderRequest
+from .openai_provider import OpenAIProvider
 
-_REGISTRY = {"anthropic": AnthropicProvider}
+_REGISTRY = {
+    "openai": OpenAIProvider,
+    "anthropic": AnthropicProvider,
+}
 _override: BaseProvider | None = None
 
 

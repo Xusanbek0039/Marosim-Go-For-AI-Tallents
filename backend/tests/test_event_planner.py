@@ -30,6 +30,7 @@ from apps.event_planner.models import (
     SourceType,
 )
 from apps.event_planner.providers.anthropic_provider import AnthropicProvider
+from apps.event_planner.providers.openai_provider import OpenAIProvider
 from apps.venues import scheduling
 from apps.venues import services as venue_services
 from apps.venues.models import BookingSource, BookingStatus, HallBooking, HallSession, PublicationStatus
@@ -669,7 +670,7 @@ def test_feedback_report_export_and_delete(couple, make_user, client_for, fake_a
 
 # --------------------------------------------------------------- provider
 def test_anthropic_adapter_request_and_error_mapping(settings, monkeypatch):
-    import anthropic
+    anthropic = pytest.importorskip("anthropic")
     import httpx2 as httpx  # the anthropic SDK's own HTTP client package
 
     settings.AI_PLANNER = {**settings.AI_PLANNER, "ANTHROPIC_API_KEY": "test-key", "REFUSAL_FALLBACK": True}
@@ -733,6 +734,112 @@ def test_anthropic_adapter_request_and_error_mapping(settings, monkeypatch):
     assert err.value.code == "ai_not_configured"
 
 
+def test_openai_adapter_request_and_error_mapping(settings, monkeypatch):
+    import requests
+
+    settings.AI_PLANNER = {
+        **settings.AI_PLANNER,
+        "OPENAI_API_KEY": "sk-test-key",
+        "MAX_RETRIES": 0,
+    }
+    captured = {}
+
+    class FakeResponse:
+        def __init__(self, status_code=200, payload=None):
+            self.status_code = status_code
+            self._payload = payload or {}
+
+        def json(self):
+            return self._payload
+
+    def fake_request(method, url, headers=None, json=None, timeout=None):
+        captured["method"] = method
+        captured["url"] = url
+        captured["headers"] = headers
+        captured["json"] = json
+        if method == "GET":
+            return FakeResponse(200, {"id": "gpt-4o-mini"})
+        return FakeResponse(
+            200,
+            {
+                "model": "gpt-4o-mini",
+                "usage": {"prompt_tokens": 12, "completion_tokens": 7},
+                "choices": [
+                    {
+                        "finish_reason": "stop",
+                        "message": {"role": "assistant", "content": reply(), "refusal": None},
+                    }
+                ],
+            },
+        )
+
+    monkeypatch.setattr(requests, "request", fake_request)
+    provider = OpenAIProvider()
+    req = providers.ProviderRequest(
+        system="s",
+        messages=[{"role": "user", "content": "hi"}],
+        output_schema=schema.OUTPUT_SCHEMA,
+        model="gpt-4o-mini",
+        max_tokens=1000,
+        effort="low",
+        temperature=D("0.5"),
+    )
+    out = provider.send_message(req)
+    assert (out.input_tokens, out.output_tokens, out.model) == (12, 7, "gpt-4o-mini")
+    assert captured["json"]["response_format"]["type"] == "json_schema"
+    assert captured["json"]["response_format"]["json_schema"]["strict"] is True
+    assert captured["json"]["temperature"] == 0.5 and "reasoning_effort" not in captured["json"]
+    assert captured["json"]["messages"][0] == {"role": "system", "content": "s"}
+    assert provider.validate_configuration("gpt-4o-mini") == {"ok": True, "code": None}
+
+    reasoning_req = providers.ProviderRequest(
+        system="s",
+        messages=[{"role": "user", "content": "hi"}],
+        output_schema=schema.OUTPUT_SCHEMA,
+        model="gpt-5-mini",
+        max_tokens=1000,
+        effort="medium",
+        temperature=D("0.5"),
+    )
+    provider.send_message(reasoning_req)
+    assert captured["json"]["reasoning_effort"] == "medium" and "temperature" not in captured["json"]
+
+    for status_code, expected_code in [
+        (401, "provider_auth_failed"),
+        (403, "provider_auth_failed"),
+        (404, "provider_model_not_found"),
+        (429, "provider_rate_limited"),
+        (400, "provider_rejected_request"),
+        (500, "provider_unavailable"),
+    ]:
+        monkeypatch.setattr(requests, "request", lambda *a, sc=status_code, **kw: FakeResponse(sc))
+        with pytest.raises(providers.ProviderError) as err:
+            provider.send_message(req)
+        assert err.value.code == expected_code
+
+    monkeypatch.setattr(requests, "request", lambda *a, **kw: (_ for _ in ()).throw(requests.Timeout("t")))
+    with pytest.raises(providers.ProviderError) as err:
+        provider.send_message(req)
+    assert err.value.code == "provider_timeout"
+
+    monkeypatch.setattr(
+        requests,
+        "request",
+        lambda *a, **kw: FakeResponse(
+            200,
+            {"model": "gpt-4o-mini", "choices": [{"finish_reason": "stop", "message": {"refusal": "nope"}}]},
+        ),
+    )
+    with pytest.raises(providers.ProviderError) as err:
+        provider.send_message(req)
+    assert err.value.code == "provider_refused"
+
+    settings.AI_PLANNER = {**settings.AI_PLANNER, "OPENAI_API_KEY": ""}
+    with pytest.raises(providers.ProviderError) as err:
+        provider.send_message(req)
+    assert err.value.code == "ai_not_configured"
+
+
 # --------------------------------------------------------------- admin
 @pytest.mark.django_db
 def test_admin_rights_come_only_from_ai_codes(make_user, couple, client_for, fake_ai):
@@ -791,8 +898,8 @@ def test_disable_is_off_only_and_config_is_super_admin_only(make_user, super_adm
 
     sa = client_for(super_admin)
     cfg = sa.get(f"{ADMIN}/config/").data
-    assert cfg["provider_configured"] is False and cfg["key_source"].startswith("ANTHROPIC_API_KEY")
-    assert not {"api_key", "anthropic_api_key", "secret"} & set(cfg)
+    assert cfg["provider_configured"] is False and cfg["key_source"].startswith("OPENAI_API_KEY")
+    assert not {"api_key", "openai_api_key", "anthropic_api_key", "secret"} & set(cfg)
     stale = sa.patch(f"{ADMIN}/config/", {"enabled": True, "confirm": True, "expected_version": 1}, format="json")
     assert stale.status_code == 409
     unconfirmed = sa.patch(f"{ADMIN}/config/", {"enabled": True, "expected_version": cfg["version"]}, format="json")

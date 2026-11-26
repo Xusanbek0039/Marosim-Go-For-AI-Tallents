@@ -386,6 +386,7 @@ class AIUsageLog(models.Model):
 
 # ---------------------------------------------------------------- configuration
 class ProviderName(models.TextChoices):
+    OPENAI = "openai", "OpenAI (GPT)"
     ANTHROPIC = "anthropic", "Anthropic (Claude)"
 
 
@@ -406,8 +407,8 @@ DISABLE_SCOPES = ["all", *FEATURE_FLAGS]
 class AIConfiguration(models.Model):
     """Singleton (pk=1). Secrets never live here — ``provider_configured`` is derived from the environment."""
 
-    provider = models.CharField(max_length=30, choices=ProviderName.choices, default=ProviderName.ANTHROPIC)
-    model_name = models.CharField(max_length=80, default="claude-opus-5-5")
+    provider = models.CharField(max_length=30, choices=ProviderName.choices, default=ProviderName.OPENAI)
+    model_name = models.CharField(max_length=80, default="gpt-4o-mini")
     #: Global on/off (emergency stop sets it to False).
     enabled = models.BooleanField(default=True)
     maintenance_mode = models.BooleanField(default=False)

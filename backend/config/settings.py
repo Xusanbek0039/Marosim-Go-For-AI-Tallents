@@ -432,19 +432,27 @@ AI_TRYON = {
     "PRICE_PER_SECOND_USD": env.float("AI_TRYON_PRICE_PER_SECOND_USD", default=0.02),
     "MAX_SAVED_LOOKS_PER_USER": env.int("AI_TRYON_MAX_SAVED_LOOKS", default=50),
 }
-# ------------------------------------------------- AI event planner (Claude, Anthropic)
+# ------------------------------------------------- AI event planner (OpenAI / Anthropic)
 # The key is read from the environment only (never stored in the DB or shown in the panel; the panel only
 # shows "configured / missing"). Empty key = the AI chat shows "temporarily unavailable"; plans, the budget
 # calculator and bookings keep working. Model, limits and switches are managed by the Super Admin.
 AI_PLANNER = {
+    "OPENAI_API_KEY": env.str("OPENAI_API_KEY", default=""),
+    "OPENAI_BASE_URL": env.str("OPENAI_BASE_URL", default="https://api.openai.com/v1").rstrip("/"),
     "ANTHROPIC_API_KEY": env.str("ANTHROPIC_API_KEY", default=""),
-    #: Per attempt; the SDK retries connection errors, 408/409/429 and 5xx with backoff.
+    #: Per attempt; the client retries connection errors, 408/409/429 and 5xx with backoff.
     "TIMEOUT_SECONDS": env.float("AI_PLANNER_TIMEOUT_SECONDS", default=45.0),
     "MAX_RETRIES": env.int("AI_PLANNER_MAX_RETRIES", default=2),
     #: Server-side refusal fallback (Anthropic beta ``server-side-fallback-2026-07-01``).
     "REFUSAL_FALLBACK": env.bool("AI_PLANNER_REFUSAL_FALLBACK", default=True),
     #: USD per million (input, output) tokens — only for the admin cost estimate when usage is reported.
     "PRICES_USD_PER_MTOK": {
+        "gpt-4o-mini": (0.15, 0.60),
+        "gpt-4o": (2.50, 10.0),
+        "gpt-4.1-mini": (0.40, 1.60),
+        "gpt-4.1": (2.0, 8.0),
+        "gpt-5-mini": (0.25, 2.0),
+        "gpt-5": (1.25, 10.0),
         "claude-opus-5-5": (4.0, 20.0),
         "claude-sonnet-5-5": (2.0, 10.0),
         "claude-haiku-5-5": (0.10, 0.50),

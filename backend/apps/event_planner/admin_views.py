@@ -395,7 +395,7 @@ class ConfigView(AdminWriteThrottleMixin, APIView):
             conditions=(
                 "expected_version majburiy (parallel tahrir 409).",
                 "Provayder/model/yoqish/texnik rejim/flaglar uchun confirm=true; har o'zgarish audit qilinadi.",
-                "Kalit faqat muhit o'zgaruvchisida (ANTHROPIC_API_KEY) — API uni hech qachon qaytarmaydi.",
+                "Kalit faqat muhit o'zgaruvchisida (OPENAI_API_KEY) — API uni hech qachon qaytarmaydi.",
             )
         )
     }
