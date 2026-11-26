@@ -6,6 +6,7 @@ import Link from "next/link";
 
 import { PageTitle } from "@/components/shell";
 import { Button, Card, EmptyState, ErrorState, Skeleton } from "@/components/ui";
+import { StudioHelpButton } from "@/features/ai-studio/guide-modal";
 import { useAiStatus } from "@/lib/ai-tryon";
 
 // The studio pulls in the Decart SDK (livekit-client); load it only on this page, never on the server.
@@ -21,6 +22,7 @@ export default function AiStudioPage() {
       <PageTitle
         title="MarosimGo AI Fashion Studio"
         subtitle="Jonli kamerada kiyimni sun'iy intellekt yordamida o'zingizda ko'ring"
+        action={<StudioHelpButton />}
       />
       {status.error ? (
         <Card>
@@ -47,8 +49,8 @@ export default function AiStudioPage() {
           <p className="flex items-center gap-2 text-xs text-muted-foreground">
             <SparklesIcon className="size-3.5" />{" "}
             {status.data.mode === "snapshot"
-              ? "Kamera kadri va haqiqiy kiyim rasmi OpenAI yordamida birlashtirilib fotorealistik ko'rsatiladi."
-              : "Natija Decart AI tomonidan jonli yaratiladi; sifat internet tezligiga bog'liq."}
+              ? "Kamera kadri va haqiqiy kiyim rasmi MarosimGo AI yordamida birlashtirilib fotorealistik ko'rsatiladi."
+              : "Natija AI tomonidan jonli yaratiladi; sifat internet tezligiga bog'liq."}
           </p>
           <AiFashionStudio status={status.data} />
         </>
