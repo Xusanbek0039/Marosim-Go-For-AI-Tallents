@@ -440,7 +440,7 @@ AI_TRYON = {
     "FAL_KEY": env.str("FAL_KEY", default=""),
     "FAL_PHOTO_MODEL": env.str("FAL_TRYON_PHOTO_MODEL", default="fal-ai/fashn/tryon/v1.6"),
     "FAL_VIDEO_MODEL": env.str("FAL_TRYON_VIDEO_MODEL", default="fal-ai/kling-video/o3/standard/video-to-video/edit"),
-    "FAL_TIMEOUT_SECONDS": env.int("FAL_TRYON_TIMEOUT_SECONDS", default=240),
+    "FAL_TIMEOUT_SECONDS": env.int("FAL_TRYON_TIMEOUT_SECONDS", default=420),
     #: Real Video Virtual Try-On via Replicate (Kling v3 Omni direct video editing).
     "REPLICATE_API_TOKEN": env.str("REPLICATE_API_TOKEN", default=""),
     "REPLICATE_VIDEO_MODEL": env.str("REPLICATE_TRYON_VIDEO_MODEL", default="kwaivgi/kling-v3-omni-video"),

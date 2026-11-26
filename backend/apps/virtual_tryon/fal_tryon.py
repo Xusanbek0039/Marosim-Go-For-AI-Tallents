@@ -93,10 +93,10 @@ def _upload_bytes(key: str, data: bytes, filename: str, content_type: str) -> st
             upload_url,
             data=data,
             headers={"Content-Type": content_type},
-            timeout=60,
+            timeout=120,
         )
     except requests.Timeout:
-        logger.warning("fal storage PUT timed out")
+        logger.warning("fal storage PUT timed out (%s, %d bytes)", filename, len(data))
         raise openai_tryon.OpenAITryOnError("provider_timeout") from None
     except requests.RequestException as exc:
         logger.warning("fal storage PUT failed: %s", type(exc).__name__)
@@ -144,14 +144,15 @@ def _run_queue(key: str, model_id: str, payload: dict, timeout_seconds: int) -> 
     auth_header = {"Authorization": f"Key {key}"}
     deadline = time.monotonic() + timeout_seconds
     status_val = job.get("status", "IN_QUEUE")
+    logger.info("fal job %s submitted to %s (status=%s)", req_id, model_id, status_val)
 
     while status_val not in ("COMPLETED", "FAILED", "CANCELLED"):
         if time.monotonic() > deadline:
-            logger.warning("fal job %s (%s) timed out after %ss", req_id, model_id, timeout_seconds)
+            logger.warning("fal job %s (%s) timed out after %ss (last_status=%s)", req_id, model_id, timeout_seconds, status_val)
             raise openai_tryon.OpenAITryOnError("provider_timeout")
-        time.sleep(2.0)
+        time.sleep(2.5)
         try:
-            poll_res = requests.get(status_url, headers=auth_header, timeout=20)
+            poll_res = requests.get(status_url, headers=auth_header, timeout=30)
         except requests.Timeout:
             continue
         except requests.RequestException as exc:
@@ -164,7 +165,10 @@ def _run_queue(key: str, model_id: str, payload: dict, timeout_seconds: int) -> 
             poll_data = poll_res.json()
         except ValueError:
             raise openai_tryon.OpenAITryOnError("provider_bad_response", poll_res.status_code) from None
-        status_val = poll_data.get("status", "")
+        new_status = poll_data.get("status", "")
+        if new_status != status_val:
+            logger.info("fal job %s status: %s -> %s", req_id, status_val, new_status)
+        status_val = new_status
         if poll_data.get("response_url"):
             response_url = poll_data["response_url"]
 
@@ -173,7 +177,7 @@ def _run_queue(key: str, model_id: str, payload: dict, timeout_seconds: int) -> 
         raise openai_tryon.OpenAITryOnError("provider_rejected_request")
 
     try:
-        final_res = requests.get(response_url, headers=auth_header, timeout=30)
+        final_res = requests.get(response_url, headers=auth_header, timeout=60)
     except requests.Timeout:
         raise openai_tryon.OpenAITryOnError("provider_timeout") from None
     except requests.RequestException:
@@ -298,7 +302,7 @@ def render_video_tryon(*, norm_mp4: Path, garment) -> tuple[bytes, str, int]:
         raise openai_tryon.OpenAITryOnError("provider_bad_response", 200)
 
     try:
-        dl = requests.get(out_url, timeout=60)
+        dl = requests.get(out_url, timeout=120)
     except requests.Timeout:
         raise openai_tryon.OpenAITryOnError("provider_timeout") from None
     except requests.RequestException:
