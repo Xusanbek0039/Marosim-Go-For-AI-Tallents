@@ -405,17 +405,27 @@ function SubscriptionsTab() {
 // ============================================================== plans tab
 function PlanRow({ plan, editable }: { plan: Plan; editable: boolean }) {
   const update = useUpdatePlan();
-  const [form, setForm] = useState({ name: plan.name, price: String(Math.round(Number(plan.price))), max_viewers: String(plan.max_viewers), duration_months: String(plan.duration_months) });
+  const [form, setForm] = useState({
+    name: plan.name,
+    price: String(Math.round(Number(plan.price))),
+    max_viewers: String(plan.max_viewers),
+    duration_months: String(plan.duration_months),
+    ai_video_per_month: String(plan.ai_video_per_month),
+    ai_photo_per_month: String(plan.ai_photo_per_month),
+  });
+  const isUser = plan.audience === "USER";
   const dirty =
     form.name !== plan.name ||
     Number(form.price) !== Math.round(Number(plan.price)) ||
     Number(form.max_viewers) !== plan.max_viewers ||
-    Number(form.duration_months) !== plan.duration_months;
+    Number(form.duration_months) !== plan.duration_months ||
+    Number(form.ai_video_per_month) !== plan.ai_video_per_month ||
+    Number(form.ai_photo_per_month) !== plan.ai_photo_per_month;
   const save = (body: Partial<Plan>) =>
     update.mutate({ id: plan.id, ...body }, { onSuccess: () => toast.success("Saqlandi"), onError: (e) => toast.error(errorText(e, "Saqlanmadi")) });
   const num = (v: string) => v.replace(/[^\d]/g, "");
   return (
-    <li className={cn("grid items-end gap-3 px-5 py-4 sm:grid-cols-[1fr_1fr_0.7fr_0.7fr_auto]", !plan.is_active && "opacity-60")}>
+    <li className={cn("grid items-end gap-3 px-5 py-4 sm:grid-cols-2 xl:grid-cols-[1fr_1fr_0.6fr_0.6fr_0.6fr_0.6fr_auto]", !plan.is_active && "opacity-60")}>
       <div className="flex flex-col gap-1.5">
         <Label className="text-xs">Nomi ({plan.code} · {plan.audience})</Label>
         <Input disabled={!editable} value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
@@ -432,6 +442,14 @@ function PlanRow({ plan, editable }: { plan: Plan; editable: boolean }) {
         <Label className="text-xs">Ruxsat (kishi)</Label>
         <Input disabled={!editable} inputMode="numeric" value={form.max_viewers} onChange={(e) => setForm({ ...form, max_viewers: num(e.target.value) })} />
       </div>
+      <div className="flex flex-col gap-1.5">
+        <Label className="text-xs">AI video / oy</Label>
+        <Input disabled={!editable || !isUser} inputMode="numeric" value={form.ai_video_per_month} onChange={(e) => setForm({ ...form, ai_video_per_month: num(e.target.value) })} />
+      </div>
+      <div className="flex flex-col gap-1.5">
+        <Label className="text-xs">AI foto / oy</Label>
+        <Input disabled={!editable || !isUser} inputMode="numeric" value={form.ai_photo_per_month} onChange={(e) => setForm({ ...form, ai_photo_per_month: num(e.target.value) })} />
+      </div>
       <div className="flex h-11 items-center gap-3">
         {editable && (
           <>
@@ -442,7 +460,14 @@ function PlanRow({ plan, editable }: { plan: Plan; editable: boolean }) {
               size="sm"
               disabled={!dirty || update.isPending}
               onClick={() =>
-                save({ name: form.name.trim(), price: form.price, max_viewers: Number(form.max_viewers), duration_months: Number(form.duration_months) })
+                save({
+                  name: form.name.trim(),
+                  price: form.price,
+                  max_viewers: Number(form.max_viewers),
+                  duration_months: Number(form.duration_months),
+                  ai_video_per_month: Number(form.ai_video_per_month),
+                  ai_photo_per_month: Number(form.ai_photo_per_month),
+                })
               }
             >
               <SaveIcon /> Saqlash
@@ -498,7 +523,7 @@ function PlansTab() {
       ) : (
         <ul className="divide-y divide-border/70">
           {plans.data.map((p) => (
-            <PlanRow key={`${p.id}-${p.price}-${p.name}-${p.max_viewers}-${p.duration_months}`} plan={p} editable={editable} />
+            <PlanRow key={`${p.id}-${p.price}-${p.name}-${p.max_viewers}-${p.duration_months}-${p.ai_video_per_month}-${p.ai_photo_per_month}`} plan={p} editable={editable} />
           ))}
         </ul>
       )}

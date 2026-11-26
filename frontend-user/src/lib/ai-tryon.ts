@@ -16,6 +16,8 @@ export interface AiStatus {
   model: string;
   /** True = active Premium subscription (clean download); false = download with MarosimGo logo watermark. */
   is_premium?: boolean;
+  /** This month's AI try-on quota: video is Premium only, photos are 3 a month for free. */
+  quota?: { video_limit: number; video_left: number; photo_limit: number; photo_left: number };
   max_session_seconds: number;
   seconds_left_today: number;
   sessions_left_today: number;
