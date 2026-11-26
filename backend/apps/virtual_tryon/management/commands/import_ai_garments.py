@@ -21,6 +21,7 @@ re-running the command updates instead of duplicating.
 """
 
 import json
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
 from django.core.files.base import ContentFile
@@ -114,6 +115,29 @@ class Command(BaseCommand):
             "prompt": prompt,
             "sort_order": max(0, int(row.get("sort_order", 0) or 0)),
         }
+        if "price" in row and row["price"] is not None:
+            try:
+                data["price"] = Decimal(str(row["price"]))
+            except InvalidOperation:
+                raise ValueError(f"noto'g'ri 'price': {row['price']!r}") from None
+        if "currency" in row and row["currency"]:
+            data["currency"] = str(row["currency"])[:3].upper()
+        if "sizes" in row and isinstance(row["sizes"], list):
+            data["sizes"] = [str(s)[:20] for s in row["sizes"] if str(s).strip()]
+        if "colors" in row and isinstance(row["colors"], list):
+            data["colors"] = [
+                {"name": str(c.get("name", ""))[:40], "hex": str(c.get("hex", ""))[:7]}
+                for c in row["colors"]
+                if isinstance(c, dict) and str(c.get("name", "")).strip()
+            ]
+        if "brand" in row and row["brand"] is not None:
+            data["brand"] = str(row["brand"])[:80]
+        if "material" in row and row["material"] is not None:
+            data["material"] = str(row["material"])[:120]
+        if "delivery_days" in row and row["delivery_days"] is not None:
+            data["delivery_days"] = max(1, int(row["delivery_days"]))
+        if "care_instructions" in row and row["care_instructions"] is not None:
+            data["care_instructions"] = str(row["care_instructions"])[:200]
         return label, data, upload
 
     def _save(self, data, content: ContentFile, approve: bool):
@@ -123,6 +147,9 @@ class Command(BaseCommand):
         garment.description = data["description"]
         garment.ai_prompt = data["prompt"]
         garment.sort_order = data["sort_order"]
+        for field in ("price", "currency", "sizes", "colors", "brand", "material", "delivery_days", "care_instructions"):
+            if field in data:
+                setattr(garment, field, data[field])
         garment.is_active = True
         garment.approval_status = ApprovalStatus.APPROVED if approve else ApprovalStatus.PENDING
         garment.rejection_reason = ""
