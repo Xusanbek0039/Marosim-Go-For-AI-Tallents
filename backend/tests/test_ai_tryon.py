@@ -628,3 +628,78 @@ def test_video_tryon_preserves_motion_sequence(settings, monkeypatch, user, clie
 
     dl_res = client.get(res.data["download_url"])
     assert dl_res.status_code == 200 and "attachment" in dl_res["Content-Disposition"]
+
+
+def test_video_tryon_replicate_kling_omni(settings, monkeypatch, user, client_for):
+    import requests
+    import shutil
+    import subprocess
+    import tempfile
+
+    if not shutil.which("ffmpeg"):
+        pytest.skip("ffmpeg not installed")
+
+    settings.AI_TRYON = {
+        **settings.AI_TRYON,
+        "REPLICATE_API_TOKEN": "r8_test_token",
+        "REPLICATE_VIDEO_MODEL": "kwaivgi/kling-v3-omni-video",
+        "REPLICATE_VIDEO_MODE": "standard",
+    }
+    garment = make_garment(name="Kling Video Suit")
+
+    with tempfile.TemporaryDirectory() as tmp:
+        src = Path(tmp) / "clip.webm"
+        out_sample = Path(tmp) / "sample_out.mp4"
+        subprocess.run(
+            ["ffmpeg", "-y", "-f", "lavfi", "-i", "testsrc=duration=3:size=320x240:rate=12", "-c:v", "libvpx", str(src)],
+            check=True,
+            capture_output=True,
+        )
+        subprocess.run(
+            ["ffmpeg", "-y", "-f", "lavfi", "-i", "color=c=navy:s=720x960:d=3", "-c:v", "libx264", "-pix_fmt", "yuv420p", str(out_sample)],
+            check=True,
+            capture_output=True,
+        )
+        src_bytes = src.read_bytes()
+        out_mp4_bytes = out_sample.read_bytes()
+
+    captured = {}
+
+    class FakeRes:
+        def __init__(self, status_code=200, data=None, content=b""):
+            self.status_code = status_code
+            self._data = data or {}
+            self.content = content
+            self.text = str(data or "")
+
+        def json(self):
+            return self._data
+
+    def fake_post(url, headers=None, files=None, json=None, timeout=None):
+        if url.endswith("/files"):
+            fname = files["content"][0]
+            return FakeRes(201, {"urls": {"get": f"https://api.replicate.com/v1/files/{fname}"}})
+        captured["pred_url"] = url
+        captured["input"] = json["input"]
+        return FakeRes(201, {"id": "pred_1", "status": "processing", "urls": {"get": "https://api.replicate.com/v1/predictions/pred_1"}})
+
+    def fake_get(url, headers=None, timeout=None):
+        if "predictions/pred_1" in url:
+            return FakeRes(200, {"id": "pred_1", "status": "succeeded", "output": "https://replicate.delivery/out.mp4"})
+        return FakeRes(200, content=out_mp4_bytes)
+
+    monkeypatch.setattr(requests, "post", fake_post)
+    monkeypatch.setattr(requests, "get", fake_get)
+
+    client = client_for(user)
+    res = client.post(
+        f"{BASE}/ai/render-video/",
+        {"garment": str(garment.pk), "video": SimpleUploadedFile("clip.webm", src_bytes, content_type="video/webm")},
+        format="multipart",
+    )
+    assert res.status_code == 200, res.data
+    assert res.data["model"] == "kwaivgi/kling-v3-omni-video"
+    assert captured["input"]["video_reference_type"] == "base"
+    assert captured["input"]["reference_video"].endswith("input_720p.mp4")
+    assert len(captured["input"]["reference_images"]) == 1
+    assert client.get(res.data["video_url"]).status_code == 200

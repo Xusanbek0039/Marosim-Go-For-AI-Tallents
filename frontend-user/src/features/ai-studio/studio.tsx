@@ -458,7 +458,7 @@ function SnapshotAiStudio({ status }: { status: AiStatus }) {
               }
               note={
                 renderingMode === "video"
-                  ? "Videodagi harakat kadrlari AI orqali kiyintirilib, MP4 video yig'ilmoqda (20–35 soniya)..."
+                  ? "Kling Video AI asl videongizdagi harakatlarni saqlab kiyimni kiydirmoqda (40–90 soniya)..."
                   : "Yuzingiz va holatingiz saqlangan holda fotorealistik natija tayyorlanmoqda (10–20 soniya)..."
               }
             />
