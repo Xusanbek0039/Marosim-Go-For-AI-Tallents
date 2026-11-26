@@ -52,6 +52,7 @@ export interface AdminSavedLook {
     cover_image: string | null;
   } | null;
   image: string;
+  video: string | null;
   width: number;
   height: number;
   drive_file_id: string;

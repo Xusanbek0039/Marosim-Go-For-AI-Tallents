@@ -45,7 +45,7 @@ REST_FRAMEWORK["DEFAULT_THROTTLE_RATES"] = {  # noqa: F405
 }
 MEDIA_ROOT = BASE_DIR / ".test-media"  # noqa: F405
 PRIVATE_MEDIA_ROOT = BASE_DIR / ".test-media" / "private"  # noqa: F405
-AI_TRYON = {**AI_TRYON, "API_KEY": "", "ALLOWED_ORIGINS": [], "REPLICATE_API_TOKEN": ""}  # noqa: F405 - tests enable it explicitly
+AI_TRYON = {**AI_TRYON, "API_KEY": "", "ALLOWED_ORIGINS": [], "FAL_KEY": "", "REPLICATE_API_TOKEN": ""}  # noqa: F405 - tests enable it explicitly
 AI_PLANNER = {**AI_PLANNER, "OPENAI_API_KEY": "", "ANTHROPIC_API_KEY": ""}  # noqa: F405 - tests install a fake provider
 MONITORING = {**MONITORING, "ASYNC": False}  # noqa: F405 - deterministic, inline writes
 GOOGLE_TOKEN_ENCRYPTION_KEYS = ["dGVzdF9nb29nbGVfdG9rZW5fa2V5X29ubHlfMDEyMzQ="]  # base64 of 32 test bytes

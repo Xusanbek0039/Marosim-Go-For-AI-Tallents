@@ -3,9 +3,11 @@
 import {
   CheckCircle2Icon,
   CloudIcon,
+  DownloadIcon,
   ExternalLinkIcon,
   ImagesIcon,
   Loader2Icon,
+  PlayIcon,
   PlusIcon,
   SearchIcon,
   ShirtIcon,
@@ -14,6 +16,7 @@ import {
   Trash2Icon,
   UploadCloudIcon,
   UserIcon,
+  VideoIcon,
   XIcon,
 } from "lucide-react";
 import { useState } from "react";
@@ -61,6 +64,7 @@ function formatMoney(raw: string) {
 
 function LooksTab() {
   const [search, setSearch] = useState("");
+  const [mediaFilter, setMediaFilter] = useState<"all" | "photo" | "video">("all");
   const [preview, setPreview] = useState<AdminSavedLook | null>(null);
   const looks = useAdminLooks(search.trim());
   const syncDrive = useSyncLookToDrive();
@@ -68,7 +72,13 @@ function LooksTab() {
   const { data: me } = useMe();
   const canSync = me?.role === "SUPER_ADMIN" || can("tryon.update");
 
-  const rows = looks.data?.results ?? [];
+  const allRows = looks.data?.results ?? [];
+  const rows =
+    mediaFilter === "all"
+      ? allRows
+      : mediaFilter === "video"
+        ? allRows.filter((r) => Boolean(r.video))
+        : allRows.filter((r) => !r.video);
 
   return (
     <div className="flex flex-col gap-4">
@@ -83,8 +93,31 @@ function LooksTab() {
             className="h-10 w-full rounded-xl border border-glass-border bg-background/60 pr-3 pl-10 text-sm outline-none focus:border-brand"
           />
         </div>
+        <div className="flex items-center gap-1.5">
+          {(
+            [
+              ["all", "Barchasi"],
+              ["photo", "Rasmlar"],
+              ["video", "Videolar"],
+            ] as const
+          ).map(([key, label]) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setMediaFilter(key)}
+              className={cn(
+                "rounded-xl px-3 py-1.5 text-xs font-semibold transition",
+                mediaFilter === key
+                  ? "bg-brand text-white"
+                  : "border border-glass-border bg-background/60 text-muted-foreground hover:text-foreground",
+              )}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
         <span className="text-xs font-semibold text-muted-foreground">
-          Jami: {looks.data?.count ?? 0} ta kiyib ko&apos;rilgan obraz
+          Jami: {rows.length} ta kiyib ko&apos;rilgan obraz
         </span>
       </GlassCard>
 
@@ -119,6 +152,19 @@ function LooksTab() {
                   loading="lazy"
                   className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
                 />
+                {look.video && (
+                  <>
+                    <span className="absolute top-2.5 left-2.5 inline-flex items-center gap-1 rounded-full bg-brand/90 px-2.5 py-1 text-[11px] font-semibold text-white backdrop-blur-md">
+                      <VideoIcon className="size-3.5" />
+                      Video
+                    </span>
+                    <span className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                      <span className="flex size-12 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur-md transition group-hover:scale-110">
+                        <PlayIcon className="ml-0.5 size-5 fill-current" />
+                      </span>
+                    </span>
+                  </>
+                )}
                 <span className="absolute top-2.5 right-2.5 inline-flex items-center gap-1 rounded-full bg-black/60 px-2.5 py-1 text-[11px] font-semibold text-white backdrop-blur-md">
                   <CloudIcon className="size-3.5" />
                   {look.drive_file_id ? "Google Drive" : "Faqat server"}
@@ -220,12 +266,24 @@ function LooksTab() {
             >
               <XIcon className="size-4" />
             </button>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={preview.image}
-              alt={preview.garment?.name ?? "Obraz"}
-              className="max-h-[72vh] w-full bg-black object-contain"
-            />
+            {preview.video ? (
+              <video
+                src={preview.video}
+                poster={preview.image}
+                controls
+                autoPlay
+                loop
+                playsInline
+                className="max-h-[72vh] w-full bg-black object-contain"
+              />
+            ) : (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img
+                src={preview.image}
+                alt={preview.garment?.name ?? "Obraz"}
+                className="max-h-[72vh] w-full bg-black object-contain"
+              />
+            )}
             <div className="flex flex-wrap items-center justify-between gap-2 p-4">
               <div>
                 <p className="text-sm font-bold">
@@ -233,16 +291,25 @@ function LooksTab() {
                 </p>
                 <p className="text-xs text-muted-foreground">{formatDateTime(preview.created_at)}</p>
               </div>
-              {preview.drive_web_url && (
+              <div className="flex flex-wrap items-center gap-2">
                 <a
-                  href={preview.drive_web_url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-700"
+                  href={preview.video ?? preview.image}
+                  download={`marosimgo-tryon-${preview.id.slice(0, 8)}.${preview.video ? "mp4" : "jpg"}`}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-glass-border bg-background/70 px-3 py-2 text-xs font-semibold hover:bg-muted"
                 >
-                  <CloudIcon className="size-3.5" /> Google Drive&apos;da ko&apos;rish
+                  <DownloadIcon className="size-3.5" /> {preview.video ? "Videoni yuklab olish" : "Rasmni yuklab olish"}
                 </a>
-              )}
+                {preview.drive_web_url && (
+                  <a
+                    href={preview.drive_web_url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-700"
+                  >
+                    <CloudIcon className="size-3.5" /> Google Drive&apos;da ko&apos;rish
+                  </a>
+                )}
+              </div>
             </div>
           </div>
         </div>

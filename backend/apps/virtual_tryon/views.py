@@ -35,7 +35,7 @@ from rest_framework.views import APIView
 from apps.accounts.access import AccessNote
 from apps.ceremonies.permissions import IsClientUser
 
-from . import ai, decart, drive_sync, openai_tryon, video_tryon, watermark
+from . import ai, decart, drive_sync, fal_tryon, openai_tryon, video_tryon, watermark
 from .models import (
     AiTryOnSession,
     ApprovalStatus,
@@ -273,6 +273,8 @@ class AiStatusView(APIView):
         active = ai.active_session(request.user)
         if decart.is_configured():
             enabled, mode, model = True, "realtime", cfg["MODEL"]
+        elif fal_tryon.is_configured():
+            enabled, mode, model = True, "snapshot", cfg.get("FAL_PHOTO_MODEL", "fal-ai/fashn/tryon/v1.6")
         elif openai_tryon.is_configured():
             enabled, mode, model = True, "snapshot", cfg.get("OPENAI_MODEL", "gpt-image-1.5")
         else:
@@ -321,7 +323,25 @@ class AiRenderView(APIView):
         )
         photo_bytes = openai_tryon.prepare_user_photo(body.validated_data["photo"])
         try:
-            result = openai_tryon.render_tryon(photo_bytes=photo_bytes, garment=garment)
+            if fal_tryon.is_configured():
+                try:
+                    result = fal_tryon.render_photo_tryon(photo_bytes=photo_bytes, garment=garment)
+                except openai_tryon.OpenAITryOnError as exc:
+                    if (
+                        exc.code
+                        in (
+                            "provider_insufficient_credits",
+                            "provider_auth_failed",
+                            "provider_rate_limited",
+                            "provider_unavailable",
+                        )
+                        and openai_tryon.is_configured()
+                    ):
+                        result = openai_tryon.render_tryon(photo_bytes=photo_bytes, garment=garment)
+                    else:
+                        raise
+            else:
+                result = openai_tryon.render_tryon(photo_bytes=photo_bytes, garment=garment)
         except openai_tryon.OpenAITryOnError as exc:
             message, http_status = ai.PROVIDER_MESSAGES.get(exc.code, ai.PROVIDER_MESSAGES["provider_unavailable"])
             raise ai.AiTryOnError(exc.code, message, http_status) from None

@@ -333,6 +333,7 @@ class AdminSavedLookViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, vi
     permission_module = "tryon"
     action_permissions = {
         "image": "tryon.view",
+        "video": "tryon.view",
         "sync_drive": "tryon.update",
     }
     serializer_class = AdminSavedLookSerializer
@@ -364,6 +365,20 @@ class AdminSavedLookViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, vi
         name = (look.image.name or "").lower()
         ctype = "image/jpeg" if name.endswith((".jpg", ".jpeg")) else "image/webp"
         response = FileResponse(look.image.open("rb"), content_type=ctype)
+        response["Cache-Control"] = "private, no-store"
+        return response
+
+    @extend_schema(
+        summary="Kiyib ko'rilgan obraz videosi (admin)",
+        tags=["admin-virtual-tryon"],
+        responses={(200, "video/mp4"): OpenApiTypes.BINARY},
+    )
+    @action(detail=True, methods=["get"], url_path="video", url_name="video")
+    def video(self, request, pk=None):
+        look = self.get_object()
+        if not look.video:
+            raise NotFound("Video mavjud emas.")
+        response = FileResponse(look.video.open("rb"), content_type="video/mp4")
         response["Cache-Control"] = "private, no-store"
         return response
 

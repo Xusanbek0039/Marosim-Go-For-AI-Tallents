@@ -773,3 +773,142 @@ def test_video_tryon_falls_back_to_openai_when_replicate_has_no_credits(settings
     assert res.data["model"] == "gpt-image-1.5"
     assert res.data["frames"] == 8
     assert client.get(res.data["video_url"]).status_code == 200
+
+
+def test_fal_photo_and_video_tryon_and_admin_video_gallery(settings, monkeypatch, user, make_user, client_for):
+    import requests
+    import shutil
+    import subprocess
+    import tempfile
+
+    if not shutil.which("ffmpeg"):
+        pytest.skip("ffmpeg not installed")
+
+    settings.AI_TRYON = {
+        **settings.AI_TRYON,
+        "FAL_KEY": "fal_test_secret_key",
+        "FAL_PHOTO_MODEL": "fal-ai/fashn/tryon/v1.6",
+        "FAL_VIDEO_MODEL": "fal-ai/kling-video/o3/standard/video-to-video/edit",
+    }
+    garment = make_garment(name="Fal Atlas Dress")
+
+    with tempfile.TemporaryDirectory() as tmp:
+        src = Path(tmp) / "clip.webm"
+        out_sample = Path(tmp) / "fal_out.mp4"
+        subprocess.run(
+            ["ffmpeg", "-y", "-f", "lavfi", "-i", "testsrc=duration=3:size=320x240:rate=12", "-c:v", "libvpx", str(src)],
+            check=True,
+            capture_output=True,
+        )
+        subprocess.run(
+            ["ffmpeg", "-y", "-f", "lavfi", "-i", "color=c=maroon:s=720x960:d=3", "-c:v", "libx264", "-pix_fmt", "yuv420p", str(out_sample)],
+            check=True,
+            capture_output=True,
+        )
+        src_bytes = src.read_bytes()
+        out_mp4_bytes = out_sample.read_bytes()
+
+    out_png_bytes = reference_png(size=(512, 640))
+    captured = {"photo_input": None, "video_input": None}
+
+    class FakeRes:
+        def __init__(self, status_code=200, data=None, content=b""):
+            self.status_code = status_code
+            self._data = data or {}
+            self.content = content
+            self.text = str(data or "")
+
+        def json(self):
+            return self._data
+
+        def raise_for_status(self):
+            if self.status_code >= 400:
+                raise requests.HTTPError(f"HTTP {self.status_code}")
+
+    def fake_post(url, headers=None, json=None, timeout=None):
+        if "storage/upload/initiate" in url:
+            fname = json["file_name"]
+            return FakeRes(200, {"upload_url": f"https://v3b.fal.media/upload/{fname}", "file_url": f"https://v3b.fal.media/files/{fname}"})
+        if "fashn/tryon" in url:
+            captured["photo_input"] = json
+            return FakeRes(
+                200,
+                {
+                    "request_id": "req_photo_1",
+                    "status": "COMPLETED",
+                    "status_url": "https://queue.fal.run/photo/status",
+                    "response_url": "https://queue.fal.run/photo/result",
+                },
+            )
+        if "kling-video" in url:
+            captured["video_input"] = json
+            return FakeRes(
+                200,
+                {
+                    "request_id": "req_video_1",
+                    "status": "COMPLETED",
+                    "status_url": "https://queue.fal.run/video/status",
+                    "response_url": "https://queue.fal.run/video/result",
+                },
+            )
+        raise AssertionError(f"Unexpected POST {url}")
+
+    def fake_put(url, data=None, headers=None, timeout=None):
+        return FakeRes(200)
+
+    def fake_get(url, headers=None, timeout=None):
+        if url == "https://queue.fal.run/photo/result":
+            return FakeRes(200, {"images": [{"url": "https://v3b.fal.media/out_photo.jpg"}]})
+        if url == "https://v3b.fal.media/out_photo.jpg":
+            return FakeRes(200, content=out_png_bytes)
+        if url == "https://queue.fal.run/video/result":
+            return FakeRes(200, {"video": {"url": "https://v3b.fal.media/out_video.mp4"}})
+        if url == "https://v3b.fal.media/out_video.mp4":
+            return FakeRes(200, content=out_mp4_bytes)
+        raise AssertionError(f"Unexpected GET {url}")
+
+    monkeypatch.setattr(requests, "post", fake_post)
+    monkeypatch.setattr(requests, "put", fake_put)
+    monkeypatch.setattr(requests, "get", fake_get)
+
+    client = client_for(user)
+    # 1. Status reports fal.ai snapshot mode
+    st = client.get(f"{BASE}/ai/status/")
+    assert st.status_code == 200 and st.data["enabled"] is True and st.data["mode"] == "snapshot"
+    assert st.data["model"] == "fal-ai/fashn/tryon/v1.6"
+
+    # 2. Photo try-on via fal.ai FASHN
+    photo_res = client.post(
+        f"{BASE}/ai/render/",
+        {"garment": str(garment.pk), "photo": SimpleUploadedFile("me.png", out_png_bytes, content_type="image/png")},
+        format="multipart",
+    )
+    assert photo_res.status_code == 200, photo_res.data
+    assert photo_res.data["model"] == "fal-ai/fashn/tryon/v1.6"
+    assert captured["photo_input"]["model_image"].endswith("person.png")
+    assert captured["photo_input"]["garment_image"].endswith("garment.png")
+
+    # 3. Video try-on via fal.ai Kling O3
+    vid_res = client.post(
+        f"{BASE}/ai/render-video/",
+        {"garment": str(garment.pk), "video": SimpleUploadedFile("clip.webm", src_bytes, content_type="video/webm")},
+        format="multipart",
+    )
+    assert vid_res.status_code == 200, vid_res.data
+    assert vid_res.data["model"] == "fal-ai/kling-video/o3/standard/video-to-video/edit"
+    assert "@Image1" in captured["video_input"]["prompt"]
+    assert captured["video_input"]["video_url"].endswith("input_720p.mp4")
+
+    # 4. User saved looks includes video URL
+    user_looks = client.get(f"{BASE}/looks/").data["results"]
+    video_look = next(r for r in user_looks if r["id"] == vid_res.data["look_id"])
+    assert video_look["video"].endswith("/video/")
+
+    # 5. Admin panel gallery exposes both photo and video + streams MP4
+    sa = client_for(make_user(Role.SUPER_ADMIN))
+    admin_looks = sa.get("/api/v1/admin/virtual-tryon/looks/").data["results"]
+    admin_vid = next(r for r in admin_looks if r["id"] == vid_res.data["look_id"])
+    assert admin_vid["video"] and admin_vid["video"].endswith("/video/")
+    stream_res = sa.get(admin_vid["video"])
+    assert stream_res.status_code == 200 and stream_res["Content-Type"] == "video/mp4"
+    assert len(b"".join(stream_res.streaming_content)) > 1000

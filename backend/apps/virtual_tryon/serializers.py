@@ -260,10 +260,11 @@ class AiFinishSerializer(serializers.Serializer):
 class SavedLookSerializer(serializers.ModelSerializer):
     garment = serializers.SerializerMethodField()
     image = serializers.SerializerMethodField(help_text="Faqat egasi yuklab oladigan himoyalangan manzil.")
+    video = serializers.SerializerMethodField(help_text="Agar video try-on bo'lsa — MP4 video manzili.")
 
     class Meta:
         model = SavedLook
-        fields = ["id", "garment", "image", "width", "height", "created_at"]
+        fields = ["id", "garment", "image", "video", "width", "height", "created_at"]
         read_only_fields = fields
 
     def get_garment(self, look) -> dict | None:
@@ -274,6 +275,13 @@ class SavedLookSerializer(serializers.ModelSerializer):
         from django.urls import reverse
 
         return _absolute(self.context, reverse("tryon-look-image", args=[look.pk]))
+
+    def get_video(self, look) -> str | None:
+        if not look.video:
+            return None
+        from django.urls import reverse
+
+        return _absolute(self.context, reverse("tryon-look-video", args=[look.pk]))
 
 
 class SavedLookCreateSerializer(serializers.Serializer):
@@ -410,6 +418,7 @@ class AdminSavedLookSerializer(serializers.ModelSerializer):
     user = serializers.SerializerMethodField()
     garment = serializers.SerializerMethodField()
     image = serializers.SerializerMethodField()
+    video = serializers.SerializerMethodField()
 
     class Meta:
         model = SavedLook
@@ -418,6 +427,7 @@ class AdminSavedLookSerializer(serializers.ModelSerializer):
             "user",
             "garment",
             "image",
+            "video",
             "width",
             "height",
             "drive_file_id",
@@ -451,6 +461,13 @@ class AdminSavedLookSerializer(serializers.ModelSerializer):
         from django.urls import reverse
 
         return _absolute(self.context, reverse("admin-tryon-look-image", args=[look.pk]))
+
+    def get_video(self, look) -> str | None:
+        if not look.video:
+            return None
+        from django.urls import reverse
+
+        return _absolute(self.context, reverse("admin-tryon-look-video", args=[look.pk]))
 
 
 # ---------------------------------------------------------------- garment orders

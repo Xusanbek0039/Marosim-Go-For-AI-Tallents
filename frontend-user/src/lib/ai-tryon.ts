@@ -123,6 +123,7 @@ export interface SavedLook {
   garment: { id: string; name: string } | null;
   /** Owner-only, permission-checked URL (not under /media/). */
   image: string;
+  video?: string | null;
   width: number;
   height: number;
   created_at: string;

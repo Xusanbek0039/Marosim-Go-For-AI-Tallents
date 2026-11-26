@@ -436,6 +436,11 @@ AI_TRYON = {
     "OPENAI_QUALITY": env.str("OPENAI_TRYON_QUALITY", default="medium"),
     "OPENAI_INPUT_FIDELITY": env.str("OPENAI_TRYON_INPUT_FIDELITY", default="high"),
     "OPENAI_TIMEOUT_SECONDS": env.int("OPENAI_TRYON_TIMEOUT_SECONDS", default=90),
+    #: Primary Virtual Try-On via fal.ai (FASHN v1.6 photo + Kling O3 video-to-video edit).
+    "FAL_KEY": env.str("FAL_KEY", default=""),
+    "FAL_PHOTO_MODEL": env.str("FAL_TRYON_PHOTO_MODEL", default="fal-ai/fashn/tryon/v1.6"),
+    "FAL_VIDEO_MODEL": env.str("FAL_TRYON_VIDEO_MODEL", default="fal-ai/kling-video/o3/standard/video-to-video/edit"),
+    "FAL_TIMEOUT_SECONDS": env.int("FAL_TRYON_TIMEOUT_SECONDS", default=240),
     #: Real Video Virtual Try-On via Replicate (Kling v3 Omni direct video editing).
     "REPLICATE_API_TOKEN": env.str("REPLICATE_API_TOKEN", default=""),
     "REPLICATE_VIDEO_MODEL": env.str("REPLICATE_TRYON_VIDEO_MODEL", default="kwaivgi/kling-v3-omni-video"),

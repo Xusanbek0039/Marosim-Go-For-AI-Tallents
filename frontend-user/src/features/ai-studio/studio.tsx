@@ -92,6 +92,21 @@ function useStudio(session: StudioSession | null): StudioState {
   return useSyncExternalStore(subscribe, () => session?.snapshot ?? IDLE, () => IDLE);
 }
 
+const VIDEO_LOADER_NOTES = [
+  "MarosimGo AI harakatlaringizni tahlil qilmoqda...",
+  "Tanlangan libos qomatingizga moslashtirilmoqda...",
+  "Mato burmalari va yorug'lik tabiiy ko'rinishga keltirilmoqda...",
+  "Yuzingiz va harakatlaringiz saqlangan holda kadrlar yig'ilmoqda...",
+  "Deyarli tayyor! Video yakuniy sifatda tayyorlanmoqda...",
+] as const;
+
+const PHOTO_LOADER_NOTES = [
+  "Suratingiz tahlil qilinmoqda...",
+  "Tanlangan libos qomatingizga moslashtirilmoqda...",
+  "Yorug'lik va mato detallari sayqallanmoqda...",
+  "Deyarli tayyor! Natija yuklanmoqda...",
+] as const;
+
 const IDLE: StudioState = { phase: "idle", metrics: {} };
 const ACTIVE: Phase[] = ["starting", "connecting", "processing", "live", "switching", "reconnecting"];
 
@@ -456,11 +471,7 @@ function SnapshotAiStudio({ status }: { status: AiStatus }) {
                   ? `${selected?.name ?? "Kiyim"} — Video Try-On tayyorlanmoqda`
                   : `${selected?.name ?? "Kiyim"} kiydirilmoqda`
               }
-              note={
-                renderingMode === "video"
-                  ? "Kling Video AI asl videongizdagi harakatlarni saqlab kiyimni kiydirmoqda (40–90 soniya)..."
-                  : "Yuzingiz va holatingiz saqlangan holda fotorealistik natija tayyorlanmoqda (10–20 soniya)..."
-              }
+              note={renderingMode === "video" ? VIDEO_LOADER_NOTES : PHOTO_LOADER_NOTES}
             />
           )}
 
@@ -1038,17 +1049,46 @@ function Panel({ icon, title, children }: { icon: React.ReactNode; title: string
   );
 }
 
-function Busy({ title, note }: { title: string; note?: string }) {
+function Busy({ title, note }: { title: string; note?: string | readonly string[] }) {
+  const notes = useMemo(() => (Array.isArray(note) ? note : note ? [note] : []), [note]);
+  const [idx, setIdx] = useState(0);
+
+  useEffect(() => {
+    setIdx(0);
+    if (notes.length <= 1) return;
+    const timer = window.setInterval(() => {
+      setIdx((prev) => (prev + 1) % notes.length);
+    }, 4500);
+    return () => window.clearInterval(timer);
+  }, [notes]);
+
+  const currentNote = notes[idx];
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-white"
+      className="absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black/45 px-4 text-white backdrop-blur-[2px]"
     >
       <Loader2Icon className="size-9 animate-spin" />
-      <p className="text-base font-semibold">{title}</p>
-      {note && <p className="max-w-xs text-center text-xs text-white/70">{note}</p>}
+      <p className="text-center text-base font-semibold">{title}</p>
+      {currentNote && (
+        <div className="min-h-8 max-w-xs text-center">
+          <AnimatePresence mode="wait">
+            <motion.p
+              key={`${idx}-${currentNote}`}
+              initial={{ opacity: 0, y: 4 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -4 }}
+              transition={{ duration: 0.3 }}
+              className="text-xs text-white/80"
+            >
+              {currentNote}
+            </motion.p>
+          </AnimatePresence>
+        </div>
+      )}
     </motion.div>
   );
 }
@@ -1352,14 +1392,31 @@ function SavedLooks({ isPremium = false }: { isPremium?: boolean }) {
         <ul className="grid grid-cols-2 gap-3 sm:grid-cols-4">
           {rows.map((look) => (
             <li key={look.id} className="group relative overflow-hidden rounded-2xl bg-black">
-              {/* eslint-disable-next-line @next/next/no-img-element -- owner-only API URL */}
-              <img src={look.image} alt={look.garment?.name ?? "Saqlangan obraz"} loading="lazy" className="aspect-[3/4] w-full object-cover" />
+              {look.video ? (
+                <>
+                  <video
+                    src={look.video}
+                    poster={look.image}
+                    controls
+                    playsInline
+                    loop
+                    muted
+                    className="aspect-[3/4] w-full object-cover"
+                  />
+                  <span className="pointer-events-none absolute top-2 left-2 inline-flex items-center gap-1 rounded-full bg-brand/90 px-2 py-0.5 text-[10px] font-bold text-white backdrop-blur-md">
+                    <VideoIcon className="size-3" /> Video
+                  </span>
+                </>
+              ) : (
+                /* eslint-disable-next-line @next/next/no-img-element -- owner-only API URL */
+                <img src={look.image} alt={look.garment?.name ?? "Saqlangan obraz"} loading="lazy" className="aspect-[3/4] w-full object-cover" />
+              )}
               <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-1 bg-gradient-to-t from-black/80 to-transparent p-2 pt-6">
                 <span className="truncate text-[11px] font-semibold text-white">{look.garment?.name ?? "—"}</span>
                 <div className="flex items-center gap-1">
                   <a
                     href={aiApi.downloadUrl(look.id)}
-                    download={`marosimgo-look-${look.id.slice(0, 8)}.jpg`}
+                    download={`marosimgo-look-${look.id.slice(0, 8)}.${look.video ? "mp4" : "jpg"}`}
                     aria-label="Yuklab olish"
                     className="rounded-full bg-white/15 p-1.5 text-white transition hover:bg-blue-500/80"
                   >
