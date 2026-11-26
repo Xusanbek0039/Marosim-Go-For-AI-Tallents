@@ -55,3 +55,6 @@ GOOGLE_OAUTH_CLIENT_SECRET = "test-client-secret"
 CEREMONY_INVITE_REQUIRE_VERIFIED_PHONE = False  # mirrors dev; the strict mode is tested explicitly
 CACHES = {"default": {"BACKEND": "django.core.cache.backends.locmem.LocMemCache", "LOCATION": "tests"}}
 PANEL_HOST_SITES = {}  # host-based panel routing is tested explicitly
+
+# Drive backup of finished try-on videos runs inline in tests (a thread would outlive the test DB).
+TRYON_DRIVE_BACKUP_SYNC = True

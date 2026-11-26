@@ -36,8 +36,8 @@ export interface AiRenderResult {
   drive_web_url?: string;
 }
 
-const VIDEO_JOB_POLL_MS = 3000;
-const VIDEO_JOB_MAX_WAIT_MS = 15 * 60 * 1000;
+const VIDEO_JOB_POLL_MS = 5000;
+const VIDEO_JOB_MAX_WAIT_MS = 25 * 60 * 1000;
 
 export type AiVideoJobStatus = "PENDING" | "FINALIZING" | "DONE" | "FAILED";
 

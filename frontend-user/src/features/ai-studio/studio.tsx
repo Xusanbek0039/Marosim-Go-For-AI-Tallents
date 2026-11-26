@@ -100,9 +100,11 @@ function useStudio(session: StudioSession | null): StudioState {
 }
 
 const VIDEO_LOADER_NOTES = [
-  "MarosimGo AI libosni sizga kiydirmoqda...",
+  "MarosimGo AI harakatlaringizni tahlil qilmoqda...",
   "Tanlangan libos qomatingizga moslashtirilmoqda...",
-  "Bir necha soniyada rasmingiz chiqadi, video esa ortidan keladi...",
+  "Mato burmalari va yorug'lik tabiiy ko'rinishga keltirilmoqda...",
+  "Yuzingiz va harakatlaringiz saqlangan holda kadrlar yig'ilmoqda...",
+  "Haqiqiy harakatlaringiz bilan video 5–10 daqiqa tayyorlanadi. Sahifani yopsangiz ham video \"Saqlangan obrazlar\"da paydo bo'ladi.",
 ] as const;
 
 const PHOTO_LOADER_NOTES = [
