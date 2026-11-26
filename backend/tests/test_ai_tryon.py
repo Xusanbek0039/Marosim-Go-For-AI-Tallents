@@ -842,11 +842,12 @@ def test_fal_photo_and_video_tryon_and_admin_video_gallery(settings, monkeypatch
             )
         if "kling-video" in url:
             captured["video_input"] = json
+            fal_state["video_submits"] += 1
             return FakeRes(
                 200,
                 {
                     "request_id": "req_video_1",
-                    "status": "COMPLETED",
+                    "status": "IN_QUEUE",
                     "status_url": "https://queue.fal.run/video/status",
                     "response_url": "https://queue.fal.run/video/result",
                 },
@@ -856,7 +857,11 @@ def test_fal_photo_and_video_tryon_and_admin_video_gallery(settings, monkeypatch
     def fake_put(url, data=None, headers=None, timeout=None):
         return FakeRes(200)
 
+    fal_state = {"video_status": "IN_PROGRESS", "video_submits": 0, "video_downloads_fail": 1}
+
     def fake_get(url, headers=None, timeout=None):
+        if url == "https://queue.fal.run/video/status":
+            return FakeRes(200, {"status": fal_state["video_status"]})
         if url == "https://queue.fal.run/photo/result":
             return FakeRes(200, {"images": [{"url": "https://v3b.fal.media/out_photo.jpg"}]})
         if url == "https://v3b.fal.media/out_photo.jpg":
@@ -864,6 +869,9 @@ def test_fal_photo_and_video_tryon_and_admin_video_gallery(settings, monkeypatch
         if url == "https://queue.fal.run/video/result":
             return FakeRes(200, {"video": {"url": "https://v3b.fal.media/out_video.mp4"}})
         if url == "https://v3b.fal.media/out_video.mp4":
+            if fal_state["video_downloads_fail"]:
+                fal_state["video_downloads_fail"] -= 1
+                return FakeRes(503)
             return FakeRes(200, content=out_mp4_bytes)
         raise AssertionError(f"Unexpected GET {url}")
 
@@ -888,16 +896,33 @@ def test_fal_photo_and_video_tryon_and_admin_video_gallery(settings, monkeypatch
     assert captured["photo_input"]["model_image"].endswith("person.png")
     assert captured["photo_input"]["garment_image"].endswith("garment.png")
 
-    # 3. Video try-on via fal.ai Kling O3
-    vid_res = client.post(
+    # 3. Video try-on via fal.ai Kling O3 runs as a background job: submit answers 202 at once
+    start_res = client.post(
         f"{BASE}/ai/render-video/",
         {"garment": str(garment.pk), "video": SimpleUploadedFile("clip.webm", src_bytes, content_type="video/webm")},
         format="multipart",
     )
-    assert vid_res.status_code == 200, vid_res.data
-    assert vid_res.data["model"] == "fal-ai/kling-video/o3/standard/video-to-video/edit"
+    assert start_res.status_code == 202, start_res.data
+    assert start_res.data["status"] == "PENDING"
     assert "@Image1" in captured["video_input"]["prompt"]
     assert captured["video_input"]["video_url"].endswith("input_720p.mp4")
+    job_url = f"{BASE}/ai/render-video/{start_res.data['job_id']}/"
+
+    # still rendering on fal
+    assert client.get(job_url).data["status"] == "PENDING"
+    # fal finished, but the first MP4 download fails: the paid render is kept and retried
+    fal_state["video_status"] = "COMPLETED"
+    assert client.get(job_url).data["status"] == "PENDING"
+    vid_res = client.get(job_url)
+    assert vid_res.status_code == 200 and vid_res.data["status"] == "DONE", vid_res.data
+    assert vid_res.data["model"] == "fal-ai/kling-video/o3/standard/video-to-video/edit"
+    assert vid_res.data["video_url"].endswith("/video/")
+    # polling again returns the same look, and fal was billed exactly once
+    again = client.get(job_url)
+    assert again.data["look_id"] == vid_res.data["look_id"]
+    assert fal_state["video_submits"] == 1
+    # another user cannot see the job
+    assert client_for(make_user(Role.USER)).get(job_url).status_code == 404
 
     # 4. User saved looks includes video URL
     user_looks = client.get(f"{BASE}/looks/").data["results"]
