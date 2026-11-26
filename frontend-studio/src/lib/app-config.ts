@@ -10,7 +10,7 @@ export const APP = {
     { href: "/portfolio", label: "Portfolio" },
     { href: "/grafik", label: "Grafik" },
     { href: "/xabarlar", label: "Xabarlar" },
-    { href: "/galichka", label: "Galichka" },
+    { href: "/galichka", label: "Premium" },
     { href: "/yordam", label: "Yordam" },
     { href: "/profile", label: "Profil" },
   ],

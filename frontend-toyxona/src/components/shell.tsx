@@ -17,6 +17,7 @@ import { useTheme } from "next-themes";
 import { useSyncExternalStore } from "react";
 import { toast } from "sonner";
 
+import { BillingBanner } from "./billing-banner";
 import { PaidBadge } from "./paid-badge";
 
 import { APP } from "@/lib/app-config";
@@ -182,6 +183,7 @@ export function Shell({ nav, children }: { nav: NavLink[]; children: React.React
             transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
             className="flex flex-1 flex-col gap-5"
           >
+            <BillingBanner />
             {children}
           </motion.main>
         </div>

@@ -2,7 +2,7 @@
 
 import { PaidBadge } from "@/components/paid-badge";
 
-import { CheckIcon, CrownIcon, DownloadIcon, ImageOffIcon, UsersIcon, XIcon } from "lucide-react";
+import { CameraIcon, CheckIcon, CrownIcon, DownloadIcon, ImageOffIcon, MinusIcon, SparklesIcon, UsersIcon, VideoIcon, XIcon } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -41,7 +41,7 @@ export default function SubscriptionPage() {
 
   return (
     <>
-      <PageTitle title="Obuna" subtitle="Logosiz ko'rish, yuklab olish va ko'proq odamga ulashish" />
+      <PageTitle title="Premium obuna" subtitle="AI kiyib ko'rish, logosiz ko'rish, yuklab olish va ko'proq odamga ulashish" />
 
       {/* current state */}
       <Card className="flex flex-wrap items-center gap-4">
@@ -72,6 +72,8 @@ export default function SubscriptionPage() {
 
       {s.pending && <PendingCard sub={s.pending} instructions={s.payment_instructions} />}
 
+      <Compare plans={s.plans} freeViewers={s.active ? 5 : s.viewer_limit} />
+
       {/* plans */}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {s.plans.map((p) => {
@@ -92,6 +94,9 @@ export default function SubscriptionPage() {
               <p className="text-2xl font-extrabold tracking-tight">{formatMoney(p.price)}</p>
               <p className="text-xs text-muted-foreground">oyiga ≈ {formatMoney(perMonth(p))}</p>
               <ul className="flex flex-col gap-1.5 text-sm">
+                <Perk icon={VideoIcon}>Oyiga {p.ai_video_per_month} ta AI video kiyib ko&apos;rish</Perk>
+                <Perk icon={CameraIcon}>Oyiga {p.ai_photo_per_month} ta AI rasm kiyib ko&apos;rish</Perk>
+                <Perk icon={SparklesIcon}>AI natijalari logosiz</Perk>
                 <Perk icon={CheckIcon}>Profil galichkasi</Perk>
                 <Perk icon={ImageOffIcon}>Logosiz video va rasmlar</Perk>
                 <Perk icon={DownloadIcon}>Yuklab olish</Perk>
@@ -132,6 +137,48 @@ export default function SubscriptionPage() {
         </Card>
       )}
     </>
+  );
+}
+
+/** What Premium adds over the free account — the monthly plan's limits are the reference. */
+function Compare({ plans, freeViewers }: { plans: Plan[]; freeViewers: number }) {
+  const monthly = plans.find((p) => p.duration_months === 1) ?? plans[0];
+  if (!monthly) return null;
+  const rows: [string, React.ReactNode, React.ReactNode][] = [
+    ["AI video kiyib ko'rish", <MinusIcon key="f" className="mx-auto size-4 text-muted-foreground" aria-label="yo'q" />, `oyiga ${monthly.ai_video_per_month} ta`],
+    ["AI rasm kiyib ko'rish", "oyiga 3 ta", `oyiga ${monthly.ai_photo_per_month} ta`],
+    ["AI natijasini yuklab olish", "logo bilan", "logosiz"],
+    ["To'y video va rasmlari", "logo bilan", "logosiz, yuklab olish"],
+    ["Ulashish", `${freeViewers} kishiga`, `${monthly.max_viewers} kishigacha`],
+    ["Profil galichkasi", <MinusIcon key="g" className="mx-auto size-4 text-muted-foreground" aria-label="yo'q" />, <CheckIcon key="p" className="mx-auto size-4 text-emerald-600" aria-label="bor" />],
+  ];
+  return (
+    <Card className="flex flex-col gap-3">
+      <h2 className="text-base font-bold">Bepul va Premium farqi</h2>
+      <table className="w-full text-sm">
+        <thead className="text-xs text-muted-foreground">
+          <tr>
+            <th className="py-2 text-left font-semibold">Imkoniyat</th>
+            <th className="py-2 text-center font-semibold">Bepul</th>
+            <th className="py-2 text-center font-semibold text-foreground">
+              <span className="inline-flex items-center gap-1">
+                <CrownIcon className="size-3.5" aria-hidden /> Premium
+              </span>
+            </th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-border">
+          {rows.map(([label, free, premium]) => (
+            <tr key={label}>
+              <td className="py-2.5">{label}</td>
+              <td className="py-2.5 text-center text-muted-foreground">{free}</td>
+              <td className="py-2.5 text-center font-semibold">{premium}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <p className="text-xs text-muted-foreground">AI limiti har oy 1-sanada yangilanadi. Xato bilan tugagan AI ishlov limitdan ayirilmaydi.</p>
+    </Card>
   );
 }
 
