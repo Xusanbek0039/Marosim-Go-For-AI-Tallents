@@ -12,16 +12,16 @@ export const cn = (...parts: (string | false | null | undefined)[]) => parts.fil
 
 const ease = [0.16, 1, 0.3, 1] as const;
 export const fadeUp = {
-  initial: { opacity: 0, y: 10 },
-  animate: { opacity: 1, y: 0, transition: { duration: 0.35, ease } },
+  initial: { opacity: 0, y: 12 },
+  animate: { opacity: 1, y: 0, transition: { duration: 0.38, ease } },
 };
 
 // ----------------------------------------------------------------- button
 type Variant = "primary" | "outline" | "ghost" | "danger";
 const VARIANTS: Record<Variant, string> = {
   primary:
-    "brand-gradient text-white shadow-[0_10px_24px_-12px_rgb(37_99_235/0.85)] hover:brightness-110 disabled:opacity-60",
-  outline: "glass hover:bg-muted disabled:opacity-50",
+    "brand-gradient text-white shadow-[0_12px_28px_-12px_rgb(190_18_60/0.75)] hover:brightness-110 disabled:opacity-60",
+  outline: "glass hover:border-brand/35 hover:bg-muted disabled:opacity-50",
   ghost: "hover:bg-muted disabled:opacity-50",
   danger: "bg-red-500/10 text-danger hover:bg-red-500/20 disabled:opacity-50",
 };
@@ -39,8 +39,8 @@ export function Button({
     <button
       disabled={disabled || loading}
       className={cn(
-        "inline-flex items-center justify-center gap-2 rounded-xl font-semibold whitespace-nowrap outline-none transition active:scale-[0.98] focus-visible:ring-4 focus-visible:ring-brand/30 [&_svg]:size-4",
-        size === "sm" ? "h-9 px-3 text-[13px]" : size === "lg" ? "h-12 px-5 text-[15px]" : "h-10 px-4 text-sm",
+        "inline-flex items-center justify-center gap-2 rounded-2xl font-semibold whitespace-nowrap outline-none transition-[transform,filter,background-color,border-color] duration-200 active:scale-[0.97] focus-visible:ring-4 focus-visible:ring-brand/25 [&_svg]:size-4",
+        size === "sm" ? "h-9 px-3.5 text-[13px]" : size === "lg" ? "h-12 px-5 text-[15px]" : "h-10 px-4 text-sm",
         VARIANTS[variant],
         className,
       )}
@@ -130,13 +130,13 @@ export function Card({ className, children, ...props }: React.ComponentProps<typ
 
 export function Badge({ tone = "neutral", children }: { tone?: "neutral" | "brand" | "success" | "warning" | "danger"; children: React.ReactNode }) {
   const tones = {
-    neutral: "bg-slate-500/12 text-slate-700 dark:text-slate-300",
-    brand: "bg-blue-500/14 text-blue-700 dark:text-blue-300",
+    neutral: "bg-stone-500/12 text-stone-700 dark:text-stone-300",
+    brand: "bg-rose-500/14 text-rose-700 dark:text-rose-300",
     success: "bg-emerald-500/14 text-emerald-700 dark:text-emerald-300",
     warning: "bg-amber-500/14 text-amber-700 dark:text-amber-300",
     danger: "bg-red-500/14 text-red-700 dark:text-red-300",
   };
-  return <span className={cn("inline-flex h-6 items-center rounded-full px-2.5 text-xs font-bold", tones[tone])}>{children}</span>;
+  return <span className={cn("inline-flex h-6 items-center gap-1 rounded-full px-2.5 text-xs font-bold", tones[tone])}>{children}</span>;
 }
 
 export function Avatar({ first, last, src, className }: { first?: string; last?: string; src?: string | null; className?: string }) {

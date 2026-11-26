@@ -1,6 +1,19 @@
 "use client";
 
-import { CheckIcon, ChevronRightIcon, FolderHeartIcon, FolderOpenIcon, MailOpenIcon, PencilIcon, XIcon } from "lucide-react";
+import {
+  ArrowUpRightIcon,
+  BotIcon,
+  CameraIcon,
+  CastleIcon,
+  CheckIcon,
+  ChevronRightIcon,
+  FolderHeartIcon,
+  FolderOpenIcon,
+  MailOpenIcon,
+  PencilIcon,
+  SparklesIcon,
+  XIcon,
+} from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
 import { useState } from "react";
@@ -170,6 +183,41 @@ function FolderGroup({ title, hint, items }: { title: string; hint: string; item
   );
 }
 
+const QUICK_ACTIONS = [
+  {
+    href: "/ai-studio",
+    title: "AI Fashion Studio",
+    desc: "Kamerada haqiqiy kiyimlarni o'zingizda kiyib ko'ring",
+    icon: SparklesIcon,
+    accent: "from-rose-600 via-pink-600 to-amber-500",
+    featured: true,
+  },
+  {
+    href: "/ai-reja",
+    title: "AI Maslahatchi",
+    desc: "Byudjet va to'y rejasini soniyalarda tuzing",
+    icon: BotIcon,
+    accent: "from-amber-500 to-orange-600",
+    featured: false,
+  },
+  {
+    href: "/toyxonalar",
+    title: "To'yxonalar",
+    desc: "Zallar, narxlar va bo'sh sanalarni solishtiring",
+    icon: CastleIcon,
+    accent: "from-emerald-500 to-teal-600",
+    featured: false,
+  },
+  {
+    href: "/studiyalar",
+    title: "Studiyalar",
+    desc: "Foto va video ustalarini tanlang",
+    icon: CameraIcon,
+    accent: "from-violet-600 to-rose-500",
+    featured: false,
+  },
+] as const;
+
 export default function HomePage() {
   const { data: me } = useMe();
   const ceremonies = useMyCeremonies();
@@ -177,7 +225,67 @@ export default function HomePage() {
 
   return (
     <>
-      <PageTitle title={`Salom${me?.first_name ? `, ${me.first_name}` : ""}!`} subtitle="Mening marosimlarim — har bir marosim alohida papka" />
+      {/* Editorial Hero + Bento Quick Launch */}
+      <section className="flex flex-col gap-4">
+        <PageTitle
+          title={`Xush kelibsiz${me?.first_name ? `, ${me.first_name}` : ""}!`}
+          subtitle="Marosimingizni rejalashtiring, kiyimlarni AI'da kiyib ko'ring va barcha lahzalarni bir joyda saqlang."
+        />
+
+        <motion.div
+          className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"
+          initial="initial"
+          animate="animate"
+          variants={{ animate: { transition: { staggerChildren: 0.06 } } }}
+        >
+          {QUICK_ACTIONS.map((item) => {
+            const Icon = item.icon;
+            return (
+              <motion.div
+                key={item.href}
+                variants={{ initial: { opacity: 0, y: 12 }, animate: { opacity: 1, y: 0 } }}
+                whileHover={{ y: -3 }}
+                transition={{ type: "spring", stiffness: 360, damping: 28 }}
+              >
+                <Link
+                  href={item.href}
+                  className={cn(
+                    "surface-lift group relative flex h-full flex-col justify-between gap-4 overflow-hidden rounded-3xl p-5",
+                    item.featured
+                      ? "brand-gradient text-white shadow-[0_20px_45px_-20px_rgb(190_18_60/0.8)]"
+                      : "glass hover:border-brand/35",
+                  )}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <span
+                      className={cn(
+                        "flex size-11 items-center justify-center rounded-2xl",
+                        item.featured
+                          ? "bg-white/20 text-white backdrop-blur-md"
+                          : `bg-gradient-to-br ${item.accent} text-white shadow-md`,
+                      )}
+                    >
+                      <Icon className="size-5" aria-hidden />
+                    </span>
+                    <ArrowUpRightIcon
+                      className={cn(
+                        "size-4 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5",
+                        item.featured ? "text-white/80" : "text-muted-foreground",
+                      )}
+                    />
+                  </div>
+                  <div>
+                    <p className="text-base font-extrabold tracking-tight">{item.title}</p>
+                    <p className={cn("mt-1 text-xs leading-relaxed", item.featured ? "text-white/85" : "text-muted-foreground")}>
+                      {item.desc}
+                    </p>
+                  </div>
+                </Link>
+              </motion.div>
+            );
+          })}
+        </motion.div>
+      </section>
 
       {invitations.data && invitations.data.length > 0 && (
         <Card className="flex flex-col gap-3">
