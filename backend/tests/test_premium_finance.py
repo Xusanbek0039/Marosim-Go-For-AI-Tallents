@@ -36,8 +36,12 @@ def _fake_photo(monkeypatch, fail=False):
         if fail:
             raise openai_tryon.OpenAITryOnError("provider_unavailable")
         return openai_tryon.TryOnRenderResult(
-            image_bytes=reference_png(size=(64, 80)), content_type="image/png", width=64, height=80,
-            model="fal-ai/fashn/tryon/v1.6", latency_ms=5,
+            image_bytes=reference_png(size=(64, 80)),
+            content_type="image/png",
+            width=64,
+            height=80,
+            model="fal-ai/fashn/tryon/v1.6",
+            latency_ms=5,
         )
 
     monkeypatch.setattr(fal_tryon, "render_photo_tryon", render)
@@ -82,8 +86,12 @@ def test_ai_video_is_premium_only_with_a_monthly_quota_and_failed_jobs_refund(fa
     def start(*, user, video_upload, garment):
         n = next(counter)
         return VideoTryOnJob.objects.create(
-            user=user, garment=garment, model="fal-ai/kling", request_id=f"req_{n}",
-            status_url=f"https://queue.fal.run/s/{n}", response_url=f"https://queue.fal.run/r/{n}",
+            user=user,
+            garment=garment,
+            model="fal-ai/kling",
+            request_id=f"req_{n}",
+            status_url=f"https://queue.fal.run/s/{n}",
+            response_url=f"https://queue.fal.run/r/{n}",
         )
 
     monkeypatch.setattr(video_jobs, "start", start)
@@ -103,10 +111,10 @@ def test_unpaid_studio_leaves_the_catalog_after_grace_and_returns_when_paid(sett
     settings.BUSINESS_BILLING = {**settings.BUSINESS_BILLING, "START": "2020-01-01", "ENFORCE": True}
     owner = make_user(Role.STUDIO)
     studio = Studio.objects.create(name="Nur", address="Toshkent", responsible_user=owner)
+
     def ids():
         data = anon.get("/api/v1/public/studios/").data
         return {row["id"] for row in (data["results"] if isinstance(data, dict) else data)}
-
 
     billing_of = lambda: client_for(owner).get("/api/v1/me/subscriptions/billing/").data[0]  # noqa: E731
 
@@ -120,8 +128,16 @@ def test_unpaid_studio_leaves_the_catalog_after_grace_and_returns_when_paid(sett
     plan = SubscriptionPlan.objects.get(code="STUDIO_M1")
     now = timezone.now()
     Subscription.objects.create(
-        user=owner, studio=studio, plan=plan, status=SubscriptionStatus.ACTIVE, price=plan.price,
-        duration_months=1, max_viewers=1, starts_at=now, ends_at=add_months(now, 1), paid_amount=plan.price,
+        user=owner,
+        studio=studio,
+        plan=plan,
+        status=SubscriptionStatus.ACTIVE,
+        price=plan.price,
+        duration_months=1,
+        max_viewers=1,
+        starts_at=now,
+        ends_at=add_months(now, 1),
+        paid_amount=plan.price,
         paid_at=now,
     )
     assert str(studio.pk) in ids() and billing_of()["state"] == "OK"
@@ -146,14 +162,24 @@ def test_user_plans_keep_a_healthy_margin_at_full_ai_use():
 def test_finance_report_counts_income_ai_costs_and_manual_expenses(make_user, client_for, plain_user):
     viewer = client_for(make_user(Role.ADMIN, admin_permissions=["finance.view"]))
     manager = client_for(make_user(Role.ADMIN, admin_permissions=["finance.view", "finance.manage"]))
-    assert client_for(make_user(Role.ADMIN, admin_permissions=["dashboard.view"])).get(f"{FINANCE}report/").status_code == 403
+    assert (
+        client_for(make_user(Role.ADMIN, admin_permissions=["dashboard.view"])).get(f"{FINANCE}report/").status_code
+        == 403
+    )
 
     sub = subscribe(plain_user, "M1")
     Subscription.objects.filter(pk=sub.pk).update(paid_at=timezone.now())
-    AiRenderLog.objects.create(user=plain_user, kind=RenderKind.VIDEO, status=RenderLogStatus.DONE, cost_usd=Decimal("0.63"))
+    AiRenderLog.objects.create(
+        user=plain_user, kind=RenderKind.VIDEO, status=RenderLogStatus.DONE, cost_usd=Decimal("0.63")
+    )
     AiRenderLog.objects.create(user=plain_user, kind=RenderKind.PHOTO, status=RenderLogStatus.REFUNDED)
 
-    expense = {"category": "SERVER", "title": "Hosting", "amount": "200000", "spent_on": timezone.localdate().isoformat()}
+    expense = {
+        "category": "SERVER",
+        "title": "Hosting",
+        "amount": "200000",
+        "spent_on": timezone.localdate().isoformat(),
+    }
     assert viewer.post(FINANCE, expense, format="json").status_code == 403
     created = manager.post(FINANCE, expense, format="json")
     assert created.status_code == 201

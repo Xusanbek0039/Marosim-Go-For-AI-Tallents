@@ -146,6 +146,11 @@ function TrendChart({ trend }: { trend: FinanceReport["trend"] }) {
         </table>
       ) : (
         <div className="relative">
+          {trend.every((t) => !num(t.income) && !num(t.expense)) && (
+            <p className="absolute inset-0 flex items-center justify-center text-sm text-muted-foreground">
+              Hali kirim yoki chiqim qayd etilmagan
+            </p>
+          )}
           <svg viewBox={`0 0 ${W} ${H}`} className="h-auto w-full" role="img" aria-label="Oylik kirim va chiqim grafigi">
             {[0.25, 0.5, 0.75, 1].map((f) => (
               <line key={f} x1={PAD_L} x2={W} y1={y(max * f)} y2={y(max * f)} className="stroke-border" strokeDasharray="2 4" strokeWidth={1} />
@@ -177,7 +182,7 @@ function TrendChart({ trend }: { trend: FinanceReport["trend"] }) {
                       </g>
                     );
                   })}
-                  <text x={cx} y={H - 8} textAnchor="middle" className="fill-muted-foreground text-[11px]">
+                  <text x={cx} y={H - 8} textAnchor="middle" className="fill-muted-foreground text-[9px]">
                     {monthLabel(t.month)}
                   </text>
                 </g>
@@ -189,7 +194,7 @@ function TrendChart({ trend }: { trend: FinanceReport["trend"] }) {
           </svg>
           {hover && (
             <div
-              className="pointer-events-none absolute -translate-x-1/2 -translate-y-full rounded-xl border border-border bg-popover px-3 py-2 text-xs shadow-lg"
+              className="pointer-events-none absolute -translate-x-1/2 -translate-y-full whitespace-nowrap rounded-xl border border-border bg-popover px-3 py-2 text-xs shadow-lg"
               style={{ left: `${((PAD_L + group * hover.i + group / 2) / W) * 100}%`, top: `${(y(num(trend[hover.i][SERIES[hover.s].key])) / H) * 100}%` }}
             >
               <p className="font-semibold">{monthLabel(trend[hover.i].month)}</p>

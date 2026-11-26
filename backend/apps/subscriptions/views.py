@@ -500,10 +500,17 @@ class AdminFinanceViewSet(
 
     def perform_create(self, serializer):
         expense = serializer.save(created_by=self.request.user)
-        record(self.request, AuditAction.CREATE, expense, changes={"title": expense.title, "amount": str(expense.amount)})
+        record(
+            self.request, AuditAction.CREATE, expense, changes={"title": expense.title, "amount": str(expense.amount)}
+        )
 
     def perform_destroy(self, instance):
-        record(self.request, AuditAction.DELETE, instance, changes={"title": instance.title, "amount": str(instance.amount)})
+        record(
+            self.request,
+            AuditAction.DELETE,
+            instance,
+            changes={"title": instance.title, "amount": str(instance.amount)},
+        )
         instance.delete()
 
     @extend_schema(
@@ -531,5 +538,11 @@ class AdminFinanceViewSet(
         before = str(obj.usd_rate)
         obj.usd_rate = body.validated_data["usd_rate"]
         obj.save(update_fields=["usd_rate", "updated_at"])
-        record(request, AuditAction.UPDATE, obj, changes={"usd_rate": [before, str(obj.usd_rate)]}, target_label="Dollar kursi")
+        record(
+            request,
+            AuditAction.UPDATE,
+            obj,
+            changes={"usd_rate": [before, str(obj.usd_rate)]},
+            target_label="Dollar kursi",
+        )
         return Response(UsdRateSerializer(obj).data)

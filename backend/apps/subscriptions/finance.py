@@ -78,14 +78,34 @@ def _expenses(start, end, rate: Decimal) -> dict:
     usd = _ai_costs_usd(start, end)
     to_uzs = lambda v: (Decimal(v) * rate).quantize(Decimal("1"))  # noqa: E731
     ai = [
-        {"key": "ai_video", "label": "AI video kiyib ko'rish (fal.ai Kling)", "count": usd["video_count"],
-         "usd": usd["video"], "amount": to_uzs(usd["video"])},
-        {"key": "ai_photo", "label": "AI foto kiyib ko'rish (fal.ai FASHN)", "count": usd["photo_count"],
-         "usd": usd["photo"], "amount": to_uzs(usd["photo"])},
-        {"key": "ai_planner", "label": "AI maslahatchi (token sarfi)", "count": usd["planner_count"],
-         "usd": usd["planner"], "amount": to_uzs(usd["planner"])},
-        {"key": "ai_live", "label": "Jonli AI kiyib ko'rish (soniya)", "count": usd["live_seconds"],
-         "usd": usd["live"], "amount": to_uzs(usd["live"])},
+        {
+            "key": "ai_video",
+            "label": "AI video kiyib ko'rish (fal.ai Kling)",
+            "count": usd["video_count"],
+            "usd": usd["video"],
+            "amount": to_uzs(usd["video"]),
+        },
+        {
+            "key": "ai_photo",
+            "label": "AI foto kiyib ko'rish (fal.ai FASHN)",
+            "count": usd["photo_count"],
+            "usd": usd["photo"],
+            "amount": to_uzs(usd["photo"]),
+        },
+        {
+            "key": "ai_planner",
+            "label": "AI maslahatchi (token sarfi)",
+            "count": usd["planner_count"],
+            "usd": usd["planner"],
+            "amount": to_uzs(usd["planner"]),
+        },
+        {
+            "key": "ai_live",
+            "label": "Jonli AI kiyib ko'rish (soniya)",
+            "count": usd["live_seconds"],
+            "usd": usd["live"],
+            "amount": to_uzs(usd["live"]),
+        },
     ]
     manual_qs = Expense.objects.filter(spent_on__gte=start.date(), spent_on__lt=end.date())
     manual = {r["category"]: r["s"] for r in manual_qs.values("category").annotate(s=Sum("amount"))}
