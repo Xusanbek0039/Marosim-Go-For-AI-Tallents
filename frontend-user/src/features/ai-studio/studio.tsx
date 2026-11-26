@@ -160,7 +160,13 @@ function SnapshotAiStudio({ status }: { status: AiStatus }) {
   const [selected, setSelected] = useState<Garment | null>(null);
   const [rendering, setRendering] = useState(false);
   const [renderError, setRenderError] = useState<unknown>(null);
-  const [result, setResult] = useState<{ url: string; garmentId: string; garmentName: string; latencyMs: number } | null>(null);
+  const [result, setResult] = useState<{
+    url: string;
+    lookId?: string;
+    garment: Garment;
+    latencyMs: number;
+  } | null>(null);
+  const [buyOpen, setBuyOpen] = useState(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const stageRef = useRef<HTMLElement | null>(null);
   const saveLook = useSaveLook();
@@ -220,7 +226,7 @@ function SnapshotAiStudio({ status }: { status: AiStatus }) {
       const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.94));
       if (!blob) throw new Error("Kadrni olib bo'lmadi.");
       const out = await aiApi.render(blob, garment.id);
-      setResult({ url: out.image, garmentId: garment.id, garmentName: garment.name, latencyMs: out.latency_ms });
+      setResult({ url: out.image, lookId: out.look_id, garment, latencyMs: out.latency_ms });
     } catch (err) {
       setRenderError(err);
     } finally {
@@ -228,11 +234,21 @@ function SnapshotAiStudio({ status }: { status: AiStatus }) {
     }
   };
 
+  const downloadResult = () => {
+    if (!result?.lookId) return;
+    const a = document.createElement("a");
+    a.href = aiApi.downloadUrl(result.lookId);
+    a.download = `marosimgo-look-${result.lookId.slice(0, 8)}.jpg`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  };
+
   const saveResult = async () => {
     if (!result) return;
     const res = await fetch(result.url);
     const blob = await res.blob();
-    saveLook.mutate({ image: blob, garment: result.garmentId, session: null });
+    saveLook.mutate({ image: blob, garment: result.garment.id, session: null });
   };
 
   return (
@@ -258,7 +274,7 @@ function SnapshotAiStudio({ status }: { status: AiStatus }) {
         <div className="relative aspect-[3/4] w-full sm:aspect-video">
           {result ? (
             /* eslint-disable-next-line @next/next/no-img-element -- data URL from OpenAI try-on */
-            <img src={result.url} alt={result.garmentName} className="h-full w-full object-contain bg-black" />
+            <img src={result.url} alt={result.garment.name} className="h-full w-full object-contain bg-black" />
           ) : stream ? (
             <StreamVideo
               stream={stream}
@@ -281,7 +297,7 @@ function SnapshotAiStudio({ status }: { status: AiStatus }) {
               {rendering
                 ? "AI tanlangan kiyimni kiydirmoqda..."
                 : result
-                  ? `Tayyor · ${result.garmentName}`
+                  ? `Tayyor · ${result.garment.name}`
                   : stream && selected
                     ? `2-qadam: Rasmga tushing · ${selected.name}`
                     : selected
@@ -365,19 +381,25 @@ function SnapshotAiStudio({ status }: { status: AiStatus }) {
 
           {/* bottom controls */}
           {stream && !rendering && (
-            <div className="absolute inset-x-0 bottom-0 flex flex-wrap items-center justify-center gap-2 bg-gradient-to-t from-black/75 to-transparent p-4 pt-10">
+            <div className="absolute inset-x-0 bottom-0 flex flex-wrap items-center justify-center gap-2 bg-gradient-to-t from-black/80 to-transparent p-4 pt-10">
               {result ? (
                 <>
                   <Button variant="outline" className="border-white/30 bg-white/15 text-white" onClick={() => setResult(null)}>
                     <RefreshCwIcon /> Qayta rasmga olish
                   </Button>
-                  {saveLook.isSuccess ? (
-                    <Badge tone="success">Saqlandi</Badge>
-                  ) : (
-                    <Button loading={saveLook.isPending} onClick={saveResult}>
-                      <BookmarkIcon /> Obrazni saqlash
+                  {result.lookId ? (
+                    <Button variant="outline" className="border-white/30 bg-white/15 text-white" onClick={downloadResult}>
+                      <DownloadIcon />
+                      {status.is_premium ? "Yuklab olish (Premium)" : "Yuklab olish (MarosimGo)"}
                     </Button>
-                  )}
+                  ) : !saveLook.isSuccess ? (
+                    <Button variant="outline" className="border-white/30 bg-white/15 text-white" loading={saveLook.isPending} onClick={saveResult}>
+                      <BookmarkIcon /> Saqlash
+                    </Button>
+                  ) : null}
+                  <Button size="lg" onClick={() => setBuyOpen(true)}>
+                    <ShoppingBagIcon /> Sotib olish
+                  </Button>
                 </>
               ) : (
                 <>
@@ -398,9 +420,264 @@ function SnapshotAiStudio({ status }: { status: AiStatus }) {
         </div>
       </section>
 
+      {result && !status.is_premium && (
+        <p className="text-center text-xs text-muted-foreground">
+          Oddiy rejimda yuklab olingan rasmga <strong>MarosimGo</strong> logosi qo&apos;yiladi. Premium obunada rasm
+          logosiz yuklab olinadi.
+        </p>
+      )}
+
       {!!renderError && <ErrorState error={renderError} />}
 
-      <SavedLooks />
+      {buyOpen && result && (
+        <BuyGarmentModal
+          garment={result.garment}
+          lookId={result.lookId ?? null}
+          onClose={() => setBuyOpen(false)}
+        />
+      )}
+
+      <SavedLooks isPremium={!!status.is_premium} />
+    </div>
+  );
+}
+
+const DEFAULT_SIZES = ["S", "M", "L", "XL", "46", "48", "50", "52"];
+
+function BuyGarmentModal({
+  garment,
+  lookId,
+  onClose,
+}: {
+  garment: Garment;
+  lookId: string | null;
+  onClose: () => void;
+}) {
+  const { data: me } = useMe();
+  const sizes = garment.sizes.length > 0 ? garment.sizes : DEFAULT_SIZES;
+  const colors = garment.colors.length > 0 ? garment.colors : [{ name: "Asl rang" }];
+  const [size, setSize] = useState(sizes[0] ?? "M");
+  const [color, setColor] = useState(colors[0]?.name ?? "");
+  const [quantity, setQuantity] = useState(1);
+  const [customerName, setCustomerName] = useState(
+    me ? `${me.first_name ?? ""} ${me.last_name ?? ""}`.trim() : "",
+  );
+  const [customerPhone, setCustomerPhone] = useState(me?.phone_number ?? "");
+  const [deliveryType, setDeliveryType] = useState<"DELIVERY" | "PICKUP">("DELIVERY");
+  const [deliveryAddress, setDeliveryAddress] = useState(me?.address ?? "");
+  const [paymentMethod, setPaymentMethod] = useState<"CASH" | "CARD">("CASH");
+  const [notes, setNotes] = useState("");
+  const createOrder = useCreateGarmentOrder();
+
+  const unitPrice = Number(garment.price || 0);
+  const totalPrice = unitPrice * quantity;
+
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault();
+    createOrder.mutate({
+      garment: garment.id,
+      look: lookId,
+      size,
+      color,
+      quantity,
+      customer_name: customerName.trim(),
+      customer_phone: customerPhone.trim(),
+      delivery_type: deliveryType,
+      delivery_address: deliveryType === "DELIVERY" ? deliveryAddress.trim() : "",
+      payment_method: paymentMethod,
+      notes: notes.trim(),
+    });
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-3 backdrop-blur-sm sm:items-center"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Kiyim sotib olish"
+      onClick={onClose}
+    >
+      <div
+        className="glass max-h-[92vh] w-full max-w-lg overflow-y-auto rounded-3xl p-5 shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="mb-4 flex items-start justify-between gap-3">
+          <div className="flex items-center gap-3">
+            {garment.cover_image && (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img src={garment.cover_image} alt={garment.name} className="size-16 rounded-2xl bg-white object-contain p-1" />
+            )}
+            <div>
+              <h2 className="text-base font-extrabold">{garment.name}</h2>
+              <p className="text-xs text-muted-foreground">
+                {[garment.brand, garment.material].filter(Boolean).join(" · ") || garment.category.name}
+              </p>
+              <p className="mt-0.5 text-sm font-bold text-brand">
+                {unitPrice > 0 ? `${Math.round(unitPrice).toLocaleString("uz-UZ")} so'm` : "Kelishilgan narx"}
+              </p>
+            </div>
+          </div>
+          <button type="button" onClick={onClose} aria-label="Yopish" className="rounded-full p-1.5 hover:bg-muted">
+            <XIcon className="size-5" />
+          </button>
+        </div>
+
+        {createOrder.isSuccess ? (
+          <div className="flex flex-col items-center gap-3 py-6 text-center">
+            <CheckCircle2Icon className="size-12 text-emerald-500" />
+            <h3 className="text-lg font-extrabold">Buyurtmangiz qabul qilindi!</h3>
+            <p className="text-sm text-muted-foreground">
+              Operatorimiz tez orada <strong>{customerPhone}</strong> raqamiga bog&apos;lanib, o&apos;lcham ({size}) va
+              yetkazib berish tafsilotlarini tasdiqlaydi.
+            </p>
+            <Button onClick={onClose}>Yopish</Button>
+          </div>
+        ) : (
+          <form onSubmit={submit} className="flex flex-col gap-3.5">
+            {/* Razmer */}
+            <div>
+              <label className="mb-1.5 block text-xs font-bold">Razmer tanlang *</label>
+              <div className="flex flex-wrap gap-1.5">
+                {sizes.map((s) => (
+                  <button
+                    key={s}
+                    type="button"
+                    onClick={() => setSize(s)}
+                    className={cn(
+                      "rounded-xl px-3 py-1.5 text-xs font-bold transition",
+                      size === s ? "brand-gradient text-white" : "glass text-foreground hover:bg-muted",
+                    )}
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Rang & Soni */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="mb-1 block text-xs font-bold">Rang</label>
+                <select
+                  value={color}
+                  onChange={(e) => setColor(e.target.value)}
+                  className="h-10 w-full rounded-xl border border-border bg-background px-3 text-sm"
+                >
+                  {colors.map((c) => (
+                    <option key={c.name} value={c.name}>
+                      {c.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-bold">Soni (dona)</label>
+                <input
+                  type="number"
+                  min={1}
+                  max={20}
+                  value={quantity}
+                  onChange={(e) => setQuantity(Math.max(1, Number(e.target.value) || 1))}
+                  className="h-10 w-full rounded-xl border border-border bg-background px-3 text-sm"
+                />
+              </div>
+            </div>
+
+            {/* Qabul qiluvchi */}
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div>
+                <label className="mb-1 block text-xs font-bold">Ism-familiya *</label>
+                <input
+                  type="text"
+                  required
+                  value={customerName}
+                  onChange={(e) => setCustomerName(e.target.value)}
+                  placeholder="To'liq ismingiz"
+                  className="h-10 w-full rounded-xl border border-border bg-background px-3 text-sm"
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-bold">Telefon raqam *</label>
+                <input
+                  type="tel"
+                  required
+                  value={customerPhone}
+                  onChange={(e) => setCustomerPhone(e.target.value)}
+                  placeholder="+998901234567"
+                  className="h-10 w-full rounded-xl border border-border bg-background px-3 text-sm"
+                />
+              </div>
+            </div>
+
+            {/* Yetkazib berish & To'lov */}
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div>
+                <label className="mb-1 block text-xs font-bold">Yetkazib berish</label>
+                <select
+                  value={deliveryType}
+                  onChange={(e) => setDeliveryType(e.target.value as "DELIVERY" | "PICKUP")}
+                  className="h-10 w-full rounded-xl border border-border bg-background px-3 text-sm"
+                >
+                  <option value="DELIVERY">
+                    Kuryer ({garment.delivery_days ?? 2} kun ichida)
+                  </option>
+                  <option value="PICKUP">Do&apos;kondan olib ketish</option>
+                </select>
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-bold">To&apos;lov usuli</label>
+                <select
+                  value={paymentMethod}
+                  onChange={(e) => setPaymentMethod(e.target.value as "CASH" | "CARD")}
+                  className="h-10 w-full rounded-xl border border-border bg-background px-3 text-sm"
+                >
+                  <option value="CASH">Naqd (yetkazilganda)</option>
+                  <option value="CARD">Karta orqali (Click / Payme)</option>
+                </select>
+              </div>
+            </div>
+
+            {deliveryType === "DELIVERY" && (
+              <div>
+                <label className="mb-1 block text-xs font-bold">Yetkazib berish manzili *</label>
+                <input
+                  type="text"
+                  required
+                  value={deliveryAddress}
+                  onChange={(e) => setDeliveryAddress(e.target.value)}
+                  placeholder="Shahar, tuman, ko'cha, uy raqami"
+                  className="h-10 w-full rounded-xl border border-border bg-background px-3 text-sm"
+                />
+              </div>
+            )}
+
+            <div>
+              <label className="mb-1 block text-xs font-bold">Qo&apos;shimcha izoh (bo&apos;y, vazn, o&apos;lcham eslatmasi)</label>
+              <input
+                type="text"
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="Masalan: bo'yim 178 sm, vaznim 75 kg"
+                className="h-10 w-full rounded-xl border border-border bg-background px-3 text-sm"
+              />
+            </div>
+
+            {createOrder.error && <ErrorState error={createOrder.error} />}
+
+            <div className="flex items-center justify-between gap-3 border-t border-border pt-3">
+              <div>
+                <p className="text-[11px] text-muted-foreground">Jami to&apos;lov:</p>
+                <p className="text-base font-extrabold">
+                  {totalPrice > 0 ? `${Math.round(totalPrice).toLocaleString("uz-UZ")} so'm` : "Kelishilgan narx"}
+                </p>
+              </div>
+              <Button type="submit" size="lg" loading={createOrder.isPending}>
+                <ShoppingBagIcon /> Buyurtmani tasdiqlash
+              </Button>
+            </div>
+          </form>
+        )}
+      </div>
     </div>
   );
 }
@@ -959,15 +1236,20 @@ function Chip({ active, onClick, children }: { active: boolean; onClick: () => v
 }
 
 // ------------------------------------------------------------------ saved looks
-function SavedLooks() {
+function SavedLooks({ isPremium = false }: { isPremium?: boolean }) {
   const looks = useSavedLooks();
   const remove = useDeleteLook();
   const rows = looks.data?.results ?? [];
   return (
     <Card className="flex flex-col gap-3 p-3 sm:p-4">
-      <h2 className="flex items-center gap-2 text-sm font-bold">
-        <ImagesIcon className="size-4" /> Saqlangan obrazlarim
-      </h2>
+      <div className="flex items-center justify-between gap-2">
+        <h2 className="flex items-center gap-2 text-sm font-bold">
+          <ImagesIcon className="size-4" /> Saqlangan obrazlarim
+        </h2>
+        <span className="text-[11px] text-muted-foreground">
+          {isPremium ? "Premium · logosiz yuklab olish" : "Yuklab olishda MarosimGo logosi"}
+        </span>
+      </div>
       {looks.error ? (
         <ErrorState error={looks.error} onRetry={() => looks.refetch()} />
       ) : looks.isPending ? (
@@ -982,19 +1264,29 @@ function SavedLooks() {
               <img src={look.image} alt={look.garment?.name ?? "Saqlangan obraz"} loading="lazy" className="aspect-[3/4] w-full object-cover" />
               <div className="absolute inset-x-0 bottom-0 flex items-center justify-between gap-1 bg-gradient-to-t from-black/80 to-transparent p-2 pt-6">
                 <span className="truncate text-[11px] font-semibold text-white">{look.garment?.name ?? "—"}</span>
-                <button
-                  type="button"
-                  aria-label="O'chirish"
-                  onClick={() => remove.mutate(look.id)}
-                  disabled={remove.isPending}
-                  className="rounded-full bg-white/15 p-1.5 text-white transition hover:bg-red-500/80"
-                >
-                  {remove.isPending && remove.variables === look.id ? (
-                    <Loader2Icon className="size-3.5 animate-spin" />
-                  ) : (
-                    <Trash2Icon className="size-3.5" />
-                  )}
-                </button>
+                <div className="flex items-center gap-1">
+                  <a
+                    href={aiApi.downloadUrl(look.id)}
+                    download={`marosimgo-look-${look.id.slice(0, 8)}.jpg`}
+                    aria-label="Yuklab olish"
+                    className="rounded-full bg-white/15 p-1.5 text-white transition hover:bg-blue-500/80"
+                  >
+                    <DownloadIcon className="size-3.5" />
+                  </a>
+                  <button
+                    type="button"
+                    aria-label="O'chirish"
+                    onClick={() => remove.mutate(look.id)}
+                    disabled={remove.isPending}
+                    className="rounded-full bg-white/15 p-1.5 text-white transition hover:bg-red-500/80"
+                  >
+                    {remove.isPending && remove.variables === look.id ? (
+                      <Loader2Icon className="size-3.5 animate-spin" />
+                    ) : (
+                      <Trash2Icon className="size-3.5" />
+                    )}
+                  </button>
+                </div>
               </div>
             </li>
           ))}
