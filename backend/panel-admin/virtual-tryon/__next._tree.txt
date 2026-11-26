@@ -1,0 +1,6 @@
+:HL["/_next/static/chunks/3t54et1xzhyj_.css","style"]
+:HL["/_next/static/media/jakarta_latin-s.p.18rizl4rsrl42.woff2","font",{"crossOrigin":"","type":"font/woff2"}]
+3:[["children",{"s":"__PAGE__","h":160}]]
+2:[["children",{"s":"virtual-tryon","h":96,"c":"$Q3"}]]
+1:[["children",{"s":"(panel)","h":96,"c":"$Q2"}]]
+0:{"b":"8MpwqQEcos62nnJmxZm6E","t":{"t":{"s":"","h":80,"c":"$Q1"}}}

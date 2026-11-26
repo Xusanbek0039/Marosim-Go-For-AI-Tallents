@@ -796,8 +796,10 @@ function VirtualTryOnContent() {
 export default function AdminVirtualTryOnPage() {
   return (
     <RequirePermission requires={["tryon.view", "tryon.create", "tryon.update", "tryon.approve"]}>
-      <PageTransition className="flex flex-col gap-5">
-        <VirtualTryOnContent />
+      <PageTransition>
+        <div className="flex flex-col gap-5">
+          <VirtualTryOnContent />
+        </div>
       </PageTransition>
     </RequirePermission>
   );
