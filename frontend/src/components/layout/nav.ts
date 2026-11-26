@@ -16,6 +16,7 @@ import {
   SmartphoneIcon,
   UserIcon,
   UserCogIcon,
+  LandmarkIcon,
   LayoutDashboardIcon,
   type LucideIcon,
   MessageSquareTextIcon,
@@ -49,6 +50,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/venues", label: "To'yxonalar", icon: CastleIcon, requires: "venues.view" },
   { href: "/reviews", label: "Sharhlar", icon: MessageSquareTextIcon, requires: "reviews.view" },
   { href: "/subscriptions", label: "Obunalar", icon: GemIcon, requires: "subscriptions.view" },
+  { href: "/finance", label: "Kirim-chiqim", icon: LandmarkIcon, requires: "finance.view" },
   { href: "/requests", label: "So'rovlar", icon: InboxIcon, requires: "requests.view", badge: "requests" },
   {
     href: "/ai-planner",

@@ -18,6 +18,9 @@ export interface Plan {
   price: string;
   currency: "UZS";
   max_viewers: number;
+  ai_video_per_month: number;
+  ai_photo_per_month: number;
+  perks: string[];
   is_active: boolean;
   position: number;
 }
