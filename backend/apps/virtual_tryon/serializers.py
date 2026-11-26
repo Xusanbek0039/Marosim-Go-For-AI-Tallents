@@ -10,10 +10,14 @@ from .models import (
     AiTryOnSession,
     ApprovalStatus,
     AssetKind,
+    DeliveryType,
     FavoriteGarment,
     Garment,
     GarmentAsset,
     GarmentCategory,
+    GarmentOrder,
+    OrderStatus,
+    PaymentMethod,
     SavedLook,
     TryOnSession,
 )
@@ -85,6 +89,11 @@ class GarmentSerializer(serializers.ModelSerializer):
             "currency",
             "sizes",
             "colors",
+            "brand",
+            "material",
+            "stock_quantity",
+            "delivery_days",
+            "care_instructions",
             "cover_image",
             "asset_type",
             "tryon_ready",
@@ -158,6 +167,10 @@ class AiStatusSerializer(serializers.Serializer):
         help_text="realtime = Decart WebRTC jonli video; snapshot = OpenAI kamera kadri orqali AI kiyib ko'rish.",
     )
     model = serializers.CharField()
+    is_premium = serializers.BooleanField(
+        default=False,
+        help_text="Faol Premium obuna bormi: true = logosiz yuklab olish, false = MarosimGo logosi bilan.",
+    )
     max_session_seconds = serializers.IntegerField()
     seconds_left_today = serializers.IntegerField()
     sessions_left_today = serializers.IntegerField()
@@ -309,6 +322,11 @@ class AdminGarmentSerializer(serializers.ModelSerializer):
             "currency",
             "sizes",
             "colors",
+            "brand",
+            "material",
+            "stock_quantity",
+            "delivery_days",
+            "care_instructions",
             "cover_image",
             "cover_image_url",
             "asset_type",
@@ -428,3 +446,107 @@ class AdminSavedLookSerializer(serializers.ModelSerializer):
         from django.urls import reverse
 
         return _absolute(self.context, reverse("admin-tryon-look-image", args=[look.pk]))
+
+
+# ---------------------------------------------------------------- garment orders
+class GarmentOrderCreateSerializer(serializers.Serializer):
+    garment = serializers.UUIDField()
+    look = serializers.UUIDField(required=False, allow_null=True)
+    size = serializers.CharField(max_length=20)
+    color = serializers.CharField(max_length=40, required=False, allow_blank=True, default="")
+    quantity = serializers.IntegerField(min_value=1, max_value=20, default=1)
+    customer_name = serializers.CharField(max_length=120)
+    customer_phone = serializers.CharField(max_length=32)
+    delivery_type = serializers.ChoiceField(choices=DeliveryType.choices, default=DeliveryType.DELIVERY)
+    delivery_address = serializers.CharField(max_length=300, required=False, allow_blank=True, default="")
+    payment_method = serializers.ChoiceField(choices=PaymentMethod.choices, default=PaymentMethod.CASH)
+    notes = serializers.CharField(max_length=500, required=False, allow_blank=True, default="")
+
+    def validate(self, attrs):
+        if attrs.get("delivery_type") == DeliveryType.DELIVERY and not (attrs.get("delivery_address") or "").strip():
+            raise serializers.ValidationError({"delivery_address": ["Yetkazib berish manzilini kiriting."]})
+        return attrs
+
+
+class GarmentOrderSerializer(serializers.ModelSerializer):
+    garment = serializers.SerializerMethodField()
+    status_label = serializers.CharField(source="get_status_display", read_only=True)
+    delivery_type_label = serializers.CharField(source="get_delivery_type_display", read_only=True)
+    payment_method_label = serializers.CharField(source="get_payment_method_display", read_only=True)
+
+    class Meta:
+        model = GarmentOrder
+        fields = [
+            "id",
+            "garment",
+            "look",
+            "size",
+            "color",
+            "quantity",
+            "unit_price",
+            "total_price",
+            "currency",
+            "customer_name",
+            "customer_phone",
+            "delivery_type",
+            "delivery_type_label",
+            "delivery_address",
+            "payment_method",
+            "payment_method_label",
+            "notes",
+            "status",
+            "status_label",
+            "created_at",
+        ]
+        read_only_fields = fields
+
+    def get_garment(self, order) -> dict:
+        g = order.garment
+        return {
+            "id": str(g.pk),
+            "name": g.name,
+            "brand": g.brand,
+            "material": g.material,
+            "category_name": g.category.name if g.category_id else "",
+            "cover_image": _absolute(self.context, g.cover_image.url) if g.cover_image else None,
+        }
+
+
+class AdminGarmentOrderSerializer(GarmentOrderSerializer):
+    user = serializers.SerializerMethodField()
+    look_image = serializers.SerializerMethodField()
+    look_drive_url = serializers.SerializerMethodField()
+
+    class Meta(GarmentOrderSerializer.Meta):
+        fields = [
+            *GarmentOrderSerializer.Meta.fields,
+            "user",
+            "look_image",
+            "look_drive_url",
+            "updated_at",
+        ]
+        read_only_fields = fields
+
+    def get_user(self, order) -> dict:
+        u = order.user
+        full = f"{u.first_name} {u.last_name}".strip() or u.phone_number or u.email or str(u.pk)
+        return {
+            "id": str(u.pk),
+            "full_name": full,
+            "phone_number": u.phone_number,
+            "email": u.email,
+        }
+
+    def get_look_image(self, order) -> str | None:
+        if not order.look_id:
+            return None
+        from django.urls import reverse
+
+        return _absolute(self.context, reverse("admin-tryon-look-image", args=[order.look_id]))
+
+    def get_look_drive_url(self, order) -> str:
+        return order.look.drive_web_url if order.look_id else ""
+
+
+class AdminOrderStatusUpdateSerializer(serializers.Serializer):
+    status = serializers.ChoiceField(choices=OrderStatus.choices)

@@ -23,9 +23,11 @@ from apps.audit.services import record
 
 from . import drive_sync
 from .assets import IMAGE_KINDS
-from .models import ApprovalStatus, AssetKind, Garment, GarmentAsset, GarmentCategory, SavedLook
+from .models import ApprovalStatus, AssetKind, Garment, GarmentAsset, GarmentCategory, GarmentOrder, SavedLook
 from .serializers import (
+    AdminGarmentOrderSerializer,
     AdminGarmentSerializer,
+    AdminOrderStatusUpdateSerializer,
     AdminSavedLookSerializer,
     AiReferenceUploadSerializer,
     AssetUploadSerializer,
@@ -377,3 +379,54 @@ class AdminSavedLookViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, vi
         drive_sync.upload_look_to_drive(look)
         look.refresh_from_db()
         return Response(AdminSavedLookSerializer(look, context=self.get_serializer_context()).data)
+
+
+@extend_schema_view(
+    list=extend_schema(summary="Sotib olingan kiyim buyurtmalari (admin)", tags=["admin-virtual-tryon"]),
+    retrieve=extend_schema(summary="Buyurtma tafsilotlari (admin)", tags=["admin-virtual-tryon"]),
+)
+class AdminGarmentOrderViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):
+    """Staff view of all garment orders placed by users."""
+
+    permission_classes = [HasAdminPermission]
+    permission_module = "tryon"
+    action_permissions = {
+        "partial_update": "tryon.update",
+    }
+    serializer_class = AdminGarmentOrderSerializer
+    lookup_value_regex = UUID_RE
+
+    def get_queryset(self):
+        qs = (
+            GarmentOrder.objects.select_related("user", "garment", "garment__category", "look")
+            .order_by("-created_at")
+        )
+        if st := self.request.query_params.get("status", "").strip():
+            qs = qs.filter(status=st)
+        if q := self.request.query_params.get("q", "").strip()[:100]:
+            from django.db.models import Q
+
+            qs = qs.filter(
+                Q(customer_name__icontains=q)
+                | Q(customer_phone__icontains=q)
+                | Q(garment__name__icontains=q)
+                | Q(delivery_address__icontains=q)
+            )
+        return qs
+
+    @extend_schema(
+        summary="Buyurtma holatini yangilash",
+        tags=["admin-virtual-tryon"],
+        request=AdminOrderStatusUpdateSerializer,
+        responses={200: AdminGarmentOrderSerializer},
+    )
+    def partial_update(self, request, pk=None):
+        order = self.get_object()
+        body = AdminOrderStatusUpdateSerializer(data=request.data)
+        body.is_valid(raise_exception=True)
+        new_status = body.validated_data["status"]
+        old_status = order.status
+        order.status = new_status
+        order.save(update_fields=["status", "updated_at"])
+        record(request, AuditAction.UPDATE, order, changes={"status": {"from": old_status, "to": new_status}})
+        return Response(AdminGarmentOrderSerializer(order, context=self.get_serializer_context()).data)

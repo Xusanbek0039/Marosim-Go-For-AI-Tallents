@@ -34,7 +34,13 @@ from apps.venues.admin_views import AdminVenueViewSet
 from apps.venues.public_views import MyVenueBookingViewSet, PublicVenueViewSet
 from apps.venues.views import VenueOwnerVenueViewSet
 from apps.virtual_tryon import views as tryon_views
-from apps.virtual_tryon.admin_views import AdminCategoryListView, AdminGarmentViewSet, AdminSavedLookViewSet, AiUsageView
+from apps.virtual_tryon.admin_views import (
+    AdminCategoryListView,
+    AdminGarmentOrderViewSet,
+    AdminGarmentViewSet,
+    AdminSavedLookViewSet,
+    AiUsageView,
+)
 
 router = DefaultRouter()
 router.include_root_view = False
@@ -65,8 +71,10 @@ router.register("virtual-tryon/sessions", tryon_views.SessionViewSet, basename="
 router.register("virtual-tryon/favorites", tryon_views.FavoriteViewSet, basename="tryon-favorite")
 router.register("admin/virtual-tryon/garments", AdminGarmentViewSet, basename="admin-tryon-garment")
 router.register("admin/virtual-tryon/looks", AdminSavedLookViewSet, basename="admin-tryon-look")
+router.register("admin/virtual-tryon/orders", AdminGarmentOrderViewSet, basename="admin-tryon-order")
 router.register("virtual-tryon/ai-sessions", tryon_views.AiSessionViewSet, basename="tryon-ai-session")
 router.register("virtual-tryon/looks", tryon_views.SavedLookViewSet, basename="tryon-look")
+router.register("virtual-tryon/orders", tryon_views.GarmentOrderViewSet, basename="tryon-order")
 router.register("ai-planner/plans", planner_views.PlanViewSet, basename="ai-plan")
 router.register(
     r"ai-planner/plans/(?P<plan_id>[0-9a-fA-F-]{36})/items", planner_views.PlanItemViewSet, basename="ai-plan-item"

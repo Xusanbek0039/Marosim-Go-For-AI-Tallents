@@ -20,7 +20,7 @@ from datetime import timedelta
 from django.conf import settings
 from django.core.files.base import ContentFile
 from django.db.models import Count, Exists, OuterRef, Q
-from django.http import FileResponse
+from django.http import FileResponse, HttpResponse
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from drf_spectacular.types import OpenApiTypes
@@ -35,7 +35,7 @@ from rest_framework.views import APIView
 from apps.accounts.access import AccessNote
 from apps.ceremonies.permissions import IsClientUser
 
-from . import ai, decart, drive_sync, openai_tryon
+from . import ai, decart, drive_sync, openai_tryon, watermark
 from .models import (
     AiTryOnSession,
     ApprovalStatus,
@@ -44,6 +44,7 @@ from .models import (
     Garment,
     GarmentAsset,
     GarmentCategory,
+    GarmentOrder,
     SavedLook,
     TryOnSession,
 )
@@ -59,6 +60,8 @@ from .serializers import (
     FavoriteCreateSerializer,
     FavoriteSerializer,
     GarmentAssetSerializer,
+    GarmentOrderCreateSerializer,
+    GarmentOrderSerializer,
     GarmentSerializer,
     SavedLookCreateSerializer,
     SavedLookSerializer,
@@ -278,6 +281,7 @@ class AiStatusView(APIView):
                 "enabled": enabled,
                 "mode": mode,
                 "model": model,
+                "is_premium": watermark.is_premium_user(request.user),
                 "max_session_seconds": cfg["MAX_SESSION_SECONDS"],
                 "seconds_left_today": left.seconds_left_today,
                 "sessions_left_today": left.sessions_left_today,
@@ -496,3 +500,83 @@ class SavedLookViewSet(mixins.ListModelMixin, mixins.DestroyModelMixin, viewsets
         response = FileResponse(look.image.open("rb"), content_type=ctype)
         response["Cache-Control"] = "private, no-store"
         return response
+
+    @extend_schema(
+        summary="Obrazni yuklab olish (Premium: logosiz, oddiy: MarosimGo logosi bilan)",
+        tags=["virtual-tryon"],
+        responses={(200, "image/jpeg"): OpenApiTypes.BINARY},
+    )
+    @action(detail=True, methods=["get"], url_path="download", url_name="download")
+    def download(self, request, pk=None):
+        look = self.get_object()
+        with look.image.open("rb") as fh:
+            raw = fh.read()
+        premium = watermark.is_premium_user(request.user)
+        payload = raw if premium else watermark.apply_marosimgo_watermark(raw)
+        name = (look.image.name or "").lower()
+        ctype = "image/webp" if (premium and name.endswith(".webp")) else "image/jpeg"
+        ext = "webp" if ctype == "image/webp" else "jpg"
+        response = HttpResponse(payload, content_type=ctype)
+        response["Content-Disposition"] = f'attachment; filename="marosimgo-look-{str(look.pk)[:8]}.{ext}"'
+        response["Cache-Control"] = "private, no-store"
+        response["X-MarosimGo-Watermarked"] = "false" if premium else "true"
+        return response
+
+
+@extend_schema_view(
+    list=extend_schema(summary="Mening kiyim buyurtmalarim", tags=["virtual-tryon"]),
+    retrieve=extend_schema(summary="Buyurtma tafsilotlari", tags=["virtual-tryon"]),
+)
+class GarmentOrderViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):
+    """User garment orders placed after virtual try-on."""
+
+    permission_classes = [IsClientUser]
+    serializer_class = GarmentOrderSerializer
+    lookup_value_regex = UUID_RE
+    filter_backends = []
+    access_notes = {"*": AccessNote(ownership="Faqat o'z buyurtmalari (boshqalarniki 404).")}
+
+    def get_queryset(self):
+        if getattr(self, "swagger_fake_view", False):
+            return GarmentOrder.objects.none()
+        return GarmentOrder.objects.filter(user=self.request.user).select_related("garment", "garment__category")
+
+    @extend_schema(
+        summary="Kiyim sotib olish (buyurtma berish)",
+        tags=["virtual-tryon"],
+        request=GarmentOrderCreateSerializer,
+        responses={201: GarmentOrderSerializer},
+    )
+    def create(self, request):
+        body = GarmentOrderCreateSerializer(data=request.data)
+        body.is_valid(raise_exception=True)
+        data = body.validated_data
+        garment = get_object_or_404(visible_garments(), pk=data["garment"])
+        look = (
+            SavedLook.objects.filter(user=request.user, pk=data["look"]).first()
+            if data.get("look")
+            else None
+        )
+        qty = data["quantity"]
+        unit_price = garment.price
+        order = GarmentOrder.objects.create(
+            user=request.user,
+            garment=garment,
+            look=look,
+            size=data["size"].strip(),
+            color=(data.get("color") or "").strip(),
+            quantity=qty,
+            unit_price=unit_price,
+            total_price=unit_price * qty,
+            currency=garment.currency,
+            customer_name=data["customer_name"].strip(),
+            customer_phone=data["customer_phone"].strip(),
+            delivery_type=data["delivery_type"],
+            delivery_address=(data.get("delivery_address") or "").strip(),
+            payment_method=data["payment_method"],
+            notes=(data.get("notes") or "").strip(),
+        )
+        return Response(
+            GarmentOrderSerializer(order, context={"request": request}).data,
+            status=status.HTTP_201_CREATED,
+        )
