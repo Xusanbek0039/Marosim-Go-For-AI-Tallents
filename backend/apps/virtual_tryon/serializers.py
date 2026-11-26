@@ -159,6 +159,13 @@ class FavoriteSerializer(serializers.ModelSerializer):
 
 
 # ---------------------------------------------------------------- AI try-on
+class AiQuotaSerializer(serializers.Serializer):
+    video_limit = serializers.IntegerField()
+    video_left = serializers.IntegerField()
+    photo_limit = serializers.IntegerField()
+    photo_left = serializers.IntegerField()
+
+
 class AiStatusSerializer(serializers.Serializer):
     enabled = serializers.BooleanField(help_text="Server AI xizmati (Decart yoki OpenAI) kaliti bilan sozlangan.")
     mode = serializers.ChoiceField(
@@ -171,6 +178,7 @@ class AiStatusSerializer(serializers.Serializer):
         default=False,
         help_text="Faol Premium obuna bormi: true = logosiz yuklab olish, false = MarosimGo logosi bilan.",
     )
+    quota = AiQuotaSerializer(help_text="Shu oydagi AI video / foto limiti va qolgani.")
     max_session_seconds = serializers.IntegerField()
     seconds_left_today = serializers.IntegerField()
     sessions_left_today = serializers.IntegerField()

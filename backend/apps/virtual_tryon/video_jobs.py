@@ -20,8 +20,8 @@ from pathlib import Path
 from django.core.files.base import ContentFile
 from django.utils import timezone
 
-from . import drive_sync, fal_tryon, openai_tryon, video_tryon
-from .models import SavedLook, VideoJobStatus, VideoTryOnJob
+from . import drive_sync, fal_tryon, openai_tryon, quota, video_tryon
+from .models import AiRenderLog, RenderLogStatus, SavedLook, VideoJobStatus, VideoTryOnJob
 
 logger = logging.getLogger("apps.virtual_tryon.video_jobs")
 
@@ -57,7 +57,14 @@ def start(*, user, video_upload, garment) -> VideoTryOnJob:
     )
 
 
+def _render_log(job: VideoTryOnJob) -> AiRenderLog | None:
+    return AiRenderLog.objects.filter(ref=job.request_id, status=RenderLogStatus.RESERVED).first()
+
+
 def _fail(job: VideoTryOnJob, code: str) -> None:
+    log = _render_log(job)
+    if log:
+        quota.refund(log)  # a failed render does not use up the user's monthly video
     VideoTryOnJob.objects.filter(pk=job.pk).update(
         status=VideoJobStatus.FAILED, error_code=code, finished_at=timezone.now(), updated_at=timezone.now()
     )
@@ -124,5 +131,8 @@ def advance(job: VideoTryOnJob) -> VideoTryOnJob:
     job.status = VideoJobStatus.DONE
     job.finished_at = timezone.now()
     job.save(update_fields=["look", "status", "finished_at", "updated_at"])
+    log = _render_log(job)
+    if log:
+        quota.done(log, job.model)
     logger.info("fal video job %s saved as look %s", job.request_id, look.pk)
     return job

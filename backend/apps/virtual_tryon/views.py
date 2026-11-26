@@ -37,7 +37,7 @@ from rest_framework.views import APIView
 from apps.accounts.access import AccessNote
 from apps.ceremonies.permissions import IsClientUser
 
-from . import ai, decart, drive_sync, fal_tryon, openai_tryon, video_jobs, video_tryon, watermark
+from . import ai, decart, drive_sync, fal_tryon, openai_tryon, quota, video_jobs, video_tryon, watermark
 from .models import (
     AiTryOnSession,
     ApprovalStatus,
@@ -47,6 +47,7 @@ from .models import (
     GarmentAsset,
     GarmentCategory,
     GarmentOrder,
+    RenderKind,
     SavedLook,
     TryOnSession,
     VideoJobStatus,
@@ -318,6 +319,7 @@ class AiStatusView(APIView):
         cfg = settings.AI_TRYON
         left = ai.budget(request.user)
         active = ai.active_session(request.user)
+        q = quota.quota(request.user)
         if decart.is_configured():
             enabled, mode, model = True, "realtime", cfg["MODEL"]
         elif fal_tryon.is_configured():
@@ -332,6 +334,12 @@ class AiStatusView(APIView):
                 "mode": mode,
                 "model": model,
                 "is_premium": watermark.is_premium_user(request.user),
+                "quota": {
+                    "video_limit": q.video_limit,
+                    "video_left": q.video_left,
+                    "photo_limit": q.photo_limit,
+                    "photo_left": q.photo_left,
+                },
                 "max_session_seconds": cfg["MAX_SESSION_SECONDS"],
                 "seconds_left_today": left.seconds_left_today,
                 "sessions_left_today": left.sessions_left_today,
@@ -369,6 +377,7 @@ class AiRenderView(APIView):
             pk=body.validated_data["garment"],
         )
         photo_bytes = openai_tryon.prepare_user_photo(body.validated_data["photo"])
+        log = quota.reserve(request.user, RenderKind.PHOTO)
         try:
             if fal_tryon.is_configured():
                 try:
@@ -390,8 +399,13 @@ class AiRenderView(APIView):
             else:
                 result = openai_tryon.render_tryon(photo_bytes=photo_bytes, garment=garment)
         except openai_tryon.OpenAITryOnError as exc:
+            quota.refund(log)
             message, http_status = ai.PROVIDER_MESSAGES.get(exc.code, ai.PROVIDER_MESSAGES["provider_unavailable"])
             raise ai.AiTryOnError(exc.code, message, http_status) from None
+        except Exception:
+            quota.refund(log)
+            raise
+        quota.done(log, result.model)
         data_url = f"data:{result.content_type};base64,{base64.b64encode(result.image_bytes).decode('ascii')}"
         look = SavedLook(
             user=request.user,
@@ -479,11 +493,18 @@ class AiRenderVideoView(APIView):
             pk=body.validated_data["garment"],
         )
 
+        log = quota.reserve(request.user, RenderKind.VIDEO)
         if fal_tryon.is_configured():
             try:
                 job = video_jobs.start(user=request.user, video_upload=body.validated_data["video"], garment=garment)
             except openai_tryon.OpenAITryOnError as exc:
+                quota.refund(log)
                 raise _provider_error(exc) from None
+            except Exception:
+                quota.refund(log)
+                raise
+            log.ref = job.request_id
+            log.save(update_fields=["ref", "updated_at"])
             return Response(_video_job_payload(request, job), status=status.HTTP_202_ACCEPTED)
 
         try:
@@ -492,7 +513,12 @@ class AiRenderVideoView(APIView):
                 garment=garment,
             )
         except openai_tryon.OpenAITryOnError as exc:
+            quota.refund(log)
             raise _provider_error(exc) from None
+        except Exception:
+            quota.refund(log)
+            raise
+        quota.done(log, result.model)
 
         look = SavedLook(
             user=request.user,
