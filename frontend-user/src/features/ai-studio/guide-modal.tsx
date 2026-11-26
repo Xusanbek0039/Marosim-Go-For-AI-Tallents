@@ -21,6 +21,8 @@ import { createPortal } from "react-dom";
 
 import { Button, cn } from "@/components/ui";
 
+import { MarosimVideoPlayer } from "./video-player";
+
 interface GuideStep {
   badge: string;
   title: string;
@@ -174,6 +176,7 @@ const STEPS: GuideStep[] = [
 
 export function StudioHelpButton() {
   const [open, setOpen] = useState(false);
+  const [mode, setMode] = useState<"video" | "steps">("video");
   const [step, setStep] = useState(0);
 
   useEffect(() => {
@@ -182,15 +185,15 @@ export function StudioHelpButton() {
     document.body.style.overflow = "hidden";
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") setOpen(false);
-      else if (e.key === "ArrowRight") setStep((s) => Math.min(STEPS.length - 1, s + 1));
-      else if (e.key === "ArrowLeft") setStep((s) => Math.max(0, s - 1));
+      else if (mode === "steps" && e.key === "ArrowRight") setStep((s) => Math.min(STEPS.length - 1, s + 1));
+      else if (mode === "steps" && e.key === "ArrowLeft") setStep((s) => Math.max(0, s - 1));
     };
     window.addEventListener("keydown", onKey);
     return () => {
       document.body.style.overflow = prevOverflow;
       window.removeEventListener("keydown", onKey);
     };
-  }, [open]);
+  }, [open, mode]);
 
   const current = STEPS[step];
   const isLast = step === STEPS.length - 1;
@@ -200,6 +203,7 @@ export function StudioHelpButton() {
       <button
         type="button"
         onClick={() => {
+          setMode("video");
           setStep(0);
           setOpen(true);
         }}
@@ -228,107 +232,187 @@ export function StudioHelpButton() {
                   exit={{ opacity: 0, scale: 0.96, y: 10 }}
                   transition={{ duration: 0.2 }}
                   onClick={(e) => e.stopPropagation()}
-                  className="glass relative flex max-h-[90dvh] w-full max-w-lg flex-col overflow-hidden rounded-3xl border border-white/15 bg-neutral-950 text-white shadow-2xl"
+                  className="glass relative flex max-h-[92dvh] w-full max-w-2xl flex-col overflow-hidden rounded-3xl border border-white/15 bg-neutral-950 text-white shadow-2xl"
                 >
                   {/* Header */}
-                  <div className="flex items-center justify-between gap-2 border-b border-white/10 px-5 py-4">
-                    <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/10 px-5 py-3.5">
+                    <div className="flex items-center gap-2.5">
                       <span className="brand-gradient flex size-8 items-center justify-center rounded-xl text-white">
                         <SparklesIcon className="size-4" />
                       </span>
                       <div>
                         <h2 className="text-sm font-bold">AI Fashion Studio qo&apos;llanmasi</h2>
                         <p className="text-[11px] text-white/60">
-                          {step + 1} / {STEPS.length}-qadam
+                          {mode === "video"
+                            ? "18 soniyalik video ko'rsatma"
+                            : `${step + 1} / ${STEPS.length}-qadam`}
                         </p>
                       </div>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => setOpen(false)}
-                      aria-label="Yopish"
-                      className="flex size-8 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/20"
-                    >
-                      <XIcon className="size-4" />
-                    </button>
-                  </div>
 
-                  {/* Step pills */}
-                  <div className="flex items-center gap-1.5 px-5 pt-3">
-                    {STEPS.map((s, i) => (
+                    <div className="flex items-center gap-2">
+                      <div className="flex rounded-full bg-white/10 p-0.5 text-xs font-semibold">
+                        <button
+                          type="button"
+                          onClick={() => setMode("video")}
+                          className={cn(
+                            "inline-flex items-center gap-1 rounded-full px-3 py-1 transition",
+                            mode === "video" ? "brand-gradient text-white shadow" : "text-white/75 hover:text-white",
+                          )}
+                        >
+                          <VideoIcon className="size-3.5" /> Video
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setMode("steps")}
+                          className={cn(
+                            "rounded-full px-3 py-1 transition",
+                            mode === "steps" ? "brand-gradient text-white shadow" : "text-white/75 hover:text-white",
+                          )}
+                        >
+                          Qadamlar
+                        </button>
+                      </div>
                       <button
-                        key={s.badge}
                         type="button"
-                        onClick={() => setStep(i)}
-                        aria-label={`${i + 1}-qadam`}
-                        className={cn(
-                          "h-1.5 flex-1 rounded-full transition-all",
-                          i === step ? "brand-gradient" : i < step ? "bg-brand/50" : "bg-white/15 hover:bg-white/25",
-                        )}
-                      />
-                    ))}
-                  </div>
-
-                  {/* Step body */}
-                  <div className="flex-1 overflow-y-auto px-5 py-4">
-                    <AnimatePresence mode="wait">
-                      <motion.div
-                        key={step}
-                        initial={{ opacity: 0, x: 12 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: -12 }}
-                        transition={{ duration: 0.18 }}
-                        className="flex flex-col gap-4"
+                        onClick={() => setOpen(false)}
+                        aria-label="Yopish"
+                        className="flex size-8 items-center justify-center rounded-full bg-white/10 text-white transition hover:bg-white/20"
                       >
-                        <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3">
-                          {current.visual}
-                        </div>
+                        <XIcon className="size-4" />
+                      </button>
+                    </div>
+                  </div>
 
-                        <div className="flex flex-col gap-1.5">
-                          <span className="brand-gradient w-fit rounded-full px-2.5 py-0.5 text-[11px] font-bold text-white">
-                            {current.badge}
-                          </span>
-                          <h3 className="text-lg font-extrabold tracking-tight">{current.title}</h3>
-                          <p className="text-sm leading-relaxed text-white/80">{current.description}</p>
-                        </div>
-
-                        <ul className="flex flex-col gap-2">
-                          {current.tips.map((tip) => (
-                            <li
-                              key={tip}
-                              className="flex items-start gap-2 rounded-xl bg-white/5 px-3 py-2 text-xs leading-relaxed text-white/85"
+                  {mode === "video" ? (
+                    <>
+                      <div className="flex-1 overflow-y-auto p-4 sm:p-5">
+                        <MarosimVideoPlayer
+                          src="/videos/ai-studio-guide.mp4"
+                          poster="/videos/ai-studio-guide-poster.jpg"
+                          title="Qanday ishlaydi?"
+                          autoPlay
+                          loop
+                          className="aspect-video w-full rounded-2xl border border-white/10"
+                        />
+                        <div className="mt-3 grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
+                          {[
+                            { n: "1", t: "Libos tanlang" },
+                            { n: "2", t: "Kamerani yoqing" },
+                            { n: "3", t: "Video / Foto oling" },
+                            { n: "4", t: "Yuklang va buyurtma" },
+                          ].map((item, idx) => (
+                            <button
+                              key={item.n}
+                              type="button"
+                              onClick={() => {
+                                setStep(idx);
+                                setMode("steps");
+                              }}
+                              className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-left transition hover:border-brand/60 hover:bg-white/10"
                             >
-                              <CheckCircle2Icon className="mt-0.5 size-4 shrink-0 text-emerald-400" />
-                              <span>{tip}</span>
-                            </li>
+                              <span className="brand-gradient flex size-5 shrink-0 items-center justify-center rounded-full text-[10px] font-bold text-white">
+                                {item.n}
+                              </span>
+                              <span className="truncate font-semibold text-white/90">{item.t}</span>
+                            </button>
                           ))}
-                        </ul>
-                      </motion.div>
-                    </AnimatePresence>
-                  </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between gap-2 border-t border-white/10 px-5 py-3.5">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setMode("steps")}
+                          className="border-white/20 bg-white/5 text-white hover:bg-white/15"
+                        >
+                          Batafsil qadamlar <ChevronRightIcon className="size-4" />
+                        </Button>
+                        <Button size="sm" onClick={() => setOpen(false)}>
+                          Tushundim, boshlaymiz!
+                        </Button>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      {/* Step pills */}
+                      <div className="flex items-center gap-1.5 px-5 pt-3">
+                        {STEPS.map((s, i) => (
+                          <button
+                            key={s.badge}
+                            type="button"
+                            onClick={() => setStep(i)}
+                            aria-label={`${i + 1}-qadam`}
+                            className={cn(
+                              "h-1.5 flex-1 rounded-full transition-all",
+                              i === step ? "brand-gradient" : i < step ? "bg-brand/50" : "bg-white/15 hover:bg-white/25",
+                            )}
+                          />
+                        ))}
+                      </div>
 
-                  {/* Footer navigation */}
-                  <div className="flex items-center justify-between gap-2 border-t border-white/10 px-5 py-3.5">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      disabled={step === 0}
-                      onClick={() => setStep((s) => Math.max(0, s - 1))}
-                      className="border-white/20 bg-white/5 text-white hover:bg-white/15 disabled:opacity-35"
-                    >
-                      <ChevronLeftIcon className="size-4" /> Oldingi
-                    </Button>
+                      {/* Step body */}
+                      <div className="flex-1 overflow-y-auto px-5 py-4">
+                        <AnimatePresence mode="wait">
+                          <motion.div
+                            key={step}
+                            initial={{ opacity: 0, x: 12 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: -12 }}
+                            transition={{ duration: 0.18 }}
+                            className="flex flex-col gap-4"
+                          >
+                            <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3">
+                              {current.visual}
+                            </div>
 
-                    {isLast ? (
-                      <Button size="sm" onClick={() => setOpen(false)}>
-                        Tushundim, boshlaymiz!
-                      </Button>
-                    ) : (
-                      <Button size="sm" onClick={() => setStep((s) => Math.min(STEPS.length - 1, s + 1))}>
-                        Keyingi <ChevronRightIcon className="size-4" />
-                      </Button>
-                    )}
-                  </div>
+                            <div className="flex flex-col gap-1.5">
+                              <span className="brand-gradient w-fit rounded-full px-2.5 py-0.5 text-[11px] font-bold text-white">
+                                {current.badge}
+                              </span>
+                              <h3 className="text-lg font-extrabold tracking-tight">{current.title}</h3>
+                              <p className="text-sm leading-relaxed text-white/80">{current.description}</p>
+                            </div>
+
+                            <ul className="flex flex-col gap-2">
+                              {current.tips.map((tip) => (
+                                <li
+                                  key={tip}
+                                  className="flex items-start gap-2 rounded-xl bg-white/5 px-3 py-2 text-xs leading-relaxed text-white/85"
+                                >
+                                  <CheckCircle2Icon className="mt-0.5 size-4 shrink-0 text-emerald-400" />
+                                  <span>{tip}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </motion.div>
+                        </AnimatePresence>
+                      </div>
+
+                      {/* Footer navigation */}
+                      <div className="flex items-center justify-between gap-2 border-t border-white/10 px-5 py-3.5">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          disabled={step === 0}
+                          onClick={() => setStep((s) => Math.max(0, s - 1))}
+                          className="border-white/20 bg-white/5 text-white hover:bg-white/15 disabled:opacity-35"
+                        >
+                          <ChevronLeftIcon className="size-4" /> Oldingi
+                        </Button>
+
+                        {isLast ? (
+                          <Button size="sm" onClick={() => setOpen(false)}>
+                            Tushundim, boshlaymiz!
+                          </Button>
+                        ) : (
+                          <Button size="sm" onClick={() => setStep((s) => Math.min(STEPS.length - 1, s + 1))}>
+                            Keyingi <ChevronRightIcon className="size-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </>
+                  )}
                 </motion.div>
               </motion.div>
             )}
