@@ -4,7 +4,9 @@ import {
   AlertTriangleIcon,
   BookmarkIcon,
   CameraIcon,
+  CheckCircle2Icon,
   CircleStopIcon,
+  DownloadIcon,
   GaugeIcon,
   ImagesIcon,
   Loader2Icon,
@@ -13,17 +15,28 @@ import {
   ScanFaceIcon,
   ShieldCheckIcon,
   ShirtIcon,
+  ShoppingBagIcon,
   SparklesIcon,
   TimerIcon,
   Trash2Icon,
   VideoOffIcon,
   WifiOffIcon,
+  XIcon,
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 
 import { Badge, Button, Card, cn, EmptyState, ErrorState, Skeleton } from "@/components/ui";
-import { aiApi, type AiStatus, useAiGarments, useDeleteLook, useSavedLooks, useSaveLook } from "@/lib/ai-tryon";
+import {
+  aiApi,
+  type AiStatus,
+  useAiGarments,
+  useCreateGarmentOrder,
+  useDeleteLook,
+  useSavedLooks,
+  useSaveLook,
+} from "@/lib/ai-tryon";
+import { useMe } from "@/lib/auth";
 import { type Garment, useGarmentCategories } from "@/lib/tryon";
 
 import { type GarmentInput, type Phase, type StudioDeps, StudioSession, type StudioState } from "./session";

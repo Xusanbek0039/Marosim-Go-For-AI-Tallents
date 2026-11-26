@@ -24,6 +24,11 @@ export interface Garment {
   currency: string;
   sizes: string[];
   colors: { name: string; hex?: string }[];
+  brand?: string;
+  material?: string;
+  stock_quantity?: number;
+  delivery_days?: number;
+  care_instructions?: string;
   cover_image: string | null;
   asset_type: "LAYERED_2D" | "MODEL_3D";
   /** Can be worn on camera (enabled + has the BODY_FRONT layer). */

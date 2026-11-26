@@ -14,6 +14,8 @@ export interface AiStatus {
   /** realtime = Decart WebRTC live video; snapshot = OpenAI camera snapshot try-on. */
   mode?: "realtime" | "snapshot";
   model: string;
+  /** True = active Premium subscription (clean download); false = download with MarosimGo logo watermark. */
+  is_premium?: boolean;
   max_session_seconds: number;
   seconds_left_today: number;
   sessions_left_today: number;
@@ -27,6 +29,35 @@ export interface AiRenderResult {
   model: string;
   latency_ms: number;
   garment: string;
+  look_id?: string;
+  drive_file_id?: string;
+  drive_web_url?: string;
+}
+
+export interface GarmentOrderPayload {
+  garment: string;
+  look?: string | null;
+  size: string;
+  color?: string;
+  quantity: number;
+  customer_name: string;
+  customer_phone: string;
+  delivery_type: "DELIVERY" | "PICKUP";
+  delivery_address?: string;
+  payment_method: "CASH" | "CARD";
+  notes?: string;
+}
+
+export interface GarmentOrder {
+  id: string;
+  size: string;
+  color: string;
+  quantity: number;
+  unit_price: string;
+  total_price: string;
+  status: string;
+  status_label: string;
+  created_at: string;
 }
 
 export type AiEndReason =
@@ -106,6 +137,8 @@ export const aiApi = {
     form.append("garment", garment);
     return apiRequest<AiRenderResult>(`${BASE}/ai/render/`, { method: "POST", body: form });
   },
+  downloadUrl: (lookId: string) => `/api/v1${BASE}/looks/${lookId}/download/`,
+  createOrder: (payload: GarmentOrderPayload) => api.post<GarmentOrder>(`${BASE}/orders/`, payload),
 };
 
 export function useAiStatus() {
@@ -144,5 +177,11 @@ export function useDeleteLook() {
   return useMutation({
     mutationFn: (id: string) => api.delete(`${BASE}/looks/${id}/`),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["tryon", "looks"] }),
+  });
+}
+
+export function useCreateGarmentOrder() {
+  return useMutation({
+    mutationFn: (payload: GarmentOrderPayload) => aiApi.createOrder(payload),
   });
 }
