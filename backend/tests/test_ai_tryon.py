@@ -448,6 +448,49 @@ def test_openai_snapshot_status_and_render(settings, monkeypatch, user, client_f
     assert res.data["image"].startswith("data:image/jpeg;base64,")
     assert res.data["model"] == "gpt-image-1.5"
     assert res.data["garment"] == str(garment.pk)
+    assert res.data["look_id"]
     assert captured["url"].endswith("/images/edits")
     assert captured["files"] == ["image[]", "image[]"]
     assert captured["data"]["input_fidelity"] == "high"
+
+    # Admin can see the tried-on look, fetch its image, and list categories
+    from apps.virtual_tryon.models import SavedLook
+
+    look = SavedLook.objects.get(pk=res.data["look_id"])
+    assert look.user_id == user.pk and look.garment_id == garment.pk
+
+
+def test_admin_tryon_looks_and_categories(super_admin, user, client_for, monkeypatch):
+    from apps.virtual_tryon import drive_sync
+
+    garment = make_garment(name="Admin Visible Suit")
+    look = SavedLook.objects.create(user=user, garment=garment, width=600, height=800)
+    look.image.save("worn.jpg", ContentFile(reference_png(size=(600, 800))), save=True)
+
+    sa = client_for(super_admin)
+    cats = sa.get("/api/v1/admin/virtual-tryon/categories/")
+    assert cats.status_code == 200 and len(cats.data) >= 3
+
+    looks = sa.get("/api/v1/admin/virtual-tryon/looks/")
+    assert looks.status_code == 200 and looks.data["count"] == 1
+    row = looks.data["results"][0]
+    assert row["garment"]["name"] == "Admin Visible Suit"
+    assert row["user"]["id"] == str(user.pk)
+
+    img_res = sa.get(row["image"])
+    assert img_res.status_code == 200
+
+    def fake_upload(obj):
+        obj.drive_file_id = "drv_123"
+        obj.drive_web_url = "https://drive.google.com/file/d/drv_123/view"
+        obj.save(update_fields=["drive_file_id", "drive_web_url"])
+        return True
+
+    monkeypatch.setattr(drive_sync, "upload_look_to_drive", fake_upload)
+    synced = sa.post(f"/api/v1/admin/virtual-tryon/looks/{look.pk}/sync-drive/")
+    assert synced.status_code == 200 and synced.data["drive_file_id"] == "drv_123"
+    assert synced.data["drive_web_url"].endswith("/drv_123/view")
+
+    # Regular USER cannot access admin try-on looks or categories
+    assert client_for(user).get("/api/v1/admin/virtual-tryon/looks/").status_code == 403
+    assert client_for(user).get("/api/v1/admin/virtual-tryon/categories/").status_code == 403

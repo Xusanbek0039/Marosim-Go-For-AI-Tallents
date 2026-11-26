@@ -32,7 +32,12 @@ export type PermissionCode =
   | "ai.view"
   | "ai.reports"
   | "ai.conversations"
-  | "ai.disable";
+  | "ai.disable"
+  | "tryon.view"
+  | "tryon.create"
+  | "tryon.update"
+  | "tryon.delete"
+  | "tryon.approve";
 
 export interface Me {
   is_verified: boolean;

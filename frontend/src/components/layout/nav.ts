@@ -21,6 +21,7 @@ import {
   MessageSquareTextIcon,
   Settings2Icon,
   ShieldCheckIcon,
+  ShirtIcon,
   UsersIcon,
   VideoIcon,
 } from "lucide-react";
@@ -54,6 +55,12 @@ export const NAV_ITEMS: NavItem[] = [
     label: "AI maslahatchi",
     icon: BotIcon,
     requires: ["ai.view", "ai.reports", "ai.conversations", "ai.disable"],
+  },
+  {
+    href: "/virtual-tryon",
+    label: "Virtual kiyib ko'rish",
+    icon: ShirtIcon,
+    requires: ["tryon.view", "tryon.create", "tryon.update", "tryon.approve"],
   },
   { href: "/storage", label: "Google Drive", icon: HardDriveIcon, requires: "super" },
   { href: "/support", label: "Yordam", icon: LifeBuoyIcon, badge: "support" },
