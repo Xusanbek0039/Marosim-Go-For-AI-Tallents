@@ -402,3 +402,52 @@ def test_admin_usage_dashboard(ai_on, user, super_admin, make_user, client_for):
         client_for(make_user(Role.ADMIN, admin_permissions=[])).get("/api/v1/admin/virtual-tryon/ai-usage/").status_code
         == 403
     )
+
+
+# ------------------------------------------------------------------ OpenAI snapshot try-on
+def test_openai_snapshot_status_and_render(settings, monkeypatch, user, client_for):
+    import base64
+    import requests
+
+    settings.AI_TRYON = {**settings.AI_TRYON, "API_KEY": "", "OPENAI_MODEL": "gpt-image-1.5"}
+    settings.AI_PLANNER = {**settings.AI_PLANNER, "OPENAI_API_KEY": "sk-test-tryon"}
+    client = client_for(user)
+
+    status_res = client.get(f"{BASE}/ai/status/")
+    assert status_res.status_code == 200
+    assert status_res.data["enabled"] is True
+    assert status_res.data["mode"] == "snapshot"
+    assert status_res.data["model"] == "gpt-image-1.5"
+
+    garment = make_garment(name="AI Test Dress")
+    out_b64 = base64.b64encode(reference_png(size=(512, 512))).decode("ascii")
+    captured = {}
+
+    class FakeRes:
+        status_code = 200
+
+        def json(self):
+            return {"data": [{"b64_json": out_b64}]}
+
+    def fake_post(url, headers=None, files=None, data=None, timeout=None):
+        captured["url"] = url
+        captured["data"] = data
+        captured["files"] = [name for name, _ in files]
+        return FakeRes()
+
+    monkeypatch.setattr(requests, "post", fake_post)
+    res = client.post(
+        f"{BASE}/ai/render/",
+        {
+            "garment": str(garment.pk),
+            "photo": SimpleUploadedFile("cam.png", reference_png(size=(600, 800)), "image/png"),
+        },
+        format="multipart",
+    )
+    assert res.status_code == 200, res.data
+    assert res.data["image"].startswith("data:image/jpeg;base64,")
+    assert res.data["model"] == "gpt-image-1.5"
+    assert res.data["garment"] == str(garment.pk)
+    assert captured["url"].endswith("/images/edits")
+    assert captured["files"] == ["image[]", "image[]"]
+    assert captured["data"]["input_fidelity"] == "high"

@@ -45,7 +45,10 @@ export default function AiStudioPage() {
       ) : (
         <>
           <p className="flex items-center gap-2 text-xs text-muted-foreground">
-            <SparklesIcon className="size-3.5" /> {"Natija Decart AI tomonidan jonli yaratiladi; sifat internet tezligiga bog'liq."}
+            <SparklesIcon className="size-3.5" />{" "}
+            {status.data.mode === "snapshot"
+              ? "Kamera kadri va haqiqiy kiyim rasmi OpenAI yordamida birlashtirilib fotorealistik ko'rsatiladi."
+              : "Natija Decart AI tomonidan jonli yaratiladi; sifat internet tezligiga bog'liq."}
           </p>
           <AiFashionStudio status={status.data} />
         </>

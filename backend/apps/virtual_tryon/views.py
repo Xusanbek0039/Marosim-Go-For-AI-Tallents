@@ -269,7 +269,7 @@ class AiStatusView(APIView):
         if decart.is_configured():
             enabled, mode, model = True, "realtime", cfg["MODEL"]
         elif openai_tryon.is_configured():
-            enabled, mode, model = True, "snapshot", cfg.get("OPENAI_MODEL", "gpt-image-1")
+            enabled, mode, model = True, "snapshot", cfg.get("OPENAI_MODEL", "gpt-image-1.5")
         else:
             enabled, mode, model = False, "realtime", cfg["MODEL"]
         return Response(

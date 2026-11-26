@@ -54,7 +54,7 @@ def _base_url() -> str:
 
 
 def _model() -> str:
-    return settings.AI_TRYON.get("OPENAI_MODEL", "gpt-image-1")
+    return settings.AI_TRYON.get("OPENAI_MODEL", "gpt-image-1.5")
 
 
 def prepare_user_photo(upload) -> bytes:
@@ -90,11 +90,14 @@ def _build_prompt(garment) -> str:
     custom = (garment.ai_prompt or "").strip()
     garment_desc = custom or f"the garment shown in the second image ({garment.name})"
     return (
-        "Photorealistic virtual try-on. Keep the person from the first image completely unchanged: "
-        "preserve their exact face, facial expression, hairstyle, skin tone, body proportions, pose, "
-        "hands, lighting, and background. Replace only their current clothing with "
-        f"{garment_desc}, matching the exact color, fabric texture, pattern, cut, and details from "
-        "the second image so it fits naturally on their body with realistic folds and shadows."
+        "Strict identity-preserving virtual try-on edit. "
+        "The person in image 1 MUST remain 100% the exact same real person: do NOT alter, regenerate, smooth, "
+        "age, or distort their face, eyes, eyebrows, nose, lips, jawline, glasses, facial hair, hairstyle, "
+        "head angle, skin tone, hands, body posture, camera angle, or background. Keep everything above the "
+        "collar and the entire background pixel-faithful to image 1. "
+        "ONLY replace their clothing below the neck with "
+        f"{garment_desc}, faithfully reproducing the exact fabric, color, embroidery, pattern, and cut from "
+        "image 2 so it drapes naturally on their body with realistic folds and matching room lighting."
     )
 
 
@@ -116,6 +119,7 @@ def render_tryon(*, photo_bytes: bytes, garment) -> TryOnRenderResult:
         "prompt": _build_prompt(garment),
         "size": "1024x1024",
         "quality": settings.AI_TRYON.get("OPENAI_QUALITY", "medium"),
+        "input_fidelity": settings.AI_TRYON.get("OPENAI_INPUT_FIDELITY", "high"),
     }
 
     started = time.monotonic()

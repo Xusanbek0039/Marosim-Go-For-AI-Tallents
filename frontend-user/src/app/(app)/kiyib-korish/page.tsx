@@ -3,6 +3,7 @@
 import { CameraIcon, HeartIcon, ShieldCheckIcon, ShirtIcon, SparklesIcon } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import dynamic from "next/dynamic";
+import Link from "next/link";
 import { useState } from "react";
 
 import { PageTitle } from "@/components/shell";
@@ -27,7 +28,14 @@ export default function VirtualTryOnPage() {
 
   return (
     <>
-      <PageTitle title="Virtual kiyib ko'rish" subtitle="Kiyimni tanlang va jonli kamerada o'zingizda ko'ring" />
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <PageTitle title="Virtual kiyib ko'rish" subtitle="Kiyimni tanlang va jonli kamerada o'zingizda ko'ring" />
+        <Link href="/ai-studio">
+          <Button>
+            <SparklesIcon /> AI Fashion Studio (real kiyib ko&apos;rish)
+          </Button>
+        </Link>
+      </div>
 
       {categories.error ? (
         <Card>
@@ -110,9 +118,17 @@ export default function VirtualTryOnPage() {
               <p className="truncate text-sm font-bold">{selected.name}</p>
               <p className="text-xs text-muted-foreground">{formatMoney(selected.price)}</p>
             </div>
-            <Button onClick={() => setCamera(true)} disabled={!selected.tryon_ready} title={selected.tryon_ready ? undefined : "Bu kiyimning AR qatlami hali yo'q"}>
-              <CameraIcon /> Kamerada kiyib ko&apos;rish
-            </Button>
+            {selected.ai_ready && !selected.tryon_ready ? (
+              <Link href="/ai-studio">
+                <Button>
+                  <SparklesIcon /> AI bilan kiyib ko&apos;rish
+                </Button>
+              </Link>
+            ) : (
+              <Button onClick={() => setCamera(true)} disabled={!selected.tryon_ready} title={selected.tryon_ready ? undefined : "Bu kiyimning AR qatlami hali yo'q"}>
+                <CameraIcon /> Kamerada kiyib ko&apos;rish
+              </Button>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
@@ -185,14 +201,19 @@ function GarmentCard({
           <span className="text-sm text-muted-foreground">{formatMoney(garment.price)}</span>
         </span>
       </button>
-      <div className="pointer-events-none absolute top-2.5 left-2.5">
+      <div className="pointer-events-none absolute top-2.5 left-2.5 flex gap-1">
+        {garment.ai_ready && (
+          <Badge tone="brand">
+            <SparklesIcon className="size-3" /> AI
+          </Badge>
+        )}
         {garment.tryon_ready ? (
           <Badge tone="brand">
             <SparklesIcon className="size-3" /> AR
           </Badge>
-        ) : (
+        ) : !garment.ai_ready ? (
           <Badge>AR tez orada</Badge>
-        )}
+        ) : null}
       </div>
       <button
         type="button"
