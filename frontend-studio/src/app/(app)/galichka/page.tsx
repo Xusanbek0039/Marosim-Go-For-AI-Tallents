@@ -5,6 +5,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { PageTitle } from "@/components/shell";
+import { money, useBilling } from "@/components/billing-banner";
 import { PaidBadge } from "@/components/paid-badge";
 import { Badge, Button, Card, ErrorState, Field, Skeleton, Textarea } from "@/components/ui";
 import { api } from "@/lib/api";
@@ -12,7 +13,7 @@ import { formatMoney, formatEventDate } from "@/lib/format";
 
 type Target = { id: string; name: string; kind: "studio" | "venue" };
 type Purchase = { id: string; plan: { name: string }; state: string; ends_at: string | null; admin_note: string; price: string; studio: string | null; venue: string | null };
-type Status = { is_verified: boolean; purchase_enabled: boolean; active: Purchase | null; pending: Purchase | null; paid_until: string | null; payment_instructions: string; plans: { id: string; name: string; price: string; duration_months: number }[] };
+type Status = { is_verified: boolean; purchase_enabled: boolean; active: Purchase | null; pending: Purchase | null; paid_until: string | null; payment_instructions: string; plans: { id: string; name: string; price: string; duration_months: number; perks: string[] }[] };
 const stateLabels: Record<string, string> = { PENDING: "To'lov kutilmoqda", ACTIVE: "Faol", SCHEDULED: "Navbatda", EXPIRED: "Muddati tugagan", REJECTED: "Rad etilgan", CANCELLED: "Bekor qilingan" };
 
 function PurchasePanel({ target }: { target: Target }) {
@@ -20,9 +21,10 @@ function PurchasePanel({ target }: { target: Target }) {
   const [note, setNote] = useState("");
   const [planId, setPlanId] = useState("");
   const key = ["badge-status", target.id];
+  const billing = useBilling();
   const status = useQuery({ queryKey: key, queryFn: () => api.get<Status>("/me/subscriptions/status/", { [target.kind]: target.id }), refetchInterval: 60_000 });
   const history = useQuery({ queryKey: ["badge-history"], queryFn: () => api.get<Purchase[]>("/me/subscriptions/") });
-  const refresh = () => { qc.invalidateQueries({ queryKey: key }); qc.invalidateQueries({ queryKey: ["badge-history"] }); qc.invalidateQueries({ queryKey: ["studio"] }); qc.invalidateQueries({ queryKey: ["venues"] }); };
+  const refresh = () => { qc.invalidateQueries({ queryKey: ["business-billing"] }); qc.invalidateQueries({ queryKey: key }); qc.invalidateQueries({ queryKey: ["badge-history"] }); qc.invalidateQueries({ queryKey: ["studio"] }); qc.invalidateQueries({ queryKey: ["venues"] }); };
   const buy = useMutation({
     mutationFn: () => api.post("/me/subscriptions/", { plan: planId, [target.kind]: target.id, user_note: note.trim() }),
     onSuccess: () => { refresh(); setPlanId(""); setNote(""); toast.success("So'rov yuborildi. To'lov tekshirilgach galichka yoqiladi."); },
@@ -32,7 +34,18 @@ function PurchasePanel({ target }: { target: Target }) {
   if (status.isPending) return <Skeleton className="h-56 rounded-3xl" />;
   if (status.error) return <ErrorState error={status.error} onRetry={() => status.refetch()} />;
   const s = status.data;
+  const fee = billing.data?.find((b) => b.id === target.id);
+  const perks = s.plans[0]?.perks ?? [];
   return <>
+    {fee && <Card className="flex flex-col gap-2">
+      <h2 className="text-lg font-bold">Majburiy oylik to&apos;lov: {money(fee.monthly_fee)}</h2>
+      <p className="text-sm text-muted-foreground">
+        {fee.state === "OK" ? `To'langan — ${formatEventDate(fee.paid_until!.slice(0, 10))} gacha. Biznesingiz katalogda ko'rinadi.`
+          : fee.state === "GRACE" ? `To'lov kerak. ${formatEventDate(fee.grace_until.slice(0, 10))} gacha to'lanmasa, biznesingiz ommaviy katalogdan yashiriladi.`
+          : "To'lov qilinmagan — biznesingiz ommaviy katalogdan yashirilgan. To'lov tasdiqlangach darhol qaytadi."}
+      </p>
+      {perks.length > 0 && <ul className="mt-1 grid gap-1.5 text-sm sm:grid-cols-2">{perks.map((p) => <li key={p} className="flex items-start gap-2"><span className="mt-0.5 text-emerald-600">✓</span>{p}</li>)}</ul>}
+    </Card>}
     <Card className="flex flex-col gap-3">
       <h2 className="flex items-center gap-2 text-lg font-bold">{target.name} <PaidBadge verified={s.is_verified} /></h2>
       <p className="text-sm text-muted-foreground">{s.active ? `Galichka ${formatEventDate(s.active.ends_at!.slice(0, 10))} gacha faol.` : "Galichka hali faol emas."}</p>
@@ -45,11 +58,11 @@ function PurchasePanel({ target }: { target: Target }) {
       <p className="text-sm whitespace-pre-line">{s.payment_instructions || "To'lov ma'lumotlari uchun administratorga murojaat qiling."}</p>
       <Button variant="ghost" loading={cancel.isPending} onClick={() => cancel.mutate(s.pending!.id)}>So&apos;rovni bekor qilish</Button>
     </Card> : <Card className="flex flex-col gap-4">
-      <h2 className="text-lg font-bold">Galichka sotib olish</h2>
+      <h2 className="text-lg font-bold">Premium uchun to&apos;lash</h2>
       {!s.purchase_enabled ? <p>Sotib olish vaqtincha o&apos;chirilgan.</p> : s.plans.length === 0 ? <p>Hozircha sotuvda tarif yo&apos;q.</p> : <>
         <div className="grid gap-3 sm:grid-cols-2">{s.plans.map((p) => <button key={p.id} type="button" aria-pressed={planId === p.id}
           className={`rounded-2xl border p-4 text-left ${planId === p.id ? "border-cyan-500 ring-2 ring-cyan-500" : "border-border"}`} onClick={() => setPlanId(p.id)}>
-          <span className="block font-bold">{p.name}</span><span className="text-sm">{formatMoney(p.price)} · {p.duration_months} oy</span>
+          <span className="block font-bold">{p.name}</span><span className="text-sm">{formatMoney(p.price)} · {p.duration_months} oy{p.duration_months > 1 && ` (oyiga ${formatMoney(Number(p.price) / p.duration_months)})`}</span>
         </button>)}</div>
         {planId && <>
           <p className="rounded-2xl bg-muted p-4 text-sm whitespace-pre-line">{s.payment_instructions || "To'lov ma'lumotlari uchun administratorga murojaat qiling."}</p>
@@ -70,7 +83,7 @@ export default function BadgePage() {
   if (targets.error) return <ErrorState error={targets.error} onRetry={() => targets.refetch()} />;
   const target = targets.data.find((t) => t.id === selected) ?? targets.data[0];
   return <>
-    <PageTitle title="Galichka" subtitle="Biznesingiz uchun pulli obuna belgisi" />
+    <PageTitle title="Premium obuna" subtitle="Oylik majburiy to'lov: galichka, katalogda ko'rinish va Premium imkoniyatlar" />
     {target ? <>
       <label className="flex flex-col gap-2 text-sm font-semibold">Biznesni tanlang
         <select className="rounded-xl border border-border bg-background p-3" value={target.id} onChange={(e) => setSelected(e.target.value)}>{targets.data.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}</select>
