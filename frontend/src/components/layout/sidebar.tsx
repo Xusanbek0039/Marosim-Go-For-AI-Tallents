@@ -89,7 +89,7 @@ function NavLink({
       {active && (
         <motion.span
           layoutId={`nav-active-${layoutGroup}`}
-          className="absolute inset-0 rounded-2xl bg-gradient-to-r from-blue-600 to-cyan-600 shadow-[0_10px_30px_-12px_rgb(6_182_212/0.75)]"
+          className="absolute inset-0 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 shadow-[0_10px_28px_-12px_rgb(16_185_129/0.75)]"
           transition={spring.sidebar}
           aria-hidden
         />
@@ -208,7 +208,7 @@ function ProfileChip({ collapsed }: { collapsed: boolean }) {
         collapsed && "justify-center p-2",
       )}
     >
-      <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-blue-600 to-cyan-500 text-sm font-bold text-white">
+      <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-emerald-600 to-teal-500 text-sm font-bold text-white">
         {(me.first_name[0] ?? "") + (me.last_name[0] ?? "")}
       </span>
       {!collapsed && (
