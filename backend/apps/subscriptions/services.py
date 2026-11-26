@@ -150,6 +150,8 @@ def _terms(plan: SubscriptionPlan) -> dict:
         "currency": plan.currency,
         "duration_months": plan.duration_months,
         "max_viewers": plan.max_viewers,
+        "ai_video_per_month": plan.ai_video_per_month,
+        "ai_photo_per_month": plan.ai_photo_per_month,
     }
 
 

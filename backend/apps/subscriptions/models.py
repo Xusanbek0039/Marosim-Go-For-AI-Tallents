@@ -9,6 +9,13 @@ User decisions 2026-11-08:
   1 year 100 000, 5 years 300 000 so'm; viewers 10 / 20 / 30 / 50.
 * Payment is not automated: the couple sends a request, an admin records the payment and approves.
 
+User decisions 2026-11-26 (prices computed from real AI costs, see ``pricing.py``):
+* USER Premium also carries monthly AI try-on quotas (video / photo). Without Premium: 3 AI photos a
+  month and no AI video (one Kling video costs the platform ≈ 8 300 so'm).
+* Businesses pay a mandatory monthly fee (venue 300 000, studio 150 000 so'm) which is their Premium
+  (galichka). Unpaid businesses disappear from the public catalog after a 7-day grace (``billing.py``).
+* The admin panel keeps income (subscription payments) and expenses (AI usage + manual) — ``finance.py``.
+
 Dependency direction: subscriptions → accounts / core. Media and ceremonies ask
 ``services.active_subscription(user)``; this app never imports them.
 """
@@ -40,6 +47,11 @@ class SubscriptionPlan(BaseModel):
     currency = models.CharField(max_length=3, default="UZS")
     #: How many people an owner with this plan may share a ceremony with at once.
     max_viewers = models.PositiveSmallIntegerField(validators=[MinValueValidator(1)])
+    #: AI try-on quota per calendar month while the subscription runs (USER plans).
+    ai_video_per_month = models.PositiveSmallIntegerField(default=0)
+    ai_photo_per_month = models.PositiveSmallIntegerField(default=0)
+    #: What the plan includes, one line each — shown on the purchase page.
+    perks = models.JSONField(default=list, blank=True)
     is_active = models.BooleanField(default=True)
     position = models.PositiveSmallIntegerField(default=0)
 
@@ -87,6 +99,8 @@ class Subscription(BaseModel):
     currency = models.CharField(max_length=3, default="UZS")
     duration_months = models.PositiveSmallIntegerField()
     max_viewers = models.PositiveSmallIntegerField()
+    ai_video_per_month = models.PositiveSmallIntegerField(default=0)
+    ai_photo_per_month = models.PositiveSmallIntegerField(default=0)
     starts_at = models.DateTimeField(null=True, blank=True)
     ends_at = models.DateTimeField(null=True, blank=True)
     #: Written by the couple ("Click orqali to'ladim, chek …").
@@ -147,6 +161,8 @@ class SubscriptionSettings(models.Model):
     """Singleton (pk=1): what the couple is told about paying (card number, recipient, phone)."""
 
     payment_instructions = models.TextField(max_length=2000, blank=True)
+    #: So'm per 1 USD, used to turn AI provider costs (billed in USD) into so'm in the finance report.
+    usd_rate = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal("12024"))
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self) -> str:
@@ -156,3 +172,36 @@ class SubscriptionSettings(models.Model):
     def load(cls) -> "SubscriptionSettings":
         obj, _ = cls.objects.get_or_create(pk=1)
         return obj
+
+
+class ExpenseCategory(models.TextChoices):
+    AI = "AI", "AI xizmatlari (qo'lda)"
+    SERVER = "SERVER", "Server / hosting"
+    STORAGE = "STORAGE", "Bulutli xotira (Google Drive)"
+    SMS = "SMS", "SMS / aloqa"
+    MARKETING = "MARKETING", "Reklama"
+    SALARY = "SALARY", "Ish haqi"
+    OTHER = "OTHER", "Boshqa"
+
+
+class Expense(BaseModel):
+    """A platform cost entered by an admin. AI usage costs are computed, not entered (see ``finance``)."""
+
+    category = models.CharField(max_length=12, choices=ExpenseCategory.choices)
+    title = models.CharField(max_length=120)
+    amount = models.DecimalField(**MONEY, validators=[MinValueValidator(Decimal("0"))])
+    spent_on = models.DateField()
+    note = models.CharField(max_length=500, blank=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
+    )
+
+    class Meta:
+        ordering = ["-spent_on", "-created_at"]
+        indexes = [models.Index(fields=["spent_on"])]
+        constraints = [
+            models.CheckConstraint(condition=Q(amount__gte=0), name="subscriptions_expense_amount_non_negative"),
+        ]
+
+    def __str__(self) -> str:
+        return f"{self.title} · {self.amount}"

@@ -451,6 +451,32 @@ AI_TRYON = {
 # The key is read from the environment only (never stored in the DB or shown in the panel; the panel only
 # shows "configured / missing"). Empty key = the AI chat shows "temporarily unavailable"; plans, the budget
 # calculator and bookings keep working. Model, limits and switches are managed by the Super Admin.
+# What one unit of AI work costs the platform (USD, provider list prices checked 2026-11-26).
+# Used for AI quotas, plan economics and the admin income/expense report (apps.subscriptions.pricing).
+PLATFORM_COSTS = {
+    # fal.ai Kling O3 standard video edit ≈ $0.126 / s, billed for the ~5 s clip we send.
+    "AI_VIDEO_USD": env.float("COST_AI_VIDEO_USD", default=0.63),
+    # fal.ai FASHN try-on v1.6: $0.075 per generation.
+    "AI_PHOTO_USD": env.float("COST_AI_PHOTO_USD", default=0.075),
+    # Google One 2 TB ≈ $9.99 / month → $0.005 per GB-month.
+    "STORAGE_GB_MONTH_USD": env.float("COST_STORAGE_GB_MONTH_USD", default=0.005),
+    # Extra margin on top of list prices: failed / retried renders, card fees, exchange-rate moves.
+    "SAFETY_FACTOR": env.float("COST_SAFETY_FACTOR", default=1.10),
+}
+
+# Businesses pay a mandatory monthly fee (their Premium / galichka). Unpaid ones leave the public
+# catalog after GRACE_DAYS. START = launch day: existing businesses get their grace from it.
+BUSINESS_BILLING = {
+    "ENFORCE": env.bool("BUSINESS_BILLING_ENFORCE", default=True),
+    "GRACE_DAYS": env.int("BUSINESS_BILLING_GRACE_DAYS", default=7),
+    "START": env.str("BUSINESS_BILLING_START", default="2026-11-26"),
+    "VENUE_MONTHLY_FEE": env.int("BUSINESS_VENUE_MONTHLY_FEE", default=300_000),
+    "STUDIO_MONTHLY_FEE": env.int("BUSINESS_STUDIO_MONTHLY_FEE", default=150_000),
+}
+
+# Users without Premium: AI photos per month (AI video is Premium only).
+AI_FREE_PHOTOS_PER_MONTH = env.int("AI_FREE_PHOTOS_PER_MONTH", default=3)
+
 AI_PLANNER = {
     "OPENAI_API_KEY": env.str("OPENAI_API_KEY", default=""),
     "OPENAI_BASE_URL": env.str("OPENAI_BASE_URL", default="https://api.openai.com/v1").rstrip("/"),
