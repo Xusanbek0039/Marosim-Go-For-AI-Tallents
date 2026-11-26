@@ -40,10 +40,10 @@ def test_seeded_plans_match_the_price_list(anon):
     assert res.status_code == 200
     got = [(p["code"], p["duration_months"], p["price"], p["max_viewers"]) for p in res.data]
     assert got == [
-        ("M1", 1, "25000.00", 10),
-        ("M3", 3, "60000.00", 20),
-        ("Y1", 12, "100000.00", 30),
-        ("Y5", 60, "300000.00", 50),
+        ("M1", 1, "59000.00", 15),
+        ("M3", 3, "159000.00", 20),
+        ("Y1", 12, "549000.00", 30),
+        ("Y5", 60, "1990000.00", 50),
     ]
 
 
@@ -58,7 +58,7 @@ def test_prices_are_managed_only_with_the_plans_permission(make_user, super_admi
     sub = services.request_subscription(None, plain_user, plan("M3"))
     assert client_for(super_admin).patch(f"{ADMIN_PLANS}{plan('M3').pk}/", {"price": "70000"}).status_code == 200
     sub.refresh_from_db()
-    assert sub.price == Decimal("60000.00") and plan("M1").price == Decimal("30000.00")
+    assert sub.price == Decimal("159000.00") and plan("M1").price == Decimal("30000.00")
     created = client_for(super_admin).post(
         ADMIN_PLANS, {"code": "m6", "name": "6 oy", "duration_months": 6, "price": "80000", "max_viewers": 25}
     )
@@ -86,9 +86,9 @@ def test_request_approve_and_renewal_stacks(make_user, client_for, plain_user):
 
     approver = client_for(admin_with(make_user, "subscriptions.view", "subscriptions.update"))
     ok = approver.post(f"{ADMIN}{res.data['id']}/approve/", {"payment_method": "CLICK", "payment_reference": "123"})
-    assert ok.status_code == 200 and ok.data["state"] == "ACTIVE" and ok.data["paid_amount"] == "25000.00"
+    assert ok.status_code == 200 and ok.data["state"] == "ACTIVE" and ok.data["paid_amount"] == "59000.00"
     first = Subscription.objects.get(pk=res.data["id"])
-    assert services.has_clean_access(plain_user) and services.viewer_limit(plain_user) == 10
+    assert services.has_clean_access(plain_user) and services.viewer_limit(plain_user) == 15
 
     # renewal before the end starts when the current period ends — no paid day is lost
     second = couple.post(MINE, {"plan": str(plan("M3").pk)})
@@ -96,7 +96,7 @@ def test_request_approve_and_renewal_stacks(make_user, client_for, plain_user):
     renewal = Subscription.objects.get(pk=second.data["id"])
     assert renewal.starts_at == first.ends_at
     assert services.state_of(renewal) == "SCHEDULED"
-    assert services.viewer_limit(plain_user) == 10  # the running one decides
+    assert services.viewer_limit(plain_user) == 15  # the running one decides
     assert couple.get(f"{MINE}status/").data["paid_until"] is not None
 
 
@@ -125,7 +125,7 @@ def test_admin_grants_and_revokes_and_sees_revenue(make_user, client_for, plain_
     assert res.status_code == 201 and res.data["state"] == "ACTIVE" and res.data["max_viewers"] == 50
     assert services.viewer_limit(plain_user) == 50
     summary = seller.get(f"{ADMIN}summary/").data
-    assert summary["active"] == 1 and Decimal(summary["revenue_total"]) == Decimal("300000")
+    assert summary["active"] == 1 and Decimal(summary["revenue_total"]) == Decimal("1990000")
     assert seller.get(ADMIN, {"state": "ACTIVE"}).data["count"] == 1
     revoked = seller.post(f"{ADMIN}{res.data['id']}/cancel/", {"admin_note": "Qaytarildi"})
     assert revoked.data["state"] == "CANCELLED" and not services.has_clean_access(plain_user)
