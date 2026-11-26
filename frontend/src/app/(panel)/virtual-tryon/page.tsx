@@ -37,6 +37,7 @@ import {
   useAdminOrders,
   useApproveGarment,
   useCreateGarmentWithPhoto,
+  useDeleteAdminLook,
   useDeleteGarment,
   useSyncLookToDrive,
   useUpdateOrderStatus,
@@ -70,9 +71,23 @@ function LooksTab() {
   const [preview, setPreview] = useState<AdminSavedLook | null>(null);
   const looks = useAdminLooks(search.trim());
   const syncDrive = useSyncLookToDrive();
+  const deleteLook = useDeleteAdminLook();
   const can = useCan();
   const { data: me } = useMe();
   const canSync = me?.role === "SUPER_ADMIN" || can("tryon.update");
+  const canDelete = me?.role === "SUPER_ADMIN" || can("tryon.delete");
+
+  function handleDeleteLook(look: AdminSavedLook) {
+    const label = look.video ? "video va rasmni" : "rasmni";
+    if (!window.confirm(`Ushbu ${label} o'chirmoqchimisiz? Bu amalni ortga qaytarib bo'lmaydi.`)) return;
+    deleteLook.mutate(look.id, {
+      onSuccess: () => {
+        if (preview?.id === look.id) setPreview(null);
+        toast.success(look.video ? "Video va rasm o'chirildi" : "Rasm o'chirildi");
+      },
+      onError: (e) => toast.error(e instanceof ApiError ? e.message : "O'chirib bo'lmadi"),
+    });
+  }
 
   useEffect(() => {
     if (!preview) return;
@@ -258,6 +273,21 @@ function LooksTab() {
                   ) : (
                     <span className="text-xs text-muted-foreground">Drive&apos;ga yuklanmagan</span>
                   )}
+                  {canDelete && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      aria-label={look.video ? "Videoni o'chirish" : "Rasmni o'chirish"}
+                      disabled={deleteLook.isPending && deleteLook.variables === look.id}
+                      onClick={() => handleDeleteLook(look)}
+                    >
+                      {deleteLook.isPending && deleteLook.variables === look.id ? (
+                        <Loader2Icon className="size-3.5 animate-spin text-rose-500" />
+                      ) : (
+                        <Trash2Icon className="size-3.5 text-rose-500" />
+                      )}
+                    </Button>
+                  )}
                 </div>
               </div>
             </GlassCard>
@@ -323,6 +353,21 @@ function LooksTab() {
                     >
                       <CloudIcon className="size-3.5" /> Google Drive&apos;da ko&apos;rish
                     </a>
+                  )}
+                  {canDelete && (
+                    <button
+                      type="button"
+                      disabled={deleteLook.isPending && deleteLook.variables === preview.id}
+                      onClick={() => handleDeleteLook(preview)}
+                      className="inline-flex items-center gap-1.5 rounded-full bg-rose-600 px-3.5 py-2 text-xs font-semibold text-white hover:bg-rose-700 disabled:opacity-50"
+                    >
+                      {deleteLook.isPending && deleteLook.variables === preview.id ? (
+                        <Loader2Icon className="size-3.5 animate-spin" />
+                      ) : (
+                        <Trash2Icon className="size-3.5" />
+                      )}
+                      O&apos;chirish
+                    </button>
                   )}
                 </div>
               </div>

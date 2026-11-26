@@ -1559,6 +1559,192 @@
         "POST /api/v1/ai-planner/conversations/{id}/messages/",
         "POST /api/v1/ai-planner/messages/{id}/feedback/"
       ]
+    },
+    {
+      "revision": 31,
+      "date": "2026-11-26",
+      "note": "Allow admins with tryon.delete to delete saved try-on looks (images/videos)",
+      "added": [
+        "DELETE /api/v1/admin/finance/{id}/",
+        "DELETE /api/v1/admin/virtual-tryon/looks/{id}/",
+        "GET /api/v1/admin/finance/",
+        "GET /api/v1/admin/finance/report/",
+        "GET /api/v1/admin/virtual-tryon/categories/",
+        "GET /api/v1/admin/virtual-tryon/looks/",
+        "GET /api/v1/admin/virtual-tryon/looks/{id}/",
+        "GET /api/v1/admin/virtual-tryon/looks/{id}/image/",
+        "GET /api/v1/admin/virtual-tryon/looks/{id}/video/",
+        "GET /api/v1/admin/virtual-tryon/orders/",
+        "GET /api/v1/admin/virtual-tryon/orders/{id}/",
+        "GET /api/v1/me/subscriptions/billing/",
+        "GET /api/v1/virtual-tryon/ai/render-video/{job_id}/",
+        "GET /api/v1/virtual-tryon/looks/{id}/download/",
+        "GET /api/v1/virtual-tryon/looks/{id}/video/",
+        "GET /api/v1/virtual-tryon/orders/",
+        "GET /api/v1/virtual-tryon/orders/{id}/",
+        "PATCH /api/v1/admin/finance/rate/",
+        "PATCH /api/v1/admin/virtual-tryon/orders/{id}/",
+        "POST /api/v1/admin/finance/",
+        "POST /api/v1/admin/virtual-tryon/looks/{id}/sync-drive/",
+        "POST /api/v1/virtual-tryon/ai/render-video/",
+        "POST /api/v1/virtual-tryon/ai/render/",
+        "POST /api/v1/virtual-tryon/orders/"
+      ],
+      "removed": [],
+      "changed": {
+        "DELETE /api/v1/admin/virtual-tryon/garments/{id}/assets/{kind}/": [
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/admin/ai-planner/config/": [
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/admin/subscription-plans/": [
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/admin/subscriptions/": [
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/admin/subscriptions/{id}/": [
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/admin/virtual-tryon/garments/": [
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/admin/virtual-tryon/garments/{id}/": [
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/admins/": [
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/admins/{id}/": [
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/me/subscriptions/": [
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/me/subscriptions/status/": [
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/subscriptions/plans/": [
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/virtual-tryon/ai/status/": [
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/virtual-tryon/favorites/": [
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/virtual-tryon/garments/": [
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/virtual-tryon/garments/{id}/": [
+          "schema_fingerprint"
+        ],
+        "GET /api/v1/virtual-tryon/looks/": [
+          "schema_fingerprint"
+        ],
+        "PATCH /api/v1/admin/ai-planner/config/": [
+          "conditions",
+          "schema_fingerprint"
+        ],
+        "PATCH /api/v1/admin/subscription-plans/{id}/": [
+          "schema_fingerprint"
+        ],
+        "PATCH /api/v1/admin/virtual-tryon/garments/{id}/": [
+          "schema_fingerprint"
+        ],
+        "PATCH /api/v1/admins/{id}/": [
+          "schema_fingerprint"
+        ],
+        "POST /api/v1/admin/ai-planner/disable/": [
+          "schema_fingerprint"
+        ],
+        "POST /api/v1/admin/subscription-plans/": [
+          "schema_fingerprint"
+        ],
+        "POST /api/v1/admin/subscriptions/": [
+          "schema_fingerprint"
+        ],
+        "POST /api/v1/admin/subscriptions/{id}/approve/": [
+          "schema_fingerprint"
+        ],
+        "POST /api/v1/admin/subscriptions/{id}/cancel/": [
+          "schema_fingerprint"
+        ],
+        "POST /api/v1/admin/subscriptions/{id}/reject/": [
+          "schema_fingerprint"
+        ],
+        "POST /api/v1/admin/virtual-tryon/garments/": [
+          "schema_fingerprint"
+        ],
+        "POST /api/v1/admin/virtual-tryon/garments/{id}/ai-reference/": [
+          "schema_fingerprint"
+        ],
+        "POST /api/v1/admin/virtual-tryon/garments/{id}/approve/": [
+          "schema_fingerprint"
+        ],
+        "POST /api/v1/admin/virtual-tryon/garments/{id}/assets/": [
+          "schema_fingerprint"
+        ],
+        "POST /api/v1/admin/virtual-tryon/garments/{id}/reject/": [
+          "schema_fingerprint"
+        ],
+        "POST /api/v1/admins/": [
+          "schema_fingerprint"
+        ],
+        "POST /api/v1/me/subscriptions/": [
+          "schema_fingerprint"
+        ],
+        "POST /api/v1/me/subscriptions/{id}/cancel/": [
+          "schema_fingerprint"
+        ],
+        "POST /api/v1/virtual-tryon/favorites/": [
+          "schema_fingerprint"
+        ],
+        "POST /api/v1/virtual-tryon/looks/": [
+          "schema_fingerprint"
+        ]
+      },
+      "breaking": [],
+      "schema_changed": [
+        "DELETE /api/v1/admin/virtual-tryon/garments/{id}/assets/{kind}/",
+        "GET /api/v1/admin/ai-planner/config/",
+        "GET /api/v1/admin/subscription-plans/",
+        "GET /api/v1/admin/subscriptions/",
+        "GET /api/v1/admin/subscriptions/{id}/",
+        "GET /api/v1/admin/virtual-tryon/garments/",
+        "GET /api/v1/admin/virtual-tryon/garments/{id}/",
+        "GET /api/v1/admins/",
+        "GET /api/v1/admins/{id}/",
+        "GET /api/v1/me/subscriptions/",
+        "GET /api/v1/me/subscriptions/status/",
+        "GET /api/v1/subscriptions/plans/",
+        "GET /api/v1/virtual-tryon/ai/status/",
+        "GET /api/v1/virtual-tryon/favorites/",
+        "GET /api/v1/virtual-tryon/garments/",
+        "GET /api/v1/virtual-tryon/garments/{id}/",
+        "GET /api/v1/virtual-tryon/looks/",
+        "PATCH /api/v1/admin/ai-planner/config/",
+        "PATCH /api/v1/admin/subscription-plans/{id}/",
+        "PATCH /api/v1/admin/virtual-tryon/garments/{id}/",
+        "PATCH /api/v1/admins/{id}/",
+        "POST /api/v1/admin/ai-planner/disable/",
+        "POST /api/v1/admin/subscription-plans/",
+        "POST /api/v1/admin/subscriptions/",
+        "POST /api/v1/admin/subscriptions/{id}/approve/",
+        "POST /api/v1/admin/subscriptions/{id}/cancel/",
+        "POST /api/v1/admin/subscriptions/{id}/reject/",
+        "POST /api/v1/admin/virtual-tryon/garments/",
+        "POST /api/v1/admin/virtual-tryon/garments/{id}/ai-reference/",
+        "POST /api/v1/admin/virtual-tryon/garments/{id}/approve/",
+        "POST /api/v1/admin/virtual-tryon/garments/{id}/assets/",
+        "POST /api/v1/admin/virtual-tryon/garments/{id}/reject/",
+        "POST /api/v1/admins/",
+        "POST /api/v1/me/subscriptions/",
+        "POST /api/v1/me/subscriptions/{id}/cancel/",
+        "POST /api/v1/virtual-tryon/favorites/",
+        "POST /api/v1/virtual-tryon/looks/"
+      ]
     }
   ]
 }

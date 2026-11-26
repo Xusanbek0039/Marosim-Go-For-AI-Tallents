@@ -147,6 +147,14 @@ export function useSyncLookToDrive() {
   });
 }
 
+export function useDeleteAdminLook() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.delete(`/admin/virtual-tryon/looks/${id}/`),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["admin-tryon", "looks"] }),
+  });
+}
+
 export function useAdminGarments(q?: string) {
   return useQuery({
     queryKey: tryonKeys.garments(q),

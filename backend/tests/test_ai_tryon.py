@@ -1019,3 +1019,26 @@ def test_fast_video_pipeline_shows_the_photo_first_then_the_video(settings, monk
     assert done["status"] == "DONE" and done["look_id"] == preview["look_id"]  # same look, video added
     assert client.get(done["video_url"]).status_code == 200
     assert len(state["submitted"]) == 2  # each stage submitted exactly once
+
+
+def test_admin_can_delete_saved_look_and_files(user, make_user, super_admin, client_for):
+    garment = make_garment()
+    look = SavedLook.objects.create(user=user, garment=garment, width=640, height=960)
+    look.image.save("look.jpg", ContentFile(reference_png(size=(640, 960))), save=False)
+    look.video.save("look.mp4", ContentFile(b"\x00\x00\x00\x18ftypmp42\x00\x00\x00\x00mp42isom"), save=False)
+    look.save()
+    image_path = Path(look.image.path)
+    video_path = Path(look.video.path)
+    assert image_path.exists() and video_path.exists()
+
+    url = f"/api/v1/admin/virtual-tryon/looks/{look.pk}/"
+    assert client_for(user).delete(url).status_code == 403
+    admin_view_only = make_user(Role.ADMIN, admin_permissions=["tryon.view"])
+    assert client_for(admin_view_only).delete(url).status_code == 403
+
+    admin_del = make_user(Role.ADMIN, admin_permissions=["tryon.view", "tryon.delete"])
+    assert client_for(admin_del).delete(url).status_code == 204
+    assert not SavedLook.objects.filter(pk=look.pk).exists()
+    assert not image_path.exists()
+    assert not video_path.exists()
+    assert client_for(super_admin).delete(url).status_code == 404
