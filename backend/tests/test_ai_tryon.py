@@ -794,6 +794,7 @@ def test_fal_photo_and_video_tryon_and_admin_video_gallery(settings, monkeypatch
         "FAL_KEY": "fal_test_secret_key",
         "FAL_PHOTO_MODEL": "fal-ai/fashn/tryon/v1.6",
         "FAL_VIDEO_MODEL": "fal-ai/kling-video/o3/standard/video-to-video/edit",
+        "FAL_VIDEO_PIPELINE": "kling",
     }
     garment = make_garment(name="Fal Atlas Dress")
 
@@ -946,3 +947,75 @@ def test_fal_photo_and_video_tryon_and_admin_video_gallery(settings, monkeypatch
     range_res = client.get(video_look["video"], HTTP_RANGE="bytes=0-1023")
     assert range_res.status_code == 206 and range_res["Content-Range"].startswith("bytes 0-1023/")
     assert len(b"".join(range_res.streaming_content)) == 1024
+
+
+def test_fast_video_pipeline_shows_the_photo_first_then_the_video(settings, monkeypatch, user, client_for):
+    """FASHN photo (shown at once) → LTX video: about a minute instead of Kling's 5–12."""
+    import shutil
+    import subprocess
+    import tempfile
+
+    if not shutil.which("ffmpeg"):
+        pytest.skip("ffmpeg not installed")
+    settings.AI_TRYON = {**settings.AI_TRYON, "FAL_KEY": "fal_test", "API_KEY": "", "FAL_VIDEO_PIPELINE": "fast"}
+    subscribe(user)
+    garment = make_garment(name="Oq libos")
+    with tempfile.TemporaryDirectory() as tmp:
+        src, out = Path(tmp) / "clip.webm", Path(tmp) / "out.mp4"
+        subprocess.run(["ffmpeg", "-y", "-f", "lavfi", "-i", "testsrc=duration=2:size=320x240:rate=12",
+                        "-c:v", "libvpx", str(src)], check=True, capture_output=True)
+        subprocess.run(["ffmpeg", "-y", "-f", "lavfi", "-i", "color=c=white:s=720x960:d=2", "-c:v", "libx264",
+                        "-pix_fmt", "yuv420p", str(out)], check=True, capture_output=True)
+        clip, mp4 = src.read_bytes(), out.read_bytes()
+
+    state = {"photo": "IN_PROGRESS", "video": "IN_QUEUE", "submitted": []}
+
+    class Res:
+        def __init__(self, code=200, data=None, content=b""):
+            self.status_code, self._data, self.content, self.text = code, data or {}, content, ""
+
+        def json(self):
+            return self._data
+
+    def post(url, headers=None, json=None, timeout=None):
+        if "storage/upload/initiate" in url:
+            return Res(200, {"upload_url": "https://up/x", "file_url": f"https://files/{json['file_name']}"})
+        kind = "photo" if "fashn" in url else "video"
+        state["submitted"].append((kind, json))
+        return Res(200, {"request_id": f"req_{kind}", "status": "IN_QUEUE",
+                         "status_url": f"https://q/{kind}/status", "response_url": f"https://q/{kind}/result"})
+
+    def get(url, headers=None, timeout=None):
+        return {
+            "https://q/photo/status": lambda: Res(200, {"status": state["photo"]}),
+            "https://q/video/status": lambda: Res(200, {"status": state["video"]}),
+            "https://q/photo/result": lambda: Res(200, {"images": [{"url": "https://cdn/photo.png"}]}),
+            "https://cdn/photo.png": lambda: Res(200, content=reference_png(size=(300, 400))),
+            "https://q/video/result": lambda: Res(200, {"video": {"url": "https://cdn/video.mp4"}}),
+            "https://cdn/video.mp4": lambda: Res(200, content=mp4),
+        }[url]()
+
+    monkeypatch.setattr(requests, "post", post)
+    monkeypatch.setattr(requests, "put", lambda *a, **k: Res(200))
+    monkeypatch.setattr(requests, "get", get)
+
+    client = client_for(user)
+    start = client.post(f"{BASE}/ai/render-video/",
+                        {"garment": str(garment.pk), "video": SimpleUploadedFile("c.webm", clip, content_type="video/webm")},
+                        format="multipart")
+    assert start.status_code == 202 and start.data["stage"] == "PHOTO"
+    assert state["submitted"][0][1]["model_image"].endswith("frame.jpg")  # one frame, not the whole clip
+    url = f"{BASE}/ai/render-video/{start.data['job_id']}/"
+
+    assert "preview_url" not in client.get(url).data
+    state["photo"] = "COMPLETED"
+    preview = client.get(url).data
+    assert preview["status"] == "PENDING" and preview["stage"] == "VIDEO" and preview["preview_url"].endswith("/image/")
+    assert client.get(preview["preview_url"]).status_code == 200  # the dressed photo is viewable right away
+    assert state["submitted"][1][1]["image_url"] == "https://cdn/photo.png"
+
+    state["video"] = "COMPLETED"
+    done = client.get(url).data
+    assert done["status"] == "DONE" and done["look_id"] == preview["look_id"]  # same look, video added
+    assert client.get(done["video_url"]).status_code == 200
+    assert len(state["submitted"]) == 2  # each stage submitted exactly once

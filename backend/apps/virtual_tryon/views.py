@@ -455,7 +455,18 @@ def _video_job_payload(request, job: VideoTryOnJob) -> dict:
     if job.status == VideoJobStatus.DONE and job.look_id:
         latency_ms = int(((job.finished_at or job.updated_at) - job.created_at).total_seconds() * 1000)
         return {"job_id": str(job.pk), **_video_look_payload(request, job.look, model=job.model, latency_ms=latency_ms)}
-    payload = {"job_id": str(job.pk), "status": job.status, "garment": str(job.garment_id) if job.garment_id else None}
+    payload = {
+        "job_id": str(job.pk),
+        "status": job.status,
+        "stage": job.stage,
+        "garment": str(job.garment_id) if job.garment_id else None,
+    }
+    if job.look_id and job.status != VideoJobStatus.FAILED:
+        # fast pipeline: the dressed photo is ready while the video is still rendering
+        from django.urls import reverse
+
+        payload["look_id"] = str(job.look_id)
+        payload["preview_url"] = request.build_absolute_uri(reverse("tryon-look-image", args=[job.look_id]))
     if job.status == VideoJobStatus.FAILED:
         message, _ = ai.PROVIDER_MESSAGES.get(job.error_code, ai.PROVIDER_MESSAGES["provider_unavailable"])
         payload["error"] = {"code": job.error_code, "message": message}

@@ -10,15 +10,25 @@ and bills the job — so the user pays and never sees the video. Instead:
    ``finalize_video_jobs`` management command does the same for jobs whose tab was closed.
 
 A submitted job is never resubmitted: a failed download is retried from the stored ``response_url``.
+
+Pipelines (``settings.AI_TRYON["FAL_VIDEO_PIPELINE"]``):
+
+* ``fast`` (default): stage PHOTO — FASHN dresses one frame of the clip (~20 s); that photo is saved
+  as the look right away so the user sees themselves in the garment while stage VIDEO — LTX turns
+  the photo into a short video (~30 s) — runs. About one minute in total.
+* ``kling``: one Kling O3 edit of the user's own clip (keeps their exact motion; 5–12 minutes).
 """
 
+import io
 import logging
+import subprocess
 import tempfile
 from datetime import timedelta
 from pathlib import Path
 
 from django.core.files.base import ContentFile
 from django.utils import timezone
+from PIL import Image
 
 from . import drive_sync, fal_tryon, openai_tryon, quota, video_tryon
 from .models import AiRenderLog, RenderLogStatus, SavedLook, VideoJobStatus, VideoTryOnJob
@@ -31,11 +41,32 @@ FINALIZE_LEASE = timedelta(minutes=5)
 MAX_JOB_AGE = timedelta(hours=6)
 
 
+def _frame_jpeg(src: Path, work: Path) -> bytes:
+    """A sharp frame from the start of the clip (the user faces the camera before turning)."""
+    out = work / "frame.jpg"
+    subprocess.run(
+        [video_tryon._ffmpeg_bin(), "-y", "-ss", "0.4", "-i", str(src), "-frames:v", "1", "-q:v", "2", str(out)],
+        capture_output=True,
+        timeout=20,
+        check=False,
+    )
+    if not out.is_file():
+        from rest_framework.exceptions import ValidationError
+
+        raise ValidationError("Videodan kadr ajratib bo'lmadi. Qayta yozib ko'ring.")
+    img = Image.open(out).convert("RGB")
+    img.thumbnail((1536, 1536), Image.LANCZOS)
+    buf = io.BytesIO()
+    img.save(buf, format="JPEG", quality=92)
+    return buf.getvalue()
+
+
 def start(*, user, video_upload, garment) -> VideoTryOnJob:
     if video_upload.size > video_tryon.MAX_VIDEO_BYTES:
         from rest_framework.exceptions import ValidationError
 
         raise ValidationError("Video hajmi 25 MB dan oshmasligi kerak.")
+    pipeline = fal_tryon.video_pipeline()
     with tempfile.TemporaryDirectory(prefix="tryon-vid-") as tmp:
         work = Path(tmp)
         suffix = Path(video_upload.name or "clip.webm").suffix or ".webm"
@@ -43,18 +74,46 @@ def start(*, user, video_upload, garment) -> VideoTryOnJob:
         with open(src, "wb") as fh:
             for chunk in video_upload.chunks():
                 fh.write(chunk)
-        norm_mp4 = work / "input_720p.mp4"
-        video_tryon._normalize_input_mp4(src, norm_mp4)
-        fal_job = fal_tryon.submit_video_tryon(norm_mp4=norm_mp4, garment=garment)
+        if pipeline == "fast":
+            fal_job = fal_tryon.submit_photo_stage(frame_jpeg=_frame_jpeg(src, work), garment=garment)
+            stage = "PHOTO"
+        else:
+            norm_mp4 = work / "input_720p.mp4"
+            video_tryon._normalize_input_mp4(src, norm_mp4)
+            fal_job = fal_tryon.submit_video_tryon(norm_mp4=norm_mp4, garment=garment)
+            pipeline, stage = "kling", ""
 
     return VideoTryOnJob.objects.create(
         user=user,
         garment=garment,
         model=fal_job.model_id,
+        pipeline=pipeline,
+        stage=stage,
         request_id=fal_job.request_id,
         status_url=fal_job.status_url,
         response_url=fal_job.response_url,
     )
+
+
+def _photo_stage_done(job: VideoTryOnJob) -> VideoTryOnJob:
+    """FASHN finished: save the dressed photo as the look (shown at once) and start the video stage."""
+    photo_url = fal_tryon.fetch_photo_url(job.response_url)
+    img = Image.open(io.BytesIO(fal_tryon.download(photo_url, timeout=60))).convert("RGB")
+    buf = io.BytesIO()
+    img.save(buf, format="JPEG", quality=90, optimize=True)
+    motion = fal_tryon.submit_motion_stage(image_url=photo_url, garment=job.garment)
+
+    look = job.look or SavedLook(user=job.user, garment=job.garment)
+    look.width, look.height = img.width, img.height
+    look.image.save(f"tryon-{job.garment_id or job.pk}.jpg", ContentFile(buf.getvalue()), save=False)
+    look.save()
+    job.look = look
+    job.stage, job.status = "VIDEO", VideoJobStatus.PENDING
+    job.model = f"{job.model} + {motion.model_id}"[:200]
+    job.status_url, job.response_url = motion.status_url, motion.response_url
+    job.save(update_fields=["look", "stage", "status", "model", "status_url", "response_url", "updated_at"])
+    logger.info("fal video job %s: photo ready (look %s), motion %s submitted", job.request_id, look.pk, motion.request_id)
+    return job
 
 
 def _render_log(job: VideoTryOnJob) -> AiRenderLog | None:
@@ -104,6 +163,15 @@ def advance(job: VideoTryOnJob) -> VideoTryOnJob:
     if not claimed:
         return job
 
+    if job.stage == "PHOTO":
+        try:
+            return _photo_stage_done(job)
+        except openai_tryon.OpenAITryOnError as exc:
+            logger.warning("fal photo stage of %s failed (%s); will retry", job.request_id, exc.code)
+            VideoTryOnJob.objects.filter(pk=job.pk).update(status=VideoJobStatus.PENDING, updated_at=timezone.now())
+            job.refresh_from_db()
+            return job
+
     try:
         mp4_bytes = fal_tryon.fetch_video_result(job.response_url)
         with tempfile.TemporaryDirectory(prefix="tryon-out-") as tmp:
@@ -117,9 +185,11 @@ def advance(job: VideoTryOnJob) -> VideoTryOnJob:
         job.refresh_from_db()
         return job
 
-    look = SavedLook(user=job.user, garment=job.garment, width=width, height=height)
     tag = job.garment_id or job.pk
-    look.image.save(f"tryon-{tag}.jpg", ContentFile(poster_bytes), save=False)
+    look = job.look
+    if look is None:  # kling pipeline: the first frame of the video is the poster
+        look = SavedLook(user=job.user, garment=job.garment, width=width, height=height)
+        look.image.save(f"tryon-{tag}.jpg", ContentFile(poster_bytes), save=False)
     look.video.save(f"tryon-{tag}.mp4", ContentFile(mp4_bytes), save=False)
     look.save()
     try:

@@ -441,6 +441,11 @@ AI_TRYON = {
     "FAL_PHOTO_MODEL": env.str("FAL_TRYON_PHOTO_MODEL", default="fal-ai/fashn/tryon/v1.6"),
     "FAL_VIDEO_MODEL": env.str("FAL_TRYON_VIDEO_MODEL", default="fal-ai/kling-video/o3/standard/video-to-video/edit"),
     "FAL_TIMEOUT_SECONDS": env.int("FAL_TRYON_TIMEOUT_SECONDS", default=420),
+    # Video try-on pipeline (user decision 2026-11-26: Kling took 5–12 minutes, users will not wait):
+    #   "fast"  — FASHN photo of a frame (~20 s, shown at once) → LTX image-to-video (~30 s). ~1 min.
+    #   "kling" — Kling O3 edits the user's own clip (keeps their exact motion) but takes 5–12 min.
+    "FAL_VIDEO_PIPELINE": env.str("FAL_TRYON_VIDEO_PIPELINE", default="fast"),
+    "FAL_MOTION_MODEL": env.str("FAL_TRYON_MOTION_MODEL", default="fal-ai/ltx-2.3/image-to-video/fast"),
     #: Real Video Virtual Try-On via Replicate (Kling v3 Omni direct video editing).
     "REPLICATE_API_TOKEN": env.str("REPLICATE_API_TOKEN", default=""),
     "REPLICATE_VIDEO_MODEL": env.str("REPLICATE_TRYON_VIDEO_MODEL", default="kwaivgi/kling-v3-omni-video"),
@@ -454,8 +459,9 @@ AI_TRYON = {
 # What one unit of AI work costs the platform (USD, provider list prices checked 2026-11-26).
 # Used for AI quotas, plan economics and the admin income/expense report (apps.subscriptions.pricing).
 PLATFORM_COSTS = {
-    # fal.ai Kling O3 standard video edit ≈ $0.126 / s, billed for the ~5 s clip we send.
-    "AI_VIDEO_USD": env.float("COST_AI_VIDEO_USD", default=0.63),
+    # Fast pipeline: FASHN $0.075 + LTX-2.3 fast 6 s × $0.06 = $0.435.
+    # (Kling O3 edit pipeline would be ≈ $0.126 / s × 5 s = $0.63 — set COST_AI_VIDEO_USD=0.63 with it.)
+    "AI_VIDEO_USD": env.float("COST_AI_VIDEO_USD", default=0.435),
     # fal.ai FASHN try-on v1.6: $0.075 per generation.
     "AI_PHOTO_USD": env.float("COST_AI_PHOTO_USD", default=0.075),
     # Google One 2 TB ≈ $9.99 / month → $0.005 per GB-month.

@@ -100,11 +100,9 @@ function useStudio(session: StudioSession | null): StudioState {
 }
 
 const VIDEO_LOADER_NOTES = [
-  "MarosimGo AI harakatlaringizni tahlil qilmoqda...",
+  "MarosimGo AI libosni sizga kiydirmoqda...",
   "Tanlangan libos qomatingizga moslashtirilmoqda...",
-  "Mato burmalari va yorug'lik tabiiy ko'rinishga keltirilmoqda...",
-  "Yuzingiz va harakatlaringiz saqlangan holda kadrlar yig'ilmoqda...",
-  "Deyarli tayyor! Video yakuniy sifatda tayyorlanmoqda...",
+  "Bir necha soniyada rasmingiz chiqadi, video esa ortidan keladi...",
 ] as const;
 
 const PHOTO_LOADER_NOTES = [
@@ -195,6 +193,9 @@ function SnapshotAiStudio({ status }: { status: AiStatus }) {
     latencyMs: number;
   } | null>(null);
   const [buyOpen, setBuyOpen] = useState(false);
+  /** fast pipeline: the dressed photo is on screen while the video is still being made. */
+  const [videoPending, setVideoPending] = useState(false);
+  const runRef = useRef(0);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const stageRef = useRef<HTMLElement | null>(null);
   const queryClient = useQueryClient();
@@ -301,7 +302,15 @@ function SnapshotAiStudio({ status }: { status: AiStatus }) {
       const videoBlob = await recorded;
       setRenderingMode("video");
       setRendering(true);
-      const out = await aiApi.renderVideo(videoBlob, garment.id);
+      const run = ++runRef.current;
+      const out = await aiApi.renderVideo(videoBlob, garment.id, (job) => {
+        if (run !== runRef.current || !job.preview_url || job.status === "DONE") return;
+        // the photo is ready (~20 s): show it now, the video follows in about a minute
+        setResult({ url: job.preview_url, lookId: job.look_id, garment, latencyMs: 0 });
+        setVideoPending(true);
+        setRendering(false);
+      });
+      if (run !== runRef.current) return; // the user started over meanwhile
       setResult({
         url: out.poster_url,
         videoUrl: out.video_url,
@@ -316,6 +325,7 @@ function SnapshotAiStudio({ status }: { status: AiStatus }) {
       window.clearInterval(timer);
       setRecordingSec(null);
       setRendering(false);
+      setVideoPending(false);
       void queryClient.invalidateQueries({ queryKey: ["tryon", "ai", "status"] });
     }
   };
@@ -478,6 +488,14 @@ function SnapshotAiStudio({ status }: { status: AiStatus }) {
             </div>
           )}
 
+          {videoPending && (
+            <div className="pointer-events-none absolute inset-x-0 top-3 flex justify-center">
+              <span className="inline-flex items-center gap-2 rounded-full bg-black/60 px-4 py-1.5 text-xs font-semibold text-white backdrop-blur-md ring-1 ring-white/20">
+                <Loader2Icon className="size-3.5 animate-spin" aria-hidden /> Rasm tayyor · video tayyorlanmoqda (≈1 daqiqa)
+              </span>
+            </div>
+          )}
+
           {rendering && (
             <Busy
               title={
@@ -494,7 +512,15 @@ function SnapshotAiStudio({ status }: { status: AiStatus }) {
             <div className="absolute inset-x-0 bottom-0 flex flex-wrap items-center justify-center gap-2 bg-gradient-to-t from-black/80 to-transparent p-4 pt-10">
               {result ? (
                 <>
-                  <Button variant="outline" className="border-white/30 bg-white/15 text-white" onClick={() => setResult(null)}>
+                  <Button
+                    variant="outline"
+                    className="border-white/30 bg-white/15 text-white"
+                    onClick={() => {
+                      runRef.current += 1;
+                      setVideoPending(false);
+                      setResult(null);
+                    }}
+                  >
                     <RefreshCwIcon /> Qayta tushish
                   </Button>
                   {result.lookId ? (

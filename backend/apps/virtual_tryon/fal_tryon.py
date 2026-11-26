@@ -321,6 +321,83 @@ def submit_video_tryon(*, norm_mp4: Path, garment) -> FalVideoJob:
     )
 
 
+def video_pipeline() -> str:
+    return settings.AI_TRYON.get("FAL_VIDEO_PIPELINE", "fast").strip() or "fast"
+
+
+def _motion_model() -> str:
+    return settings.AI_TRYON.get("FAL_MOTION_MODEL", "fal-ai/ltx-2.3/image-to-video/fast").strip()
+
+
+def _job(raw: dict, model_id: str) -> FalVideoJob:
+    return FalVideoJob(
+        request_id=raw["request_id"], status_url=raw["status_url"], response_url=raw["response_url"], model_id=model_id
+    )
+
+
+def submit_photo_stage(*, frame_jpeg: bytes, garment) -> FalVideoJob:
+    """Fast pipeline, stage 1: FASHN puts the garment on one frame of the user's clip (~20 s)."""
+    if not is_configured():
+        raise openai_tryon.OpenAITryOnError("ai_tryon_not_configured")
+    key = _api_key()
+    person_url = _upload_bytes(key, frame_jpeg, "frame.jpg", "image/jpeg")
+    garment_url = _upload_bytes(key, openai_tryon._garment_png(garment), "garment.png", "image/png")
+    model_id = _photo_model()
+    raw = _submit(
+        key,
+        model_id,
+        {
+            "model_image": person_url,
+            "garment_image": garment_url,
+            "garment_photo_type": "auto",
+            "category": "auto",
+            "mode": "performance",
+        },
+    )
+    return _job(raw, model_id)
+
+
+def submit_motion_stage(*, image_url: str, garment) -> FalVideoJob:
+    """Fast pipeline, stage 2: the dressed photo becomes a short video of the user turning (~30 s)."""
+    garment_desc = (garment.ai_prompt or "").strip() or garment.name
+    prompt = (
+        "Realistic phone camera footage. The same person stands in place wearing the outfit "
+        f"({garment_desc}), slowly turns a little to the left, then a little to the right, then faces "
+        "the camera again. The garment moves naturally. Keep the face, hair, body and the room exactly "
+        "the same. Static camera, no zoom, same lighting."
+    )
+    model_id = _motion_model()
+    raw = _submit(
+        _api_key(),
+        model_id,
+        {"image_url": image_url, "prompt": prompt, "duration": 6, "resolution": "1080p", "generate_audio": False},
+    )
+    return _job(raw, model_id)
+
+
+def fetch_photo_url(response_url: str) -> str:
+    """Hosted URL of the FASHN result image of a COMPLETED stage-1 job."""
+    result = _fetch_result(_api_key(), response_url)
+    images = result.get("images")
+    url = images[0].get("url") if isinstance(images, list) and images and isinstance(images[0], dict) else None
+    if not isinstance(url, str) or not url.startswith("http"):
+        logger.warning("fal photo stage missing output url: %s", list(result.keys()))
+        raise openai_tryon.OpenAITryOnError("provider_bad_response", 200)
+    return url
+
+
+def download(url: str, timeout: int = 120) -> bytes:
+    try:
+        res = requests.get(url, timeout=timeout)
+    except requests.Timeout:
+        raise openai_tryon.OpenAITryOnError("provider_timeout") from None
+    except requests.RequestException:
+        raise openai_tryon.OpenAITryOnError("provider_unavailable") from None
+    if res.status_code != 200 or not res.content:
+        raise openai_tryon.OpenAITryOnError("provider_unavailable", res.status_code)
+    return res.content
+
+
 def check_video_job(status_url: str) -> tuple[str, str]:
     """One status check (no waiting). Returns ``(status, response_url_or_empty)``.
 

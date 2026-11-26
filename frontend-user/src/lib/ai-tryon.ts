@@ -36,7 +36,7 @@ export interface AiRenderResult {
   drive_web_url?: string;
 }
 
-const VIDEO_JOB_POLL_MS = 4000;
+const VIDEO_JOB_POLL_MS = 3000;
 const VIDEO_JOB_MAX_WAIT_MS = 15 * 60 * 1000;
 
 export type AiVideoJobStatus = "PENDING" | "FINALIZING" | "DONE" | "FAILED";
@@ -45,6 +45,10 @@ export type AiVideoJobStatus = "PENDING" | "FINALIZING" | "DONE" | "FAILED";
 export interface AiRenderVideoJob extends Partial<Omit<AiRenderVideoResult, "status">> {
   job_id: string;
   status: AiVideoJobStatus;
+  /** fast pipeline: PHOTO (dressing one frame) → VIDEO (animating it). */
+  stage?: "PHOTO" | "VIDEO" | "";
+  /** The dressed photo, available while the video is still rendering. */
+  preview_url?: string;
   error?: { code: string; message: string };
 }
 
@@ -174,13 +178,18 @@ export const aiApi = {
    * with a background job (the render takes minutes); this polls it until it is DONE or FAILED.
    * A dropped poll is retried, never resubmitted, so one try-on is billed only once.
    */
-  renderVideo: async (video: Blob, garment: string): Promise<AiRenderVideoResult> => {
+  renderVideo: async (
+    video: Blob,
+    garment: string,
+    onProgress?: (job: AiRenderVideoJob) => void,
+  ): Promise<AiRenderVideoResult> => {
     const form = new FormData();
     const ext = video.type.includes("mp4") ? "mp4" : "webm";
     form.append("video", video, `camera.${ext}`);
     form.append("garment", garment);
     let job = await apiRequest<AiRenderVideoJob>(`${BASE}/ai/render-video/`, { method: "POST", body: form });
     const deadline = Date.now() + VIDEO_JOB_MAX_WAIT_MS;
+    onProgress?.(job);
     while (job.status !== "DONE") {
       if (job.status === "FAILED") {
         throw new ApiError(502, job.error?.code ?? "provider_unavailable", job.error?.message ?? "AI video tayyorlanmadi.");
@@ -195,6 +204,7 @@ export const aiApi = {
       await new Promise((r) => setTimeout(r, VIDEO_JOB_POLL_MS));
       try {
         job = await apiRequest<AiRenderVideoJob>(`${BASE}/ai/render-video/${job.job_id}/`);
+        onProgress?.(job);
       } catch (err) {
         if (err instanceof ApiError && err.status === 0) continue; // network blip: keep polling
         throw err;

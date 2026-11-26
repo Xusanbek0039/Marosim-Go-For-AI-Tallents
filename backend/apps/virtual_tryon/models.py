@@ -302,6 +302,10 @@ class VideoTryOnJob(BaseModel):
     garment = models.ForeignKey(Garment, on_delete=models.SET_NULL, null=True, blank=True, related_name="+")
     status = models.CharField(max_length=12, choices=VideoJobStatus.choices, default=VideoJobStatus.PENDING)
     model = models.CharField(max_length=200, blank=True, default="")
+    #: "fast" = FASHN photo → LTX video (stage PHOTO then VIDEO); "kling" = one Kling edit job.
+    pipeline = models.CharField(max_length=8, default="kling")
+    stage = models.CharField(max_length=6, blank=True, default="")
+    #: fal id of the first request; it also tags the user's quota reservation (AiRenderLog.ref).
     request_id = models.CharField(max_length=128, unique=True)
     status_url = models.URLField(max_length=500)
     response_url = models.URLField(max_length=500)
