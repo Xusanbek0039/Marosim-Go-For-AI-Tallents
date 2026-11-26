@@ -436,6 +436,11 @@ AI_TRYON = {
     "OPENAI_QUALITY": env.str("OPENAI_TRYON_QUALITY", default="medium"),
     "OPENAI_INPUT_FIDELITY": env.str("OPENAI_TRYON_INPUT_FIDELITY", default="high"),
     "OPENAI_TIMEOUT_SECONDS": env.int("OPENAI_TRYON_TIMEOUT_SECONDS", default=90),
+    #: Real Video Virtual Try-On via Replicate (Kling v3 Omni direct video editing).
+    "REPLICATE_API_TOKEN": env.str("REPLICATE_API_TOKEN", default=""),
+    "REPLICATE_VIDEO_MODEL": env.str("REPLICATE_TRYON_VIDEO_MODEL", default="kwaivgi/kling-v3-omni-video"),
+    "REPLICATE_VIDEO_MODE": env.str("REPLICATE_TRYON_VIDEO_MODE", default="standard"),
+    "REPLICATE_TIMEOUT_SECONDS": env.int("REPLICATE_TRYON_TIMEOUT_SECONDS", default=240),
 }
 # ------------------------------------------------- AI event planner (OpenAI / Anthropic)
 # The key is read from the environment only (never stored in the DB or shown in the panel; the panel only
