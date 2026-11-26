@@ -19,6 +19,7 @@ import {
   SparklesIcon,
   TimerIcon,
   Trash2Icon,
+  VideoIcon,
   VideoOffIcon,
   WifiOffIcon,
   XIcon,
@@ -159,9 +160,12 @@ function SnapshotAiStudio({ status }: { status: AiStatus }) {
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [selected, setSelected] = useState<Garment | null>(null);
   const [rendering, setRendering] = useState(false);
+  const [renderingMode, setRenderingMode] = useState<"photo" | "video">("photo");
+  const [recordingSec, setRecordingSec] = useState<number | null>(null);
   const [renderError, setRenderError] = useState<unknown>(null);
   const [result, setResult] = useState<{
     url: string;
+    videoUrl?: string;
     lookId?: string;
     garment: Garment;
     latencyMs: number;
@@ -210,6 +214,7 @@ function SnapshotAiStudio({ status }: { status: AiStatus }) {
   const tryOnNow = async (garment: Garment | null) => {
     const video = videoRef.current;
     if (!garment || !video || !video.videoWidth) return;
+    setRenderingMode("photo");
     setRendering(true);
     setRenderError(null);
     saveLook.reset();
@@ -230,6 +235,58 @@ function SnapshotAiStudio({ status }: { status: AiStatus }) {
     } catch (err) {
       setRenderError(err);
     } finally {
+      setRendering(false);
+    }
+  };
+
+  const tryOnVideo = async (garment: Garment | null) => {
+    if (!garment || !stream || typeof MediaRecorder === "undefined") return;
+    setRenderError(null);
+    saveLook.reset();
+    const mimeCandidates = ["video/webm;codecs=vp9", "video/webm;codecs=vp8", "video/webm", "video/mp4"];
+    const mimeType = mimeCandidates.find((m) => MediaRecorder.isTypeSupported(m));
+    const chunks: BlobPart[] = [];
+    const recorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+    recorder.ondataavailable = (e) => {
+      if (e.data && e.data.size > 0) chunks.push(e.data);
+    };
+
+    const recorded = new Promise<Blob>((resolve, reject) => {
+      recorder.onerror = () => reject(new Error("Video yozishda xatolik yuz berdi."));
+      recorder.onstop = () => resolve(new Blob(chunks, { type: recorder.mimeType || "video/webm" }));
+    });
+
+    setRecordingSec(4);
+    recorder.start(250);
+    let left = 4;
+    const timer = window.setInterval(() => {
+      left -= 1;
+      if (left <= 0) {
+        window.clearInterval(timer);
+        setRecordingSec(null);
+        if (recorder.state !== "inactive") recorder.stop();
+      } else {
+        setRecordingSec(left);
+      }
+    }, 1000);
+
+    try {
+      const videoBlob = await recorded;
+      setRenderingMode("video");
+      setRendering(true);
+      const out = await aiApi.renderVideo(videoBlob, garment.id);
+      setResult({
+        url: out.poster_url,
+        videoUrl: out.video_url,
+        lookId: out.look_id,
+        garment,
+        latencyMs: out.latency_ms,
+      });
+    } catch (err) {
+      setRenderError(err);
+    } finally {
+      window.clearInterval(timer);
+      setRecordingSec(null);
       setRendering(false);
     }
   };
@@ -272,7 +329,17 @@ function SnapshotAiStudio({ status }: { status: AiStatus }) {
         className="relative overflow-hidden rounded-3xl bg-neutral-950 shadow-[0_30px_80px_-40px_rgb(15_23_42/0.8)] ring-1 ring-white/10"
       >
         <div className="relative aspect-[3/4] w-full sm:aspect-video">
-          {result ? (
+          {result?.videoUrl ? (
+            <video
+              src={result.videoUrl}
+              poster={result.url}
+              autoPlay
+              loop
+              controls
+              playsInline
+              className="h-full w-full bg-black object-contain"
+            />
+          ) : result ? (
             /* eslint-disable-next-line @next/next/no-img-element -- data URL from OpenAI try-on */
             <img src={result.url} alt={result.garment.name} className="h-full w-full object-contain bg-black" />
           ) : stream ? (
@@ -372,25 +439,47 @@ function SnapshotAiStudio({ status }: { status: AiStatus }) {
             </Panel>
           )}
 
+          {recordingSec !== null && (
+            <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-2 bg-black/25 text-white">
+              <span className="inline-flex items-center gap-2 rounded-full bg-rose-600 px-4 py-1.5 text-sm font-bold shadow-lg">
+                <span className="size-2.5 animate-pulse rounded-full bg-white" />
+                Video yozilmoqda · {recordingSec}s
+              </span>
+              <p className="rounded-full bg-black/55 px-3 py-1 text-xs">Sekin chapga va o&apos;ngga burilib turing</p>
+            </div>
+          )}
+
           {rendering && (
             <Busy
-              title={`${selected?.name ?? "Kiyim"} kiydirilmoqda`}
-              note="Yuzingiz va holatingiz saqlangan holda fotorealistik natija tayyorlanmoqda (10–20 soniya)..."
+              title={
+                renderingMode === "video"
+                  ? `${selected?.name ?? "Kiyim"} — Video Try-On tayyorlanmoqda`
+                  : `${selected?.name ?? "Kiyim"} kiydirilmoqda`
+              }
+              note={
+                renderingMode === "video"
+                  ? "Videodagi harakat kadrlari AI orqali kiyintirilib, MP4 video yig'ilmoqda (20–35 soniya)..."
+                  : "Yuzingiz va holatingiz saqlangan holda fotorealistik natija tayyorlanmoqda (10–20 soniya)..."
+              }
             />
           )}
 
           {/* bottom controls */}
-          {stream && !rendering && (
+          {stream && !rendering && recordingSec === null && (
             <div className="absolute inset-x-0 bottom-0 flex flex-wrap items-center justify-center gap-2 bg-gradient-to-t from-black/80 to-transparent p-4 pt-10">
               {result ? (
                 <>
                   <Button variant="outline" className="border-white/30 bg-white/15 text-white" onClick={() => setResult(null)}>
-                    <RefreshCwIcon /> Qayta rasmga olish
+                    <RefreshCwIcon /> Qayta tushish
                   </Button>
                   {result.lookId ? (
                     <Button variant="outline" className="border-white/30 bg-white/15 text-white" onClick={downloadResult}>
                       <DownloadIcon />
-                      {status.is_premium ? "Yuklab olish (Premium)" : "Yuklab olish (MarosimGo)"}
+                      {result.videoUrl
+                        ? "Videoni yuklab olish (MP4)"
+                        : status.is_premium
+                          ? "Yuklab olish (Premium)"
+                          : "Yuklab olish (MarosimGo)"}
                     </Button>
                   ) : !saveLook.isSuccess ? (
                     <Button variant="outline" className="border-white/30 bg-white/15 text-white" loading={saveLook.isPending} onClick={saveResult}>
@@ -403,8 +492,11 @@ function SnapshotAiStudio({ status }: { status: AiStatus }) {
                 </>
               ) : (
                 <>
-                  <Button size="lg" onClick={() => void tryOnNow(selected)} disabled={!selected}>
-                    <CameraIcon /> Rasmga olib, kiyib ko&apos;rish
+                  <Button size="lg" onClick={() => void tryOnVideo(selected)} disabled={!selected}>
+                    <VideoIcon /> Video Try-On (4 soniya)
+                  </Button>
+                  <Button variant="outline" className="border-white/30 bg-white/15 text-white" onClick={() => void tryOnNow(selected)} disabled={!selected}>
+                    <CameraIcon /> Rasm (tez)
                   </Button>
                   <button
                     type="button"

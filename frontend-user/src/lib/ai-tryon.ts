@@ -34,6 +34,21 @@ export interface AiRenderResult {
   drive_web_url?: string;
 }
 
+export interface AiRenderVideoResult {
+  look_id: string;
+  video_url: string;
+  poster_url: string;
+  download_url: string;
+  width: number;
+  height: number;
+  frames: number;
+  model: string;
+  latency_ms: number;
+  garment: string;
+  drive_file_id?: string;
+  drive_web_url?: string;
+}
+
 export interface GarmentOrderPayload {
   garment: string;
   look?: string | null;
@@ -136,6 +151,13 @@ export const aiApi = {
     form.append("photo", photo, "camera.jpg");
     form.append("garment", garment);
     return apiRequest<AiRenderResult>(`${BASE}/ai/render/`, { method: "POST", body: form });
+  },
+  renderVideo: (video: Blob, garment: string) => {
+    const form = new FormData();
+    const ext = video.type.includes("mp4") ? "mp4" : "webm";
+    form.append("video", video, `camera.${ext}`);
+    form.append("garment", garment);
+    return apiRequest<AiRenderVideoResult>(`${BASE}/ai/render-video/`, { method: "POST", body: form });
   },
   downloadUrl: (lookId: string) => `/api/v1${BASE}/looks/${lookId}/download/`,
   createOrder: (payload: GarmentOrderPayload) => api.post<GarmentOrder>(`${BASE}/orders/`, payload),
