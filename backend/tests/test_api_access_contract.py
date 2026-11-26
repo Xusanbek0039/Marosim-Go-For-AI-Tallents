@@ -432,6 +432,17 @@ OWNERSHIP_TESTS = {
     ),
     # subscriptions — tests live in tests/test_subscriptions.py
     "me_subscriptions_targets_list": "ownership_subscription_targets",
+    "me_subscriptions_billing_list": "ownership_business_billing_is_own",
+    **dict.fromkeys(
+        [
+            "admin_finance_list",
+            "admin_finance_create",
+            "admin_finance_rate_partial_update",
+            "admin_finance_report_retrieve",
+            "admin_finance_destroy",
+        ],
+        "ownership_finance_rights_from_codes",
+    ),
     **dict.fromkeys(["me_subscriptions_list", "me_subscriptions_cancel_create"], "ownership_my_subscriptions"),
     **dict.fromkeys(
         [
@@ -606,6 +617,11 @@ ownership_admin_subscriptions = _subscription_tests.test_admin_rights_come_only_
 from . import test_paid_badges_policy as _badge_tests  # noqa: E402
 
 ownership_subscription_targets = _badge_tests.test_business_purchase_ownership_and_plan_scope
+
+from . import test_premium_finance as _premium_tests  # noqa: E402
+
+ownership_business_billing_is_own = _premium_tests.test_unpaid_studio_leaves_the_catalog_after_grace_and_returns_when_paid
+ownership_finance_rights_from_codes = _premium_tests.test_finance_report_counts_income_ai_costs_and_manual_expenses
 
 from . import test_virtual_tryon as _tryon_tests  # noqa: E402
 
