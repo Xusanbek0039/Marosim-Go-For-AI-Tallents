@@ -381,3 +381,50 @@ class AssetUploadSerializer(serializers.Serializer):
 
 class RejectSerializer(serializers.Serializer):
     reason = serializers.CharField(max_length=300)
+
+
+class AdminSavedLookSerializer(serializers.ModelSerializer):
+    user = serializers.SerializerMethodField()
+    garment = serializers.SerializerMethodField()
+    image = serializers.SerializerMethodField()
+
+    class Meta:
+        model = SavedLook
+        fields = [
+            "id",
+            "user",
+            "garment",
+            "image",
+            "width",
+            "height",
+            "drive_file_id",
+            "drive_web_url",
+            "created_at",
+        ]
+        read_only_fields = fields
+
+    def get_user(self, look) -> dict:
+        u = look.user
+        full = f"{u.first_name} {u.last_name}".strip() or u.phone_number or u.email or str(u.pk)
+        return {
+            "id": str(u.pk),
+            "full_name": full,
+            "phone_number": u.phone_number,
+            "email": u.email,
+        }
+
+    def get_garment(self, look) -> dict | None:
+        g = look.garment
+        if g is None:
+            return None
+        return {
+            "id": str(g.pk),
+            "name": g.name,
+            "category_name": g.category.name if g.category_id else "",
+            "cover_image": _absolute(self.context, g.cover_image.url) if g.cover_image else None,
+        }
+
+    def get_image(self, look) -> str:
+        from django.urls import reverse
+
+        return _absolute(self.context, reverse("admin-tryon-look-image", args=[look.pk]))

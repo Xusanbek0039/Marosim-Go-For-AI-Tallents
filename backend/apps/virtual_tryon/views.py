@@ -18,6 +18,7 @@ import base64
 from datetime import timedelta
 
 from django.conf import settings
+from django.core.files.base import ContentFile
 from django.db.models import Count, Exists, OuterRef, Q
 from django.http import FileResponse
 from django.shortcuts import get_object_or_404
@@ -34,7 +35,7 @@ from rest_framework.views import APIView
 from apps.accounts.access import AccessNote
 from apps.ceremonies.permissions import IsClientUser
 
-from . import ai, decart, openai_tryon
+from . import ai, decart, drive_sync, openai_tryon
 from .models import (
     AiTryOnSession,
     ApprovalStatus,
@@ -320,6 +321,15 @@ class AiRenderView(APIView):
             message, http_status = ai.PROVIDER_MESSAGES.get(exc.code, ai.PROVIDER_MESSAGES["provider_unavailable"])
             raise ai.AiTryOnError(exc.code, message, http_status) from None
         data_url = f"data:{result.content_type};base64,{base64.b64encode(result.image_bytes).decode('ascii')}"
+        look = SavedLook(
+            user=request.user,
+            garment=garment,
+            width=result.width,
+            height=result.height,
+        )
+        look.image.save(f"tryon-{garment.pk}.jpg", ContentFile(result.image_bytes), save=False)
+        look.save()
+        drive_sync.upload_look_to_drive(look)
         return Response(
             {
                 "image": data_url,
@@ -328,6 +338,9 @@ class AiRenderView(APIView):
                 "model": result.model,
                 "latency_ms": result.latency_ms,
                 "garment": str(garment.pk),
+                "look_id": str(look.pk),
+                "drive_file_id": look.drive_file_id,
+                "drive_web_url": look.drive_web_url,
             }
         )
 
@@ -463,6 +476,7 @@ class SavedLookViewSet(mixins.ListModelMixin, mixins.DestroyModelMixin, viewsets
         look = SavedLook(user=request.user, garment=garment, session=session, width=width, height=height)
         look.image.save(content.name, content, save=False)
         look.save()
+        drive_sync.upload_look_to_drive(look)
         return Response(SavedLookSerializer(look, context={"request": request}).data, status=status.HTTP_201_CREATED)
 
     def perform_destroy(self, look):
@@ -477,6 +491,8 @@ class SavedLookViewSet(mixins.ListModelMixin, mixins.DestroyModelMixin, viewsets
     @action(detail=True, methods=["get"], url_path="image", url_name="image")
     def image(self, request, pk=None):
         look = self.get_object()
-        response = FileResponse(look.image.open("rb"), content_type="image/webp")
+        name = (look.image.name or "").lower()
+        ctype = "image/jpeg" if name.endswith((".jpg", ".jpeg")) else "image/webp"
+        response = FileResponse(look.image.open("rb"), content_type=ctype)
         response["Cache-Control"] = "private, no-store"
         return response

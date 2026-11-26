@@ -233,7 +233,7 @@ class AiTryOnSession(BaseModel):
 
 
 class SavedLook(BaseModel):
-    """A frame of the AI result the user explicitly chose to keep. Private to its owner."""
+    """A frame of the AI result the user tried on / saved. Private to its owner and tryon-permitted staff."""
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="tryon_looks")
     garment = models.ForeignKey(Garment, on_delete=models.SET_NULL, null=True, blank=True, related_name="+")
@@ -241,6 +241,8 @@ class SavedLook(BaseModel):
     image = models.ImageField(upload_to=look_upload_to, storage=private_storage)
     width = models.PositiveIntegerField(default=0)
     height = models.PositiveIntegerField(default=0)
+    drive_file_id = models.CharField(max_length=128, blank=True, default="")
+    drive_web_url = models.URLField(max_length=500, blank=True, default="")
 
     class Meta:
         ordering = ["-created_at"]
