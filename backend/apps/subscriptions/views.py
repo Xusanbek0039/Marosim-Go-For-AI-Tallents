@@ -9,6 +9,7 @@
 import django_filters
 from django.db.models import Q, Sum
 from django.utils import timezone
+from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema, extend_schema_view
 from rest_framework import mixins, status, viewsets
 from rest_framework.decorators import action
@@ -21,13 +22,15 @@ from apps.accounts.models import PlatformPolicy, Role
 from apps.accounts.permissions import HasAdminPermission
 from apps.audit.services import AuditAction, diff, record, snapshot
 
-from . import services
-from .models import PlanAudience, Subscription, SubscriptionPlan, SubscriptionSettings, SubscriptionStatus
+from . import billing, finance, services
+from .models import Expense, PlanAudience, Subscription, SubscriptionPlan, SubscriptionSettings, SubscriptionStatus
 from .permissions import IsSubscriberAccount
 from .serializers import (
     AdminNoteSerializer,
     AdminSubscriptionSerializer,
+    BusinessBillingSerializer,
     BusinessTargetSerializer,
+    ExpenseSerializer,
     GrantSerializer,
     MySubscriptionSerializer,
     MySubscriptionStatusSerializer,
@@ -38,10 +41,22 @@ from .serializers import (
     SubscriptionRequestSerializer,
     SubscriptionTargetSerializer,
     SummarySerializer,
+    UsdRateSerializer,
 )
 
 UUID_RE = "[0-9a-fA-F-]{36}"
-PLAN_FIELDS = ["code", "name", "audience", "duration_months", "price", "max_viewers", "is_active", "position"]
+PLAN_FIELDS = [
+    "code",
+    "name",
+    "audience",
+    "duration_months",
+    "price",
+    "max_viewers",
+    "ai_video_per_month",
+    "ai_photo_per_month",
+    "is_active",
+    "position",
+]
 
 
 # ---------------------------------------------------------------- public
@@ -89,6 +104,7 @@ class MySubscriptionViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, view
             ownership="", conditions=("Bir hisob yoki biznes uchun bir vaqtda bitta kutilayotgan so'rov.",)
         ),
         "status": AccessNote(ownership=""),
+        "billing": AccessNote(ownership="Faqat o'zi egasi bo'lgan bizneslar."),
     }
 
     def get_queryset(self):
@@ -125,6 +141,35 @@ class MySubscriptionViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, view
                 )
             ]
         return Response(SubscriptionTargetSerializer(rows, many=True).data)
+
+    @extend_schema(
+        summary="O'z bizneslarimning majburiy oylik to'lov holati (OK / GRACE / OVERDUE)",
+        tags=["me"],
+        responses=BusinessBillingSerializer(many=True),
+    )
+    @action(detail=False, methods=["get"])
+    def billing(self, request):
+        rows = []
+        for target in self.targets(request).data:
+            from apps.studios.models import Studio
+            from apps.venues.models import Venue
+
+            model = Studio if target["kind"] == "studio" else Venue
+            business = model.objects.get(pk=target["id"])
+            st = billing.standing(**{target["kind"]: business})
+            rows.append(
+                {
+                    "kind": target["kind"],
+                    "id": business.pk,
+                    "name": business.name,
+                    "state": st.state,
+                    "monthly_fee": st.monthly_fee,
+                    "paid_until": st.paid_until,
+                    "grace_until": st.grace_until,
+                    "visible": st.visible,
+                }
+            )
+        return Response(BusinessBillingSerializer(rows, many=True).data)
 
     def create(self, request, *args, **kwargs):
         body = SubscriptionRequestSerializer(data=request.data)
@@ -402,3 +447,89 @@ class AdminSettingsViewSet(viewsets.GenericViewSet):
             target_label="Obuna to'lov ma'lumotlari",
         )
         return Response(serializer.data)
+
+
+# --------------------------------------------------------------- finance
+@extend_schema_view(
+    list=extend_schema(summary="Qo'lda kiritilgan xarajatlar", tags=["admin-finance"]),
+    create=extend_schema(summary="Xarajat qo'shish", tags=["admin-finance"]),
+    destroy=extend_schema(summary="Xarajatni o'chirish", tags=["admin-finance"]),
+)
+class AdminFinanceViewSet(
+    mixins.ListModelMixin, mixins.CreateModelMixin, mixins.DestroyModelMixin, viewsets.GenericViewSet
+):
+    """Kirim-chiqim: income from payments, computed AI costs, manual expenses, business debts."""
+
+    serializer_class = ExpenseSerializer
+    permission_classes = [HasAdminPermission]
+    permission_module = "finance"
+    action_permissions = {
+        "list": "finance.view",
+        "report": "finance.view",
+        "create": "finance.manage",
+        "destroy": "finance.manage",
+        "rate": "finance.manage",
+    }
+    queryset = Expense.objects.select_related("created_by")
+    lookup_value_regex = UUID_RE
+    pagination_class = None
+    filter_backends = []
+    access_notes = {"*": AccessNote(ownership="Platforma moliyasi (faqat ruxsati borlar).")}
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        month = self.request.query_params.get("month")
+        if self.action == "list" and month:
+            year, mon = self._parse_month(month)
+            start, end = finance.month_bounds(year, mon)
+            qs = qs.filter(spent_on__gte=start.date(), spent_on__lt=end.date())
+        return qs
+
+    @staticmethod
+    def _parse_month(value: str | None) -> tuple[int, int]:
+        if not value:
+            now = timezone.localtime()
+            return now.year, now.month
+        try:
+            year, mon = (int(x) for x in value.split("-"))
+            if not (2020 <= year <= 2100 and 1 <= mon <= 12):
+                raise ValueError
+        except ValueError:
+            raise ValidationError({"month": ["Oy YYYY-MM ko'rinishida bo'lsin."]}) from None
+        return year, mon
+
+    def perform_create(self, serializer):
+        expense = serializer.save(created_by=self.request.user)
+        record(self.request, AuditAction.CREATE, expense, changes={"title": expense.title, "amount": str(expense.amount)})
+
+    def perform_destroy(self, instance):
+        record(self.request, AuditAction.DELETE, instance, changes={"title": instance.title, "amount": str(instance.amount)})
+        instance.delete()
+
+    @extend_schema(
+        summary="Oylik kirim-chiqim hisoboti",
+        tags=["admin-finance"],
+        parameters=[OpenApiParameter("month", str, description="YYYY-MM (standart: joriy oy)")],
+        responses=OpenApiTypes.OBJECT,
+    )
+    @action(detail=False, methods=["get"])
+    def report(self, request):
+        year, mon = self._parse_month(request.query_params.get("month"))
+        return Response(finance.report(year, mon))
+
+    @extend_schema(
+        summary="Dollar kursini o'zgartirish (AI xarajatlari so'mga shu kurs bilan o'giriladi)",
+        tags=["admin-finance"],
+        request=UsdRateSerializer,
+        responses=UsdRateSerializer,
+    )
+    @action(detail=False, methods=["patch"])
+    def rate(self, request):
+        body = UsdRateSerializer(data=request.data)
+        body.is_valid(raise_exception=True)
+        obj = SubscriptionSettings.load()
+        before = str(obj.usd_rate)
+        obj.usd_rate = body.validated_data["usd_rate"]
+        obj.save(update_fields=["usd_rate", "updated_at"])
+        record(request, AuditAction.UPDATE, obj, changes={"usd_rate": [before, str(obj.usd_rate)]}, target_label="Dollar kursi")
+        return Response(UsdRateSerializer(obj).data)

@@ -19,6 +19,7 @@ from django.utils import timezone
 from PIL import Image, ImageDraw
 
 from apps.accounts.models import Role
+from tests.conftest import subscribe
 from apps.virtual_tryon import decart
 from apps.virtual_tryon.models import AiTryOnSession, ApprovalStatus, Garment, GarmentCategory, SavedLook
 
@@ -558,6 +559,7 @@ def test_download_watermark_free_vs_premium_and_orders(super_admin, user, client
 
 
 def test_video_tryon_preserves_motion_sequence(settings, monkeypatch, user, client_for):
+    subscribe(user)  # AI video is Premium only
     import shutil
     import subprocess
     import tempfile
@@ -631,6 +633,7 @@ def test_video_tryon_preserves_motion_sequence(settings, monkeypatch, user, clie
 
 
 def test_video_tryon_replicate_kling_omni(settings, monkeypatch, user, client_for):
+    subscribe(user)  # AI video is Premium only
     import requests
     import shutil
     import subprocess
@@ -706,6 +709,7 @@ def test_video_tryon_replicate_kling_omni(settings, monkeypatch, user, client_fo
 
 
 def test_video_tryon_falls_back_to_openai_when_replicate_has_no_credits(settings, monkeypatch, user, client_for):
+    subscribe(user)  # AI video is Premium only
     import requests
     import shutil
     import subprocess
@@ -776,6 +780,7 @@ def test_video_tryon_falls_back_to_openai_when_replicate_has_no_credits(settings
 
 
 def test_fal_photo_and_video_tryon_and_admin_video_gallery(settings, monkeypatch, user, make_user, client_for):
+    subscribe(user)  # AI video is Premium only
     import requests
     import shutil
     import subprocess

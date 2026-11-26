@@ -22,6 +22,7 @@ from apps.studios import public_views as studio_views
 from apps.studios.public_views import PublicStudioViewSet, StudioMePortfolioImageView, StudioMePortfolioView
 from apps.studios.views import StudioViewSet
 from apps.subscriptions.views import (
+    AdminFinanceViewSet,
     AdminPlanViewSet,
     AdminSettingsViewSet,
     AdminSubscriptionViewSet,
@@ -59,6 +60,7 @@ router.register("subscriptions/plans", PlanListViewSet, basename="subscription-p
 router.register("me/subscriptions", MySubscriptionViewSet, basename="my-subscription")
 router.register("admin/subscriptions", AdminSubscriptionViewSet, basename="admin-subscription")
 router.register("admin/subscription-plans", AdminPlanViewSet, basename="admin-subscription-plan")
+router.register("admin/finance", AdminFinanceViewSet, basename="admin-finance")
 router.register("me/venue-bookings", MyVenueBookingViewSet, basename="my-venue-booking")
 router.register("admin/media-deletion-requests", AdminDeletionRequestViewSet, basename="admin-media-deletion-request")
 router.register("support/tickets", MySupportTicketViewSet, basename="support-ticket")

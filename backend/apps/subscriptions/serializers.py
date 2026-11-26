@@ -6,7 +6,7 @@ from apps.studios.models import Studio
 from apps.venues.models import Venue
 
 from . import services
-from .models import PaymentMethod, Subscription, SubscriptionPlan, SubscriptionSettings
+from .models import Expense, PaymentMethod, Subscription, SubscriptionPlan, SubscriptionSettings
 
 STATES = ["PENDING", "ACTIVE", "SCHEDULED", "EXPIRED", "REJECTED", "CANCELLED"]
 
@@ -23,6 +23,9 @@ class PlanSerializer(serializers.ModelSerializer):
             "price",
             "currency",
             "max_viewers",
+            "ai_video_per_month",
+            "ai_photo_per_month",
+            "perks",
             "is_active",
             "position",
         ]
@@ -30,6 +33,8 @@ class PlanSerializer(serializers.ModelSerializer):
         extra_kwargs = {
             "duration_months": {"min_value": 1, "max_value": 120},
             "max_viewers": {"min_value": 1, "max_value": 1000},
+            "ai_video_per_month": {"max_value": 500},
+            "ai_photo_per_month": {"max_value": 5000},
             "position": {"max_value": 1000},
         }
 
@@ -76,6 +81,8 @@ class MySubscriptionSerializer(serializers.ModelSerializer):
             "currency",
             "duration_months",
             "max_viewers",
+            "ai_video_per_month",
+            "ai_photo_per_month",
             "starts_at",
             "ends_at",
             "user_note",
@@ -180,3 +187,33 @@ class SummarySerializer(serializers.Serializer):
     active = serializers.IntegerField()
     revenue_month = serializers.DecimalField(max_digits=16, decimal_places=2)
     revenue_total = serializers.DecimalField(max_digits=16, decimal_places=2)
+
+
+# ---------------------------------------------------------------- finance
+class ExpenseSerializer(serializers.ModelSerializer):
+    created_by_name = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Expense
+        fields = ["id", "category", "title", "amount", "spent_on", "note", "created_by_name", "created_at"]
+        read_only_fields = ["id", "created_by_name", "created_at"]
+        extra_kwargs = {"amount": {"min_value": 0, "max_value": 10_000_000_000}}
+
+    def get_created_by_name(self, obj) -> str:
+        u = obj.created_by
+        return f"{u.first_name} {u.last_name}".strip() if u else ""
+
+
+class UsdRateSerializer(serializers.Serializer):
+    usd_rate = serializers.DecimalField(max_digits=10, decimal_places=2, min_value=1000, max_value=100000)
+
+
+class BusinessBillingSerializer(serializers.Serializer):
+    kind = serializers.ChoiceField(choices=["studio", "venue"])
+    id = serializers.UUIDField()
+    name = serializers.CharField()
+    state = serializers.ChoiceField(choices=["OK", "GRACE", "OVERDUE"])
+    monthly_fee = serializers.IntegerField()
+    paid_until = serializers.DateTimeField(allow_null=True)
+    grace_until = serializers.DateTimeField()
+    visible = serializers.BooleanField(help_text="Ommaviy katalogda ko'rinadimi")
