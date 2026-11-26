@@ -318,7 +318,25 @@ def render_video_tryon(*, video_upload, garment) -> VideoTryOnResult:
                 fh.write(chunk)
 
         if is_replicate_configured():
-            return _render_via_replicate(src=src, work=work, garment=garment)
+            try:
+                return _render_via_replicate(src=src, work=work, garment=garment)
+            except openai_tryon.OpenAITryOnError as exc:
+                if (
+                    exc.code
+                    in (
+                        "provider_insufficient_credits",
+                        "provider_auth_failed",
+                        "provider_rate_limited",
+                        "provider_unavailable",
+                    )
+                    and openai_tryon.is_configured()
+                ):
+                    logger.warning(
+                        "replicate video try-on unavailable (%s); falling back to OpenAI keyframes",
+                        exc.code,
+                    )
+                else:
+                    raise
 
         if not openai_tryon.is_configured():
             raise openai_tryon.OpenAITryOnError("ai_tryon_not_configured")

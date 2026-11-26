@@ -703,3 +703,73 @@ def test_video_tryon_replicate_kling_omni(settings, monkeypatch, user, client_fo
     assert captured["input"]["reference_video"].endswith("input_720p.mp4")
     assert len(captured["input"]["reference_images"]) == 1
     assert client.get(res.data["video_url"]).status_code == 200
+
+
+def test_video_tryon_falls_back_to_openai_when_replicate_has_no_credits(settings, monkeypatch, user, client_for):
+    import requests
+    import shutil
+    import subprocess
+    import tempfile
+    from apps.virtual_tryon import openai_tryon
+
+    if not shutil.which("ffmpeg"):
+        pytest.skip("ffmpeg not installed")
+
+    settings.AI_TRYON = {
+        **settings.AI_TRYON,
+        "REPLICATE_API_TOKEN": "r8_no_credit_token",
+        "OPENAI_MODEL": "gpt-image-1.5",
+    }
+    settings.AI_PLANNER = {**settings.AI_PLANNER, "OPENAI_API_KEY": "sk-test-fallback"}
+    garment = make_garment(name="Fallback Video Suit")
+
+    class FakeRes:
+        def __init__(self, status_code=200, data=None):
+            self.status_code = status_code
+            self._data = data or {}
+            self.text = str(data or "")
+
+        def json(self):
+            return self._data
+
+    def fake_post(url, headers=None, files=None, json=None, timeout=None):
+        if url.endswith("/files"):
+            fname = files["content"][0]
+            return FakeRes(201, {"urls": {"get": f"https://api.replicate.com/v1/files/{fname}"}})
+        return FakeRes(402, {"title": "Insufficient credit", "status": 402})
+
+    def fake_render(*, photo_bytes, garment, garment_bytes=None, quality=None):
+        img = Image.open(io.BytesIO(photo_bytes)).convert("RGB")
+        buf = io.BytesIO()
+        img.save(buf, format="JPEG", quality=90)
+        return openai_tryon.TryOnRenderResult(
+            image_bytes=buf.getvalue(),
+            content_type="image/jpeg",
+            width=img.width,
+            height=img.height,
+            model="gpt-image-1.5",
+            latency_ms=40,
+        )
+
+    monkeypatch.setattr(requests, "post", fake_post)
+    monkeypatch.setattr(openai_tryon, "render_tryon", fake_render)
+
+    with tempfile.TemporaryDirectory() as tmp:
+        src = Path(tmp) / "clip.webm"
+        subprocess.run(
+            ["ffmpeg", "-y", "-f", "lavfi", "-i", "testsrc=duration=3:size=320x240:rate=12", "-c:v", "libvpx", str(src)],
+            check=True,
+            capture_output=True,
+        )
+        src_bytes = src.read_bytes()
+
+    client = client_for(user)
+    res = client.post(
+        f"{BASE}/ai/render-video/",
+        {"garment": str(garment.pk), "video": SimpleUploadedFile("clip.webm", src_bytes, content_type="video/webm")},
+        format="multipart",
+    )
+    assert res.status_code == 200, res.data
+    assert res.data["model"] == "gpt-image-1.5"
+    assert res.data["frames"] == 8
+    assert client.get(res.data["video_url"]).status_code == 200
