@@ -75,8 +75,10 @@ PORTFOLIO_MAX_SIDE = 1920
 
 
 def public_studios():
-    """Studios shown to customers: active and not deleted (studios are created by the panel)."""
-    return Studio.objects.filter(deleted_at__isnull=True, is_active=True)
+    """Studios shown to customers: active, not deleted, and paid or within the fee grace period."""
+    from apps.subscriptions.billing import visible_q
+
+    return Studio.objects.filter(visible_q("studio"), deleted_at__isnull=True, is_active=True)
 
 
 def _next_position(studio: Studio) -> int:

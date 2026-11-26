@@ -107,7 +107,11 @@ def parse_range(params) -> tuple[datetime.date, datetime.date]:
 
 # ------------------------------------------------------------------- public
 def public_venues():
-    return Venue.objects.filter(deleted_at__isnull=True, is_active=True, publication_status=PublicationStatus.APPROVED)
+    from apps.subscriptions.billing import visible_q
+
+    return Venue.objects.filter(
+        visible_q("venue"), deleted_at__isnull=True, is_active=True, publication_status=PublicationStatus.APPROVED
+    )
 
 
 def public_halls(venue: Venue):
