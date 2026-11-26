@@ -248,6 +248,8 @@ class SavedLook(BaseModel):
     height = models.PositiveIntegerField(default=0)
     drive_file_id = models.CharField(max_length=128, blank=True, default="")
     drive_web_url = models.URLField(max_length=500, blank=True, default="")
+    #: True when the user removed the look from their own gallery; kept visible in the admin panel.
+    hidden_by_user = models.BooleanField(default=False)
 
     class Meta:
         ordering = ["-created_at"]

@@ -374,7 +374,11 @@ def test_saved_looks_are_private_files(ai_on, user, make_user, client_for):
 
     assert [r["id"] for r in client.get(f"{BASE}/looks/").data["results"]] == [str(look.pk)]
     assert client.delete(f"{BASE}/looks/{look.pk}/").status_code == 204
-    assert not stored.exists()
+    assert client.get(f"{BASE}/looks/").data["results"] == []
+    assert client.get(res.data["image"]).status_code == 404
+    # Kept intact for the admin panel even after the user removes it from their own gallery
+    look.refresh_from_db()
+    assert look.hidden_by_user is True and stored.exists()
 
 
 def test_saved_look_limit_and_validation(ai_on, user, client_for):

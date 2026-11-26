@@ -445,7 +445,7 @@ class SavedLookViewSet(mixins.ListModelMixin, mixins.DestroyModelMixin, viewsets
     def get_queryset(self):
         if getattr(self, "swagger_fake_view", False):
             return SavedLook.objects.none()
-        return SavedLook.objects.filter(user=self.request.user).select_related("garment")
+        return SavedLook.objects.filter(user=self.request.user, hidden_by_user=False).select_related("garment")
 
     def get_throttles(self):
         if self.action == "create":
@@ -463,7 +463,10 @@ class SavedLookViewSet(mixins.ListModelMixin, mixins.DestroyModelMixin, viewsets
         body = SavedLookCreateSerializer(data=request.data)
         body.is_valid(raise_exception=True)
         data = body.validated_data
-        if SavedLook.objects.filter(user=request.user).count() >= settings.AI_TRYON["MAX_SAVED_LOOKS_PER_USER"]:
+        if (
+            SavedLook.objects.filter(user=request.user, hidden_by_user=False).count()
+            >= settings.AI_TRYON["MAX_SAVED_LOOKS_PER_USER"]
+        ):
             raise ValidationError({"image": ["Saqlangan obrazlar soni chegarasiga yetdi. Eskilarini o'chiring."]})
         garment = visible_garments().filter(pk=data["garment"]).first() if data.get("garment") else None
         session = (
@@ -484,8 +487,8 @@ class SavedLookViewSet(mixins.ListModelMixin, mixins.DestroyModelMixin, viewsets
         return Response(SavedLookSerializer(look, context={"request": request}).data, status=status.HTTP_201_CREATED)
 
     def perform_destroy(self, look):
-        look.image.delete(save=False)
-        look.delete()
+        look.hidden_by_user = True
+        look.save(update_fields=["hidden_by_user", "updated_at"])
 
     @extend_schema(
         summary="Saqlangan obraz rasmi (faqat egasi)",
