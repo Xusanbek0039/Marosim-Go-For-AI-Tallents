@@ -101,6 +101,11 @@ class Garment(BaseModel, SoftDeleteModel):
     sizes = models.JSONField(default=list, blank=True)
     #: e.g. [{"name": "Oq", "hex": "#FFFFFF"}]
     colors = models.JSONField(default=list, blank=True)
+    brand = models.CharField(max_length=80, blank=True, default="")
+    material = models.CharField(max_length=120, blank=True, default="")
+    stock_quantity = models.PositiveIntegerField(default=10)
+    delivery_days = models.PositiveSmallIntegerField(default=2)
+    care_instructions = models.CharField(max_length=200, blank=True, default="")
     cover_image = models.ImageField(upload_to=garment_upload_to, blank=True)
     asset_type = models.CharField(max_length=12, choices=GarmentAssetType.choices, default=GarmentAssetType.LAYERED_2D)
     is_tryon_enabled = models.BooleanField(default=True)
@@ -247,3 +252,50 @@ class SavedLook(BaseModel):
     class Meta:
         ordering = ["-created_at"]
         indexes = [models.Index(fields=["user", "created_at"])]
+
+
+class OrderStatus(models.TextChoices):
+    NEW = "NEW", "Yangi"
+    CONFIRMED = "CONFIRMED", "Tasdiqlangan"
+    PREPARING = "PREPARING", "Tayyorlanmoqda"
+    SHIPPED = "SHIPPED", "Yo'lda"
+    DELIVERED = "DELIVERED", "Yetkazildi"
+    CANCELLED = "CANCELLED", "Bekor qilindi"
+
+
+class DeliveryType(models.TextChoices):
+    DELIVERY = "DELIVERY", "Kuryer orqali yetkazib berish"
+    PICKUP = "PICKUP", "Do'kondan olib ketish"
+
+
+class PaymentMethod(models.TextChoices):
+    CASH = "CASH", "Naqd (yetkazilganda)"
+    CARD = "CARD", "Karta orqali (Click / Payme)"
+
+
+class GarmentOrder(BaseModel):
+    """A garment purchase placed by a user (typically right after trying it on in AI Fashion Studio)."""
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="garment_orders")
+    garment = models.ForeignKey(Garment, on_delete=models.PROTECT, related_name="orders")
+    look = models.ForeignKey(SavedLook, on_delete=models.SET_NULL, null=True, blank=True, related_name="orders")
+    size = models.CharField(max_length=20)
+    color = models.CharField(max_length=40, blank=True, default="")
+    quantity = models.PositiveSmallIntegerField(default=1)
+    unit_price = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    total_price = models.DecimalField(max_digits=14, decimal_places=2, default=0)
+    currency = models.CharField(max_length=3, choices=Currency.choices, default=Currency.UZS)
+    customer_name = models.CharField(max_length=120)
+    customer_phone = models.CharField(max_length=32)
+    delivery_type = models.CharField(max_length=12, choices=DeliveryType.choices, default=DeliveryType.DELIVERY)
+    delivery_address = models.CharField(max_length=300, blank=True, default="")
+    payment_method = models.CharField(max_length=10, choices=PaymentMethod.choices, default=PaymentMethod.CASH)
+    notes = models.CharField(max_length=500, blank=True, default="")
+    status = models.CharField(max_length=12, choices=OrderStatus.choices, default=OrderStatus.NEW)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [models.Index(fields=["user", "created_at"]), models.Index(fields=["status", "created_at"])]
+
+    def __str__(self) -> str:
+        return f"Order {self.pk} ({self.garment_id}, size={self.size})"
