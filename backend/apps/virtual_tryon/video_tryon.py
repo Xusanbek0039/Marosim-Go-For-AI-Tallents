@@ -195,10 +195,16 @@ def render_video_tryon(*, video_upload, garment) -> VideoTryOnResult:
                 fh.write(chunk)
 
         keyframes = _extract_keyframes(src, work, count=KEYFRAME_COUNT)
+        # Pre-read the garment image ONCE on the main thread (Django's FieldFile is not thread-safe).
+        garment_bytes = openai_tryon._garment_png(garment)
 
         # Render all keyframes in parallel via OpenAI gpt-image-1.5 (input_fidelity="high")
         def _dress(frame_bytes: bytes) -> openai_tryon.TryOnRenderResult:
-            return openai_tryon.render_tryon(photo_bytes=frame_bytes, garment=garment)
+            return openai_tryon.render_tryon(
+                photo_bytes=frame_bytes,
+                garment=garment,
+                garment_bytes=garment_bytes,
+            )
 
         with ThreadPoolExecutor(max_workers=len(keyframes)) as pool:
             results = list(pool.map(_dress, keyframes))

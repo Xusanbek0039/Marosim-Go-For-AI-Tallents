@@ -101,12 +101,12 @@ def _build_prompt(garment) -> str:
     )
 
 
-def render_tryon(*, photo_bytes: bytes, garment) -> TryOnRenderResult:
+def render_tryon(*, photo_bytes: bytes, garment, garment_bytes: bytes | None = None) -> TryOnRenderResult:
     """Call OpenAI ``/v1/images/edits`` with the person photo + garment reference image."""
     if not is_configured():
         raise OpenAITryOnError("ai_tryon_not_configured")
 
-    garment_bytes = _garment_png(garment)
+    garment_bytes = garment_bytes if garment_bytes is not None else _garment_png(garment)
     model = _model()
     url = f"{_base_url()}/images/edits"
     headers = {"Authorization": f"Bearer {_api_key()}"}
