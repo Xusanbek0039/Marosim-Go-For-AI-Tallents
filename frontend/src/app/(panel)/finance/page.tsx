@@ -14,7 +14,7 @@ import {
   Trash2Icon,
   WalletIcon,
 } from "lucide-react";
-import { useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { toast } from "sonner";
 
 import { EmptyState, ErrorState, GlassCard, PageHeader, RowsSkeleton } from "@/components/common";
@@ -467,7 +467,15 @@ function RateEditor({ rate }: { rate: number | string }) {
 }
 
 function FinanceContent() {
-  const [month, setMonth] = useState(thisMonth());
+  const [month, setMonth] = useState("");
+  const [maxMonth, setMaxMonth] = useState("");
+
+  useEffect(() => {
+    const current = thisMonth();
+    setMaxMonth(current);
+    setMonth((prev) => prev || current);
+  }, []);
+
   const report = useFinanceReport(month);
   return (
     <div className="flex flex-col gap-5">
@@ -477,11 +485,18 @@ function FinanceContent() {
         actions={
           <>
             {report.data && <RateEditor key={String(report.data.usd_rate)} rate={report.data.usd_rate} />}
-            <Input type="month" aria-label="Oy" className="h-10 w-44" value={month} max={thisMonth()} onChange={(e) => e.target.value && setMonth(e.target.value)} />
+            <Input
+              type="month"
+              aria-label="Oy"
+              className="h-10 w-44"
+              value={month}
+              max={maxMonth || undefined}
+              onChange={(e) => e.target.value && setMonth(e.target.value)}
+            />
           </>
         }
       />
-      {report.isPending ? (
+      {!month || report.isPending ? (
         <RowsSkeleton rows={6} />
       ) : report.error ? (
         <ErrorState error={report.error} onRetry={() => report.refetch()} />
@@ -491,7 +506,7 @@ function FinanceContent() {
           <TrendChart trend={report.data.trend} />
           <Breakdown r={report.data} />
           <Receivables r={report.data} />
-          <Expenses month={month} />
+          <Expenses key={month} month={month} />
           <PlanEconomics r={report.data} />
         </>
       )}
@@ -503,7 +518,9 @@ export default function FinancePage() {
   return (
     <RequirePermission requires="finance.view">
       <PageTransition>
-        <FinanceContent />
+        <Suspense fallback={<RowsSkeleton rows={6} />}>
+          <FinanceContent />
+        </Suspense>
       </PageTransition>
     </RequirePermission>
   );

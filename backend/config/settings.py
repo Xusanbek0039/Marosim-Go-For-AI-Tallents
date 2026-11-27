@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     "apps.support",
     "apps.virtual_tryon",
     "apps.event_planner",
+    "apps.backup",
 ]
 
 MIDDLEWARE = [
@@ -483,6 +484,9 @@ BUSINESS_BILLING = {
     "VENUE_MONTHLY_FEE": env.int("BUSINESS_VENUE_MONTHLY_FEE", default=300_000),
     "STUDIO_MONTHLY_FEE": env.int("BUSINESS_STUDIO_MONTHLY_FEE", default=150_000),
 }
+
+# Backup mode (apps.backup): free months from the first ceremony video, and again after Premium ends.
+BACKUP_FREE_MONTHS = env.int("BACKUP_FREE_MONTHS", default=3)
 
 # Users without Premium: AI photos per month (AI video is Premium only).
 AI_FREE_PHOTOS_PER_MONTH = env.int("AI_FREE_PHOTOS_PER_MONTH", default=3)

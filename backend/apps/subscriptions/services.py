@@ -196,6 +196,7 @@ def approve(request, sub: Subscription, **payment) -> Subscription:
     record(
         request, AuditAction.UPDATE, sub, changes={"status": ["PENDING", "ACTIVE"], "ends_at": sub.ends_at.isoformat()}
     )
+    _sync_backup(sub)
     return sub
 
 
@@ -210,6 +211,7 @@ def grant(request, user, plan: SubscriptionPlan, *, studio=None, venue=None, **p
     _activate(sub, request.user, payment)
     sub.save()
     record(request, AuditAction.CREATE, sub, changes={"plan": plan.code, "status": "ACTIVE", "granted": True})
+    _sync_backup(sub)
     return sub
 
 
@@ -239,6 +241,15 @@ def cancel(request, sub: Subscription, *, by_user: bool, admin_note: str = "") -
     sub.save(update_fields=["status", "decided_by", "decided_at", "admin_note", "updated_at"])
     record(request, AuditAction.UPDATE, sub, changes={"status": [before, "CANCELLED"], "by_user": by_user})
     return sub
+
+
+def _sync_backup(sub: Subscription) -> None:
+    """Buying Premium takes a couple out of Backup at once (apps.backup), after this transaction."""
+    if sub.studio_id or sub.venue_id:
+        return
+    from apps.backup.services import sync
+
+    transaction.on_commit(lambda: sync(sub.user))
 
 
 def _lock_target(user, studio=None, venue=None) -> None:

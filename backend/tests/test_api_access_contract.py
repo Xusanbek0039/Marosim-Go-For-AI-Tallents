@@ -435,6 +435,32 @@ OWNERSHIP_TESTS = {
     "me_subscriptions_billing_list": "ownership_business_billing_is_own",
     **dict.fromkeys(
         [
+            "admin_backup_list",
+            "admin_backup_retrieve",
+            "admin_backup_summary_retrieve",
+            "admin_backup_sync_create",
+            "admin_backup_backup_create",
+            "admin_backup_release_create",
+            "admin_backup_extend_premium_create",
+            "admin_backup_ceremonies_media_list",
+            "admin_backup_ceremonies_media_destroy",
+            "admin_backup_ceremonies_media_download_retrieve",
+            "admin_backup_ceremonies_media_stream_retrieve",
+            "admin_backup_ceremonies_media_thumbnail_retrieve",
+        ],
+        "ownership_backup_admin_rights",
+    ),
+    **dict.fromkeys(
+        [
+            "me_backup_retrieve",
+            "me_notifications_list",
+            "me_notifications_read_all_create",
+            "me_notifications_read_create",
+        ],
+        "ownership_backup_own_state",
+    ),
+    **dict.fromkeys(
+        [
             "admin_finance_list",
             "admin_finance_create",
             "admin_finance_rate_partial_update",
@@ -621,6 +647,10 @@ ownership_subscription_targets = _badge_tests.test_business_purchase_ownership_a
 from . import test_premium_finance as _premium_tests  # noqa: E402
 
 ownership_business_billing_is_own = _premium_tests.test_unpaid_studio_leaves_the_catalog_after_grace_and_returns_when_paid
+from . import test_backup as _backup_tests  # noqa: E402
+
+ownership_backup_admin_rights = _backup_tests.test_admin_sees_states_moves_users_and_views_backed_up_media
+ownership_backup_own_state = _backup_tests.test_free_period_starts_from_the_first_video_and_ends_in_backup
 ownership_finance_rights_from_codes = _premium_tests.test_finance_report_counts_income_ai_costs_and_manual_expenses
 
 from . import test_virtual_tryon as _tryon_tests  # noqa: E402

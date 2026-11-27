@@ -43,6 +43,10 @@ ADMIN_PERMISSIONS: tuple[PermissionDef, ...] = (
     PermissionDef(
         "subscriptions.plans", "subscriptions", "Obuna narxlari, limitlar va to'lov ma'lumotlarini boshqarish"
     ),
+    PermissionDef("backup.view", "backup", "Backup holatlari va backupdagi video-rasmlarni ko'rish"),
+    PermissionDef(
+        "backup.manage", "backup", "Backupga o'tkazish / chiqarish, muddatlarni uzaytirish, backupdagi faylni o'chirish"
+    ),
     PermissionDef("finance.view", "finance", "Kirim-chiqim hisobotini ko'rish"),
     PermissionDef("finance.manage", "finance", "Xarajat qo'shish / o'chirish, dollar kursini o'zgartirish"),
     PermissionDef("requests.view", "requests", "So'rovlarni ko'rish (media o'chirish)"),
@@ -78,6 +82,7 @@ MODULE_LABELS = {
     "reviews": "Sharhlar",
     "subscriptions": "Obunalar",
     "finance": "Kirim-chiqim",
+    "backup": "Backup rejimi",
     "requests": "So'rovlar",
     "support": "Yordam",
     "tryon": "Virtual kiyib ko'rish",

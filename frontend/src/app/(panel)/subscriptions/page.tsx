@@ -367,16 +367,16 @@ function SubscriptionsTab() {
                 <div className="ml-auto flex gap-2">
                   {canDecide && s.state === "PENDING" && (
                     <>
-                      <Button size="sm" variant="ghost" onClick={() => setDialog({ kind: "reject", sub: s })}>
+                      <Button variant="ghost" className="h-10" onClick={() => setDialog({ kind: "reject", sub: s })}>
                         <XIcon /> Rad etish
                       </Button>
-                      <Button size="sm" onClick={() => setDialog({ kind: "approve", sub: s })}>
+                      <Button className="h-10 px-5" onClick={() => setDialog({ kind: "approve", sub: s })}>
                         <CheckIcon /> Tasdiqlash
                       </Button>
                     </>
                   )}
                   {canDecide && (s.state === "ACTIVE" || s.state === "SCHEDULED") && (
-                    <Button size="sm" variant="destructive" onClick={() => setDialog({ kind: "cancel", sub: s })}>
+                    <Button variant="destructive" className="h-10" onClick={() => setDialog({ kind: "cancel", sub: s })}>
                       <BanIcon /> Bekor qilish
                     </Button>
                   )}

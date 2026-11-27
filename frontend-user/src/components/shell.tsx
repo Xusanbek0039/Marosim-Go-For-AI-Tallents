@@ -26,6 +26,7 @@ import { useTheme } from "next-themes";
 import { useState, useSyncExternalStore } from "react";
 import { toast } from "sonner";
 
+import { BackupBanner, NotificationBell } from "./notifications";
 import { PaidBadge } from "./paid-badge";
 
 import { APP } from "@/lib/app-config";
@@ -217,6 +218,7 @@ export function Shell({ nav, children }: { nav: NavLink[]; children: React.React
               <Logo />
             </Link>
             <div className="flex items-center gap-1.5">
+              <NotificationBell />
               <ThemeToggle />
               <Link
                 href="/profile"
@@ -239,6 +241,10 @@ export function Shell({ nav, children }: { nav: NavLink[]; children: React.React
             transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
             className="flex flex-1 flex-col gap-6"
           >
+            <div className="-mb-3 hidden justify-end lg:flex">
+              <NotificationBell />
+            </div>
+            <BackupBanner />
             {children}
           </motion.main>
         </div>

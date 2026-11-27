@@ -80,11 +80,19 @@ const keys = {
 };
 
 export function useFinanceReport(month: string) {
-  return useQuery({ queryKey: keys.report(month), queryFn: () => api.get<FinanceReport>("/admin/finance/report/", { month }) });
+  return useQuery({
+    queryKey: keys.report(month),
+    queryFn: () => api.get<FinanceReport>("/admin/finance/report/", { month }),
+    enabled: Boolean(month),
+  });
 }
 
 export function useExpenses(month: string) {
-  return useQuery({ queryKey: keys.expenses(month), queryFn: () => api.get<Expense[]>("/admin/finance/", { month }) });
+  return useQuery({
+    queryKey: keys.expenses(month),
+    queryFn: () => api.get<Expense[]>("/admin/finance/", { month }),
+    enabled: Boolean(month),
+  });
 }
 
 function useInvalidate() {

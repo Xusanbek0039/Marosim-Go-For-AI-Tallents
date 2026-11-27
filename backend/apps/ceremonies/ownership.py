@@ -134,9 +134,20 @@ def live_viewers():
     )
 
 
+def _in_backup(user, ceremony: Ceremony | None = None) -> bool:
+    """Backup mode (apps.backup): the couple's ceremonies are visible to Admin / Super Admin only."""
+    from apps.backup.services import backed_up_ceremonies_q, user_in_backup
+
+    if user_in_backup(user):
+        return True
+    return ceremony is not None and Ceremony.objects.filter(backed_up_ceremonies_q(), pk=ceremony.pk).exists()
+
+
 def role_in(user, ceremony: Ceremony) -> str | None:
     """``OWNER`` / ``VIEWER`` / ``None`` — re-evaluated from the database on every call."""
     if not is_client(user) or not _shareable(ceremony):
+        return None
+    if _in_backup(user, ceremony):
         return None
     if CeremonyOwnership.objects.filter(ceremony=ceremony, user=user, status=OwnershipStatus.ACCEPTED).exists():
         return AccessRole.OWNER
@@ -178,9 +189,13 @@ def accessible_ceremonies(user):
     """Every ceremony ``user`` may open, as OWNER or VIEWER."""
     if not is_client(user):
         return Ceremony.objects.none()
+    if _in_backup(user):
+        return Ceremony.objects.none()
+    from apps.backup.services import backed_up_ceremonies_q
+
     owned = CeremonyOwnership.objects.filter(user=user, status=OwnershipStatus.ACCEPTED).values("ceremony_id")
     viewed = live_viewers().filter(user=user).values("ceremony_id")
-    return _shareable_ceremonies().filter(Q(pk__in=owned) | Q(pk__in=viewed))
+    return _shareable_ceremonies().filter(Q(pk__in=owned) | Q(pk__in=viewed)).exclude(backed_up_ceremonies_q())
 
 
 # ------------------------------------------------------------- invitations

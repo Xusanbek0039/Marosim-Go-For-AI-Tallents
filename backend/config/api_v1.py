@@ -21,6 +21,7 @@ from apps.reviews.views import AdminReviewViewSet, LikeView, MyReviewView, Targe
 from apps.studios import public_views as studio_views
 from apps.studios.public_views import PublicStudioViewSet, StudioMePortfolioImageView, StudioMePortfolioView
 from apps.studios.views import StudioViewSet
+from apps.backup.views import AdminBackupViewSet, MyBackupView, MyNotificationViewSet
 from apps.subscriptions.views import (
     AdminFinanceViewSet,
     AdminPlanViewSet,
@@ -61,6 +62,8 @@ router.register("me/subscriptions", MySubscriptionViewSet, basename="my-subscrip
 router.register("admin/subscriptions", AdminSubscriptionViewSet, basename="admin-subscription")
 router.register("admin/subscription-plans", AdminPlanViewSet, basename="admin-subscription-plan")
 router.register("admin/finance", AdminFinanceViewSet, basename="admin-finance")
+router.register("admin/backup", AdminBackupViewSet, basename="admin-backup")
+router.register("me/notifications", MyNotificationViewSet, basename="my-notification")
 router.register("me/venue-bookings", MyVenueBookingViewSet, basename="my-venue-booking")
 router.register("admin/media-deletion-requests", AdminDeletionRequestViewSet, basename="admin-media-deletion-request")
 router.register("support/tickets", MySupportTicketViewSet, basename="support-ticket")
@@ -196,6 +199,8 @@ urlpatterns = [
     ],
     path("ceremonies/<uuid:ceremony_id>/media/", include("apps.media.urls")),
     path("me/ceremonies/<uuid:ceremony_id>/media/", include("apps.media.urls_me")),
+    path("me/backup/", MyBackupView.as_view(), name="my-backup"),
+    path("admin/backup/ceremonies/<uuid:ceremony_id>/media/", include("apps.backup.urls_media")),
     path(
         "admin/subscription-settings/",
         AdminSettingsViewSet.as_view({"get": "retrieve", "patch": "partial_update"}),

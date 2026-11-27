@@ -1,5 +1,6 @@
 import {
   ActivityIcon,
+  ArchiveIcon,
   BookOpenIcon,
   BotIcon,
   Building2Icon,
@@ -51,6 +52,7 @@ export const NAV_ITEMS: NavItem[] = [
   { href: "/reviews", label: "Sharhlar", icon: MessageSquareTextIcon, requires: "reviews.view" },
   { href: "/subscriptions", label: "Obunalar", icon: GemIcon, requires: "subscriptions.view" },
   { href: "/finance", label: "Kirim-chiqim", icon: LandmarkIcon, requires: "finance.view" },
+  { href: "/backup", label: "Backup", icon: ArchiveIcon, requires: "backup.view" },
   { href: "/requests", label: "So'rovlar", icon: InboxIcon, requires: "requests.view", badge: "requests" },
   {
     href: "/ai-planner",

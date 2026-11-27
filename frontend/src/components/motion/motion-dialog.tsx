@@ -86,7 +86,9 @@ export function MotionDialog({
                     )}
                   </div>
                   {children}
-                  {footer}
+                  {/* Footer buttons get their own row (equal widths; stacked on phones). Placed straight in the
+                      column above, their `flex-1` squashed them to ~20px tall. */}
+                  {footer ? <div className="grid gap-2.5 pt-1 sm:auto-cols-fr sm:grid-flow-col">{footer}</div> : null}
                   <CloseButton />
                 </motion.div>
               </DialogPrimitive.Content>

@@ -154,8 +154,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     });
   }, [logout, router]);
 
-  if (isPending || (error instanceof ApiError && error.status === 401)) return <FullScreenLoader />;
-  if (!me) return <FullScreenLoader />;
+  if (isPending || (error instanceof ApiError && error.status === 401) || !me) {
+    return (
+      <>
+        <FullScreenLoader />
+        <div hidden aria-hidden="true">
+          {children}
+        </div>
+      </>
+    );
+  }
   if (!isPanelRole(me.role)) return <Forbidden onLogout={handleLogout} />;
 
   return (

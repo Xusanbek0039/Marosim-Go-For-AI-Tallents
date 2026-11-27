@@ -26,6 +26,8 @@ export type PermissionCode =
   | "subscriptions.update"
   | "subscriptions.plans"
   | "finance.view"
+  | "backup.view"
+  | "backup.manage"
   | "finance.manage"
   | "requests.view"
   | "requests.media_delete"
